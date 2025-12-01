@@ -189,6 +189,7 @@ instr 2
 
 
   kRegOffset[] fillarray 32,59,85,116,0,0,0,0 ; register number offset per midi channel
+  kRuckSwitchOffset[] fillarray 74,70,72,76 ; special treatment of ruckpositiv enable switches
   iButnChan ftgen 0, 0, 256, -17, 0,8,  32,1,  59,2,  85,3,  116,4,  145, 1
 
   kbutn = 0
@@ -200,7 +201,6 @@ instr 2
       kstatus = 192
       kchan table kbutn, iButnChan
       if kbutn > 145 then ; ruckpositiv enable switches
-        kRuckSwitchOffset[] fillarray 74,70,72,76
         kprognum = kRuckSwitchOffset[kbutn-145-1]+1-kval
       else
         kprognum = ((kbutn-kRegOffset[kchan-1])*2)+1-kval
@@ -222,7 +222,11 @@ instr 2
     else
       kreg_onoff = 0
     endif
-    kregister += kRegOffset[kchan-1]
+    if kregister >= 70 && kchan == 1 then ; ruckpos switches
+      kregister = 146 ; test
+    else
+      kregister += kRegOffset[kchan-1]
+    endif
     Sreg sprintfk "reg %i ch %i onoff %i", kregister, kchan, kreg_onoff
     puts Sreg, changed(kdata1)+1
     cabbageSet 1, sprintfk("check%i", kregister), "value", kreg_onoff

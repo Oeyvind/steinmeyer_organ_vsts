@@ -100,11 +100,9 @@ instr 2
   print iseq_ndx
   puts Sprograms, 1
   iprogtable table iseq_ndx-1, giProg_tables
-  ;print iprogtable
-  ;tablecopy iprogtable, giPrograms_empty ; clear
   indx = 0
   while indx < 128 do
-    tablew 0, indx, iprogtable ; clear
+    tablew 0, indx, iprogtable ; clear (tablecopy could not be used as it seemds to do the work at the end of the init cycle)
     indx += 1
   od
   icomma strindex Sprograms, ","  
@@ -120,14 +118,6 @@ instr 2
   Snum strsub Sprograms, 0, icomma ; last one, or if no comma
   iprog strtod Snum
   tablew 1, iprog, iprogtable ; write a 1 to the prog position in the table
-  ;Sdebug sprintf "num_progs=%i", indx+1
-  ;puts Sdebug, 1
-  ;i1 table 0, iprogtable
-  ;i2 table 1, iprogtable
-  ;i3 table 2, iprogtable
-  ;print i1,i2,i3
-  ;iArr[] tab2array iprogtable
-  ;printarray iArr
 endin
 
 instr 3
@@ -155,20 +145,10 @@ instr 3
     progtab:
     icount = i(kcount)
     iprogtable table icount, giProg_tables
-    ;print iprogtable
     copyf2array kThis_step, iprogtable
-    ;k1 = kThis_step[1]
-    ;k2 = kThis_step[2]
-    ;k3 = kThis_step[3]
-    ;i1 table 0, iprogtable
-    ;i2 table 1, iprogtable
-    ;i3 table 2, iprogtable
-    ;print i1,i2,i3
     rireturn
     kProg_update[] = kLast_step-kThis_step
     kLast_step = kThis_step
-    ;ktest sumarray kThis_step
-    ;printk2 ktest
     ; send prog for those who has been updated
     kndx = 0
     while kndx < 128 do
@@ -191,8 +171,14 @@ instr 202
   print iprog
   print ichan
   iRegOffset[] fillarray 32,59,85,127,134,0,0,0, 32 ; register number offset per midi channel
-  iprognum = (iprog*2)-2;+iRegOffset[ichan-1]-2
-  imax_this_channel = iRegOffset[ichan] - iRegOffset[ichan-1] 
+  iRuckSwitchOffset[] fillarray 74,70,72,76 ; special treatment of ruckpositiv enable switches
+  if iprog >= 35 && ichan == 1 then ; ruckpos switches
+    iprognum = (iprog*2)
+    imax_this_channel = 99
+  else
+    iprognum = (iprog*2)-2
+    imax_this_channel = iRegOffset[ichan] - iRegOffset[ichan-1] 
+  endif
   if iprog <= imax_this_channel then
     midiout_i 192, ichan, iprognum, 0
     klast lastcycle
