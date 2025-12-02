@@ -15,6 +15,11 @@ combobox bounds( 60, 45, 35, 20), channel("tempo_mult"), items(1,2,3,4,5,6,7,8),
 nslider bounds(100, 45, 30, 20), channel("stepmod"), range(1,8,8, 1, 1), fontSize(13)
 label   bounds(100, 65, 30, 15), text("%"), fontSize(10)
 
+nslider bounds(135, 45, 30, 20), channel("rmod3"), range(0,1,0), fontSize(13)
+label   bounds(135, 65, 30, 15), text("r%3"), fontSize(10)
+nslider bounds(170, 45, 30, 20), channel("rmod5"), range(0,1,0), fontSize(13)
+label   bounds(170, 65, 30, 15), text("r%5"), fontSize(10)
+
 label bounds(5, 65, 130, 12), text("programs"), fontSize(10), align("left")
 button     bounds(5, 82, 23, 16), text("1:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_1")
 texteditor bounds(33, 80, 130, 20) fontSize(16), channel("programs_1"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
@@ -143,6 +148,23 @@ instr 3
   kcount init 0
   kcount = (kcount+ktrig)%knumsteps
   cabbageSetValue "ndex", kcount+1, changed(kcount)
+  ; random modulo 3 and 5 interpersed
+  krand_mod3 chnget "rmod3"
+  krand_mod5 chnget "rmod5"
+  if changed(kcount) > 0 && kcount%kstepmodulo == 0 then
+    kr3 random 0, 1
+    if kr3 < krand_mod3 then
+      cabbageSetValue "stepmod", 3, 1
+    else
+      kr5 random 0, 1
+      if kr5 < krand_mod5 then
+        cabbageSetValue "stepmod", 5, 1
+      else
+        cabbageSetValue "stepmod", 8, 1
+      endif
+    endif
+  endif
+  
   kThis_step[] init 128
   kLast_step[] init 128
   if changed(kcount) > 0 then
@@ -192,7 +214,7 @@ instr 10
     SFilenam = sprintfk:S("%s\\%s.pre", SPath, SFilename)
     kOk = cabbageChannelStateRecall:k(SFilenam, SIgnoreChannels)
     Stest sprintfk "test %s", "9,10";cabbageGetValue:k("programs_2")
-    cabbageSet 1, "programs_2", "text(\"hello world\")"
+    ;cabbageSet 1, "programs_2", "text(\"hello world\")"
   endif
   if changed:k(chnget:k("triggerSave")) == 1 then
     SFilename = sprintfk:S("%s\\PresetTest%d.pre", SPath, kFileNumber)
