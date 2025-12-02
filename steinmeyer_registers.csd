@@ -179,18 +179,10 @@ endin
 
 
 instr 2
-  ; program change
-  ; NEED TO CHECK PROG NUM og CHN FOR
-  ; - fjernverk 
-  ; - ruckpositiv
-  ; - manual koble til ruckpositiv
-  ; - fjernverk inn
-  ; - kororgel inn
-
 
   kRegOffset[] fillarray 32,59,85,116,0,0,0,0 ; register number offset per midi channel
-  kRuckSwitchOffset[] fillarray 74,70,72,76 ; special treatment of ruckpositiv enable switches
-  iButnChan ftgen 0, 0, 256, -17, 0,8,  32,1,  59,2,  85,3,  116,4,  145, 1
+  kRuckSwitchOffset[] fillarray 72,70,74,0,0,0,0,76 ; special treatment of ruckpositiv enable switches
+  iButnChan ftgen 0, 0, 256, -17, 0,8,  32,1,  59,2,  85,3,  116,4,  146, 3, 147, 2, 148, 1, 149, 8 ; last 4 are ruckpos switches
 
   kbutn = 0
   inumbuttons chnget "numbuttons"
@@ -201,7 +193,7 @@ instr 2
       kstatus = 192
       kchan table kbutn, iButnChan
       if kbutn > 145 then ; ruckpositiv enable switches
-        kprognum = kRuckSwitchOffset[kbutn-145-1]+1-kval
+        kprognum = kRuckSwitchOffset[kchan-1]+1-kval
       else
         kprognum = ((kbutn-kRegOffset[kchan-1])*2)+1-kval
       endif
@@ -222,10 +214,17 @@ instr 2
     else
       kreg_onoff = 0
     endif
-    if kregister >= 70 && kchan == 1 then ; ruckpos switches
-      kregister = 146 ; test
+    ; ruckpos switches
+    if kdata1 >= 72 && kdata1 <= 73 && kchan == 1 then ; ruckpos switch
+      kregister = 148 
+    elseif kdata1 >= 70 && kdata1 <= 71 && kchan == 2 then ; ruckpos switch
+      kregister = 147 
+    elseif kdata1 >= 74 && kdata1 <= 75 && kchan == 3 then ; ruckpos switch
+      kregister = 146 
+    elseif kdata1 >= 76 && kdata1 <= 77 && kchan == 8 then ; ruckpos switch
+      kregister = 149
     else
-      kregister += kRegOffset[kchan-1]
+      kregister += kRegOffset[kchan-1] ; regular registers
     endif
     Sreg sprintfk "reg %i ch %i onoff %i", kregister, kchan, kreg_onoff
     puts Sreg, changed(kdata1)+1

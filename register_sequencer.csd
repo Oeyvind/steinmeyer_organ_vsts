@@ -98,6 +98,10 @@ instr 1
 
   kplay chnget "play"
   ButtonEvent kplay, 3
+  kplay_off trigger kplay, 0.5, 1
+  if kplay_off > 0 then
+    turnoff2 202, 0, 1
+  endif
 
 endin
 
@@ -206,15 +210,29 @@ instr 202
   ichan = p5
   print iprog
   print ichan
-  iRegOffset[] fillarray 32,59,85,127,134,0,0,0, 32 ; register number offset per midi channel
-  iRuckSwitchOffset[] fillarray 74,70,72,76 ; special treatment of ruckpositiv enable switches
-  if iprog >= 35 && ichan == 1 then ; ruckpos switches
-    iprognum = (iprog*2)
+  iRegOffset[] fillarray  32,59,85,116,0,0,0,0 ; register number offset per midi channel
+  iRuckSwitchOffset[] fillarray 72,70,74,0,0,0,0,76 ; special treatment of ruckpositiv enable switches
+
+  if iprog == 99 && (ichan == 1 || ichan == 2 || ichan == 3 || ichan == 8) then ; ruckpos switch
+    iprognum = iRuckSwitchOffset[ichan-1] 
+    print iprognum
     imax_this_channel = 99
   else
-    iprognum = (iprog*2)-2
-    imax_this_channel = iRegOffset[ichan] - iRegOffset[ichan-1] 
+    iprognum = (iprog*2)-2 ; regular progs
+    if ichan == 8 then
+      imax_this_channel = 32
+    else
+      imax_this_channel = iRegOffset[ichan] - iRegOffset[ichan-1] 
+    endif
   endif
+
+  ; ruckpos registration should send prog change on ch 4, regardless of which manual is coupled to the ruckpos
+  if (iprog <= 113) && (iprog >= 101) && (ichan == 1 || ichan == 2 || ichan == 3 || ichan == 8) then
+    iprognum = ((iprog-101)*2)+36
+    ichan = 4
+    imax_this_channel = 112
+  endif
+
   if iprog <= imax_this_channel then
     midiout_i 192, ichan, iprognum, 0
     klast lastcycle
