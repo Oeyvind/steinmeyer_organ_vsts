@@ -1,42 +1,64 @@
 <Cabbage>
-form caption("Register Sequencer") size(500, 300), colour(30, 35, 40), guiMode("queue"), pluginId("rsq1")
+form caption("Register Sequencer") size(530, 300), colour(30, 35, 40), guiMode("queue"), pluginId("rsq2")
 
 button  bounds(  5, 10, 50, 30), channel("play"), text("Play"), colour:0("black"), colour:1("green")
 nslider bounds( 65, 10, 30, 20), channel("tempo"), range(30,300,1, 1, 1), fontSize(13)
 label   bounds( 65, 30, 30, 15), text("tempo"), fontSize(10)
-nslider bounds(100, 10, 30, 20), channel("numsteps"), range(1,8,8, 1, 1), fontSize(13)
-label   bounds(100, 30, 30, 15), text("numsteps"), fontSize(10)
 nslider bounds(135, 10, 30, 20), channel("ndex"), range(1,8,1, 1, 1), fontSize(13)
 label   bounds(135, 30, 30, 15), text("index"), fontSize(10)
-nslider bounds(170, 10, 30, 20), channel("outchan"), range(1,16,1, 1, 1), fontSize(13)
-label   bounds(170, 30, 30, 15), text("outchan"), fontSize(10)
 
-combobox bounds( 60, 45, 35, 20), channel("tempo_mult"), items(1,2,3,4,5,6,7,8), value(0)
-nslider bounds(100, 45, 30, 20), channel("stepmod"), range(1,8,8, 1, 1), fontSize(13)
-label   bounds(100, 65, 30, 15), text("%"), fontSize(10)
+combobox bounds(100, 10, 35, 20), channel("tempo_mult"), items(1,2,3,4,5,6,7,8), value(0)
+label    bounds(100, 30, 30, 15), text("div"), fontSize(10)
 
-label bounds(5, 65, 130, 12), text("programs"), fontSize(10), align("left")
-button     bounds(5, 82, 23, 16), text("1:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_1")
-texteditor bounds(33, 80, 130, 20) fontSize(16), channel("programs_1"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 107, 23, 16), text("2:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_2")
-texteditor bounds(33, 105, 130, 20) fontSize(16), channel("programs_2"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 132, 23, 16), text("3:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_3")
-texteditor bounds(33, 130, 130, 20) fontSize(16), channel("programs_3"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 157, 23, 16), text("4:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_4")
-texteditor bounds(33, 155, 130, 20) fontSize(16), channel("programs_4"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 182, 23, 16), text("5:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_5")
-texteditor bounds(33, 180, 130, 20) fontSize(16), channel("programs_5"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 207, 23, 16), text("6:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_6")
-texteditor bounds(33, 205, 130, 20) fontSize(16), channel("programs_6"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 232, 23, 16), text("7:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_7")
-texteditor bounds(33, 230, 130, 20) fontSize(16), channel("programs_7"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 257, 23, 16), text("8:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_8")
-texteditor bounds(33, 255, 130, 20) fontSize(16), channel("programs_8"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+groupbox bounds(5, 80, 205, 120), colour(25,35,40), lineThickness("0"){ 
+label   bounds(5, 3, 30, 15), text("numsteps"), fontSize(10)
+nslider bounds(5, 18, 30, 20), channel("numsteps_ch1"), range(1,8,8, 1, 1), fontSize(14)
+label    bounds(45, 3, 30, 15), text("%"), fontSize(10)
+nslider  bounds(45, 18, 30, 20), channel("stepmod_ch1"), range(1,8,8, 1, 1), fontSize(13)
+label    bounds(85, 3, 30, 15), text("r%3"), fontSize(10)
+nslider  bounds(85, 18, 30, 20), channel("rmod3_ch1"), range(0,1,0), fontSize(13)
+label    bounds(125, 3, 30, 15), text("r%5"), fontSize(10)
+nslider  bounds(125, 18, 30, 20), channel("rmod5_ch1"), range(0,1,0), fontSize(13)
+
+label   bounds(165, 3, 30, 15), text("chan"), fontSize(10)
+nslider bounds(165, 18, 30, 20), channel("out_ch1"), range(1,16,1, 1, 1), fontSize(13)
+
+label bounds(5, 40, 60, 12), text("step"), fontSize(10), align("left")
+label bounds(35, 40, 60, 12), text("nump"), fontSize(10), align("left")
+label bounds(70, 40, 90, 12), text("programs"), fontSize(10), align("left")
+
+button     bounds(5, 62, 23, 16), text("1:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_ch1_1")
+nslider    bounds(35, 60, 28, 20) fontSize(16), channel("numprograms_ch1_step_1"), range(1,4,1,1,1), fontSize(14)
+nslider    bounds(70, 60, 28, 20) fontSize(16), channel("programs_ch1_s1_1"), range(1,256,1,1,1), fontSize(14)
+nslider    bounds(100, 60, 28, 20) fontSize(16), channel("programs_ch1_s1_2"), range(1,256,1,1,1), fontSize(14)
+nslider    bounds(130, 60, 28, 20) fontSize(16), channel("programs_ch1_s1_3"), range(1,256,1,1,1), fontSize(14)
+nslider    bounds(160, 60, 28, 20) fontSize(16), channel("programs_ch1_s1_4"), range(1,256,1,1,1), fontSize(14)
+
+button     bounds(5, 85, 23, 16), text("2:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_ch1_2")
+nslider    bounds(35, 83, 28, 20) fontSize(16), channel("numprograms_ch1_step_2"), range(1,4,1,1,1), fontSize(14)
+nslider    bounds(70, 83, 28, 20) fontSize(16), channel("programs_ch1_s2_1"), range(1,256,1,1,1), fontSize(14)
+nslider    bounds(100, 83, 28, 20) fontSize(16), channel("programs_ch1_s2_2"), range(1,256,1,1,1), fontSize(14)
+nslider    bounds(130, 83, 28, 20) fontSize(16), channel("programs_ch1_s2_3"), range(1,256,1,1,1), fontSize(14)
+nslider    bounds(160, 83, 28, 20) fontSize(16), channel("programs_ch1_s2_4"), range(1,256,1,1,1), fontSize(14)
+}
+;texteditor bounds(33, 80, 130, 20) fontSize(16), channel("programs_1"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+;button     bounds(5, 107, 23, 16), text("2:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_2")
+;texteditor bounds(33, 105, 130, 20) fontSize(16), channel("programs_2"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+;button     bounds(5, 132, 23, 16), text("3:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_3")
+;texteditor bounds(33, 130, 130, 20) fontSize(16), channel("programs_3"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+;button     bounds(5, 157, 23, 16), text("4:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_4")
+;texteditor bounds(33, 155, 130, 20) fontSize(16), channel("programs_4"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+;button     bounds(5, 182, 23, 16), text("5:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_5")
+;texteditor bounds(33, 180, 130, 20) fontSize(16), channel("programs_5"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+;button     bounds(5, 207, 23, 16), text("6:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_6")
+;texteditor bounds(33, 205, 130, 20) fontSize(16), channel("programs_6"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+;button     bounds(5, 232, 23, 16), text("7:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_7")
+;texteditor bounds(33, 230, 130, 20) fontSize(16), channel("programs_7"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+;button     bounds(5, 257, 23, 16), text("8:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_8")
+;texteditor bounds(33, 255, 130, 20) fontSize(16), channel("programs_8"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
 
 
-csoundoutput bounds(205, 0, 295, 250)
-button bounds(205, 255, 80, 25), channel("triggerSave"), text("Save state")
-combobox bounds(290, 255, 200, 25), populate("*.pre", "."), channel("recallCombo"), channelType("string")
+csoundoutput bounds(235, 0, 295, 250)
 
 </Cabbage>
 
@@ -176,29 +198,6 @@ instr 3
 endin
 
 
-instr 10
-  SFilename, kTrig cabbageGetValue "recallCombo"
-  SPath = chnget:S("CSD_PATH")
-  kFileNumber chnget "filenumber"
-  if kTrig == 1 then
-    SIgnoreChannels[] init 3
-    SIgnoreChannels[0] = "triggerSave"
-    SIgnoreChannels[1] = "recallCombo"
-    SIgnoreChannels[2] = "ndex"
-    SFilenam = sprintfk:S("%s\\%s.pre", SPath, SFilename)
-    kOk = cabbageChannelStateRecall:k(SFilenam, SIgnoreChannels)
-    Stest sprintfk "test %s", "9,10";cabbageGetValue:k("programs_2")
-    cabbageSet 1, "programs_2", "text(\"hello world\")"
-  endif
-  if changed:k(chnget:k("triggerSave")) == 1 then
-    SFilename = sprintfk:S("%s\\PresetTest%d.pre", SPath, kFileNumber)
-    printks "%s", 0, SFilename
-    kOk = cabbageChannelStateSave:k(SFilename)
-    kFileNumber+=1
-    chnset kFileNumber, "filenumber"
-    cabbageSet 1, "recallCombo", "refreshFiles(1)" 
-  endif
-endin
 
 instr 202
   ; midi  output

@@ -15,7 +15,7 @@ csoundoutput bounds(0, 70, 300, 200)
 </CsOptions>
 <CsInstruments>
 
-ksmps = 1
+ksmps = 64
 massign -1, 3
 pgmassign -1, -1
 

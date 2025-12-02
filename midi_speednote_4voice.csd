@@ -71,7 +71,8 @@ csoundoutput bounds(0, 250, 300, 150)
 </CsOptions>
 <CsInstruments>
 
-ksmps = 1
+ksmps = 64
+pgmassign -1, -1
 
 opcode ButtonEvent, 0, kij
   kbutton, instrnum, iparm xin ; iparm is optional p4

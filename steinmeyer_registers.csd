@@ -12,7 +12,7 @@ csoundoutput bounds(0, 400, 600, 100)
 <CsInstruments>
 
 ksmps = 128
-;massign -1, 2
+massign -1, 99
 pgmassign 0, 0
 
 instr 1
@@ -234,6 +234,10 @@ instr 2
 
 endin
 
+
+instr 99
+; dummy
+endin
 
 </CsInstruments>
 <CsScore>
