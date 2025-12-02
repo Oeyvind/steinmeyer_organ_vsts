@@ -26,24 +26,49 @@ rslider channel("noiselevel"), bounds(210, 250, 60, 60), text("Noise"), range(-9
 
 rslider channel("panwidth"), bounds(70, 250, 60, 60), text("Panwidth"), range(0, 1, 0.5)
 
-groupbox bounds(280, 5, 235, 325), colour(25,35,40), lineThickness("0"){ 
+groupbox bounds(280, 5, 235, 330), colour(25,35,40), lineThickness("0"){ 
 button bounds(5, 5, 90, 16), channel("max_amps"), text("max(/acm)"), colour:0("black"), colour:1("green")
 hslider bounds(5, 20, 200, 30), channel("ampOn"), text("ampOn"), range(-96, 0, -12, 2, 0.1)
-hslider bounds(5, 50, 200, 30), channel("transpose"), text("transpose"), range(-12, 12, 0, 1, 1)
-hslider bounds(5, 80, 200, 30), channel("duration"), text("duration"), range(0, 1, 0.1)
-hslider bounds(5, 110, 200, 30), channel("dur_ampscale"), text("dur_ampscale"), range(0, 5, 0.1)
-hslider bounds(5, 140, 200, 30), channel("low_note"), text("lowNote"), range(0, 127, 36, 1, 1)
-hslider bounds(5, 170, 200, 30), channel("high_note"), text("highNote"), range(0, 127, 112, 1, 1)
-rslider bounds(5, 220, 50, 50), channel("midi_spect"), text("Spect-M"), range(0, 1, 1)
-rslider bounds(5, 270, 50, 50), channel("midi_ice"), text("Ice-M"), range(0, 1, 1)
-rslider bounds(65, 220, 50, 50), channel("midi_centr"), text("Centr-M"), range(0, 1, 1)
-rslider bounds(125, 220, 50, 50), channel("midi_mfcc"), text("Mfcc-M"), range(0, 1, 1)
-rslider bounds(185, 220, 50, 50), channel("midi_zeroc"), text("Zero-M"), range(0, 1, 1)
-hslider bounds(65, 275, 50, 20), channel("cmz_offset"), range(0, 20, 0, 1, 1)
-nslider bounds(115, 275, 50, 20), channel("cmz_offset_Hz"), range(0, 20000, 0, 1, 1)
-hslider bounds(65, 300, 50, 20), channel("cmz_range"), range(0, 100, 20, 1, 1)
-nslider bounds(115, 300, 50, 20), channel("cmz_range_Hz"), range(100, 20000, 1875, 1, 1)
+nslider bounds(62, 45, 30, 20), channel("low_note"), range(0, 127, 36, 1, 1), fontSize(14)
+label bounds(2, 53, 60, 12), text("lowNote"), fontSize(11)
+nslider bounds(170, 45, 30, 20), channel("high_note"), range(0, 127, 100, 1, 1), fontSize(14)
+label bounds(110, 53, 60, 12), text("highNote"), fontSize(11)
 
+label bounds(2, 75, 60, 12), text("transpose"), fontSize(11), align("left")
+nslider bounds(10, 89, 40, 20), channel("transpose_spect"), range(-12, 12, 0, 1, 1), fontSize(14)
+label bounds(2, 113, 60, 12), text("duration"), fontSize(11), align("left")
+nslider bounds(10, 127, 40, 20), channel("duration_spect"), range(0, 1, 0.11), fontSize(14)
+label bounds(2, 151, 60, 12), text("dur_amp_scale"), fontSize(11), align("left")
+nslider bounds(10, 165, 40, 20), channel("dur_ampscale_spect"), range(0, 5, 0.1), fontSize(14)
+label bounds(2, 189, 60, 12), text("midi_chan"), fontSize(11), align("left")
+nslider bounds(10, 203, 40, 20), channel("mchan_spect"), range(1, 16, 1, 1, 1), fontSize(14)
+
+nslider bounds(70, 89, 40, 20), channel("transpose_centroid"), range(-12, 12, 0, 1, 1), fontSize(14)
+nslider bounds(70, 127, 40, 20), channel("duration_centroid"), range(0, 1, 0.11), fontSize(14)
+nslider bounds(70, 165, 40, 20), channel("dur_ampscale_centroid"), range(0, 5, 0.1), fontSize(14)
+nslider bounds(70, 203, 40, 20), channel("mchan_centroid"), range(1, 16, 1, 1, 1), fontSize(14)
+
+nslider bounds(130, 89, 40, 20), channel("transpose_mfcc"), range(-12, 12, 0, 1, 1), fontSize(14)
+nslider bounds(130, 127, 40, 20), channel("duration_mfcc"), range(0, 1, 0.11), fontSize(14)
+nslider bounds(130, 165, 40, 20), channel("dur_ampscale_mfcc"), range(0, 5, 0.1), fontSize(14)
+nslider bounds(130, 203, 40, 20), channel("mchan_mfcc"), range(1, 16, 1, 1, 1), fontSize(14)
+
+nslider bounds(190, 89, 40, 20), channel("transpose_zeroc"), range(-12, 12, 0, 1, 1), fontSize(14)
+nslider bounds(190, 127, 40, 20), channel("duration_zeroc"), range(0, 1, 0.11), fontSize(14)
+nslider bounds(190, 165, 40, 20), channel("dur_ampscale_zeroc"), range(0, 5, 0.1), fontSize(14)
+nslider bounds(190, 203, 40, 20), channel("mchan_zeroc"), range(1, 16, 1, 1, 1), fontSize(14)
+
+rslider bounds(5, 225, 50, 50), channel("midi_spect"), text("Spect-M"), range(0, 1, 1)
+rslider bounds(5, 275, 50, 50), channel("midi_ice"), text("Ice-M"), range(0, 1, 1)
+rslider bounds(65, 225, 50, 50), channel("midi_centr"), text("Centr-M"), range(0, 1, 1)
+rslider bounds(125, 225, 50, 50), channel("midi_mfcc"), text("Mfcc-M"), range(0, 1, 1)
+rslider bounds(185, 225, 50, 50), channel("midi_zeroc"), text("Zero-M"), range(0, 1, 1)
+hslider bounds(65, 280, 50, 20), channel("cmz_offset"), range(0, 20, 0, 1, 1)
+nslider bounds(115, 280, 50, 20), channel("cmz_offset_Hz"), range(0, 20000, 0, 1, 1)
+label bounds(170, 285, 60, 12), text("offset"), fontSize(11), align("left")
+hslider bounds(65, 305, 50, 20), channel("cmz_range"), range(0, 100, 20, 1, 1)
+nslider bounds(115, 305, 50, 20), channel("cmz_range_Hz"), range(100, 20000, 1875, 1, 1)
+label bounds(170, 310, 60, 12), text("range"), fontSize(11), align("left")
 }
 csoundoutput bounds(0,335,520,105)
 
@@ -60,6 +85,9 @@ nchnls = 2
 0dbfs=1
 
 giNoteAmps	ftgen	0, 0, 128, 2, 0
+giNoteAmpsCentroid	ftgen	0, 0, 128, 2, 0
+giNoteAmpsMfcc	ftgen	0, 0, 128, 2, 0
+giNoteAmpsZerocross	ftgen	0, 0, 128, 2, 0
 
 
 ;***************************************************
@@ -254,6 +282,9 @@ instr 1
 
   kMidi_spect_amps[] init iarrsize
   kMidi_spect_freqs[] init iarrsize
+  kMidi_centroid_amps[] init iarrsize
+  kMidi_mfcc_amps[] init iarrsize
+  kMidi_zerocross_amps[] init iarrsize
   kmidi_spect chnget "midi_spect"
   kmidi_ice chnget "midi_ice"
   kmidi_centr chnget "midi_centr"
@@ -266,72 +297,57 @@ instr 1
   kcmz_range_Hz = kcmz_range*(sr/ifftsize)
   cabbageSetValue "cmz_range_Hz", int(kcmz_range_Hz), changed(kcmz_range_Hz)
   
-
   kMidi_spect_freqs = kFreqs ; perhaps no need to update this(?) it's perc after all
   kMidi_spect_amps = (kAmps*kmidi_spect)+(kTransAmpsDiff*limit(ktransspec_norm,0,1)*kmidi_ice*2)
-  ;kcentr_indx = int(kcentroid/(sr/ifftsize))
-  ;kMidi_spect_amps[kcentr_indx] = kMidi_spect_amps[kcentr_indx]+kmidi_centr ; add peak at centroid
-  ;
-  ; calculate our own "centroid" with log weighting of the amps
-  ; preliminary: recreate regular centroid by array manipulation
-  ;ksum_amp = sumarray(kAmps)
-  ;ksum_amp = (ksum_amp == 0 ? 1 : ksum_amp)
-  ;kCentr[] = (kAmps/ksum_amp)*kFreqs
-  ;kcent_test = sumarray(kCentr)
-;
-  ;kCentr_pow[] init iarrsize
-  ;icent_pow = 3
-  ;ksum_amp_pow = sumarray(kAmps^icent_pow)
-  ;ksum_amp_pow = (ksum_amp_pow == 0 ? 1 : ksum_amp_pow)
-  ;kCentr_pow[] = ((kAmps^icent_pow)/ksum_amp_pow)*kFreqs
-  ;kcent_pow_test = sumarray(kCentr_pow)
-  ;printk2 kcent_pow_test
-  
-  ;kcentroidf pvscent fsin
-	;kArrAnorm[] = kAmps/ksum_amp      
-	;kspread = sumarray(((kFreqs+(kcentroid*-1))^2)*kArrAnorm)^0.5
-	;kskewness divz sumarray(((kFreqs+(kcentroid*-1))^3)*kArrAnorm), kspread^3, 1
-	;askewness follow2 a(kskewness), 0.01, 0.2
   kcentroid_sh samphold kcentroid, kttrans
   kcentr_indx limit round((kcentroid_sh/(sr/2))*kcmz_range)+kcmz_offset, 0, iarrsize-2
-  ;knorm_mfcc sumarray kMfcc
-  ;knorm_mfcc = knorm_mfcc == 0 ? 1 : abs(knorm_mfcc)
   kmfcc1_sh samphold (kmfcc1/300)+0.5, kttrans
-  ;printk2 kmfcc1_sh
   kmfcc_indx limit int((1-kmfcc1_sh)*kcmz_range*0.5)+kcmz_offset, 0, iarrsize-2
-  ;kmfcc_indx limit int((1-kmfcc1_sh)*iarrsize*0.25), 0, iarrsize-1
-  ;printk2 (kmfcc1/200)^2
-  ;kMidi_spect_amps[kcentr_indx] = kMidi_spect_amps[kcentr_indx]+kmidi_centr ; add peak at centroid
   kzerocross_sh samphold kzerocross, kttrans
   kzeroc_indx limit round((kzerocross_sh/sr)*kcmz_range)+kcmz_offset, 0, iarrsize-2
-  ;printk2 kzerocross_sh
-  ;printk2 kzeroc_indx, 10
-  ;printk2 k(aenv)*kttrans
-  kMidi_spect_amps[kcentr_indx] = kMidi_spect_amps[kcentr_indx]+(kmidi_centr*k(aenv)*4) ; add peak at centroid band amp
-  kMidi_spect_amps[kmfcc_indx] = kMidi_spect_amps[kmfcc_indx]+(kmidi_mfcc*k(aenv)*4) ; add peak at mfcc1 band amp
-  kMidi_spect_amps[kzeroc_indx] = kMidi_spect_amps[kzeroc_indx]+(kmidi_zerocross*k(aenv)*4) ; add peak at zerocross freq
+  zeroarray kMidi_centroid_amps
+  zeroarray kMidi_mfcc_amps
+  zeroarray kMidi_zerocross_amps
+  kMidi_centroid_amps[kcentr_indx] = kMidi_spect_amps[kcentr_indx]+(kmidi_centr*k(aenv)*4) ; add peak at centroid band amp
+  kMidi_mfcc_amps[kmfcc_indx] = kMidi_spect_amps[kmfcc_indx]+(kmidi_mfcc*k(aenv)*4) ; add peak at mfcc1 band amp
+  kMidi_zerocross_amps[kzeroc_indx] = kMidi_spect_amps[kzeroc_indx]+(kmidi_zerocross*k(aenv)*4) ; add peak at zerocross freq
   
-  
-  ftest pvsfromarray kMidi_spect_amps, kMidi_spect_freqs
-  atest pvsynth ftest
+  ;ftest pvsfromarray kMidi_spect_amps, kMidi_spect_freqs
+  ;atest pvsynth ftest
   
   if kdel_trans > 0 then
     
     kmax_accum chnget "max_amps"
     kamp_on_dB chnget "ampOn"
     kamp_on = ampdbfs(kamp_on_dB)
-    ktranspose chnget "transpose"
-    kdur chnget "duration"
-    kdur_ampscale chnget "dur_ampscale"
     klow_note chnget "low_note"
     khigh_note chnget "high_note"
+
+    ktranspose_spect chnget "transpose_spect"
+    kdur_spect chnget "duration_spect"
+    kdur_ampscale_spect chnget "dur_ampscale_spect"
+    kmidichan_spect chnget "mchan_spect"
+
+    ktranspose_centroid chnget "transpose_centroid"
+    kdur_centroid chnget "duration_centroid"
+    kdur_ampscale_centroid chnget "dur_ampscale_centroid"
+    kmidichan_centroid chnget "mchan_centroid"
+    
+    ktranspose_mfcc chnget "transpose_mfcc"
+    kdur_mfcc chnget "duration_mfcc"
+    kdur_ampscale_mfcc chnget "dur_ampscale_mfcc"
+    kmidichan_mfcc chnget "mchan_mfcc"
+    
+    ktranspose_zeroc chnget "transpose_zeroc"
+    kdur_zeroc chnget "duration_zeroc"
+    kdur_ampscale_zeroc chnget "dur_ampscale_zeroc"
+    kmidichan_zeroc chnget "mchan_zeroc"
 
     ; read spectrum, produce amps per midinote
     kindx = 0
     readspectral:
     kfreq	= kMidi_spect_freqs[kindx]
-    knote	= round(12 * (log(kfreq/220)/log(2)) + 57 + ktranspose)
-    ;if (knote > klowNote) && (knote < khighNote) then
+    knote	= round(12 * (log(kfreq/220)/log(2)) + 57 + ktranspose_spect)
     kamp = kMidi_spect_amps[kindx]
     kamp0 table knote, giNoteAmps
     if kmax_accum == 0 then
@@ -340,39 +356,68 @@ instr 1
       kmax_amp max kamp, kamp0
       tablew kmax_amp, knote, giNoteAmps			; max amps within this semitone
     endif
+    ; centroid, mfcc and zerocross goes to separate arrays and tables
+    knote_c	= round(12 * (log(kfreq/220)/log(2)) + 57 + ktranspose_centroid)
+    kamp_c = kMidi_centroid_amps[kindx]
+    tablew kamp_c, knote_c, giNoteAmpsCentroid			; max amps within this semitone
+    knote_m	= round(12 * (log(kfreq/220)/log(2)) + 57 + ktranspose_mfcc)
+    kamp_m = kMidi_mfcc_amps[kindx]
+    tablew kamp_m, knote_m, giNoteAmpsMfcc			; max amps within this semitone
+    knote_z	= round(12 * (log(kfreq/220)/log(2)) + 57 + ktranspose_zeroc)
+    kamp_z = kMidi_zerocross_amps[kindx]
+    tablew kamp_z, knote_z, giNoteAmpsZerocross			; max amps within this semitone
+
     kindx = kindx	+ 1
     if kindx < ifftsize/2 goto readspectral
     
     ; read amp table, generate midi
     knote = 0
     readnotes:	
-
     kamp table knote, giNoteAmps
     tablew 0, knote, giNoteAmps                          	; reset amp accumulator
-    
     if (kamp > kamp_on) && (knote > klow_note) && (knote < khigh_note) then		; if high enough amp in band, and note not already playing
       kvelocity = dbfsamp(kamp);90;10^(dbfsamp(kamp)/40); * 80 + 47
       kinstNum = 201 + (knote*0.001)
-      ;printk2 kamp
-      ;printk2 kvelocity, 10
-      kdur += (kdur*kdur_ampscale*kamp)
-      event "i", kinstNum, 0, kdur, knote, kvelocity, 1		
+      kdur_spect += (kdur_spect*kdur_ampscale_spect*kamp)
+      event "i", kinstNum, 0, kdur_spect, knote, kvelocity, kmidichan_spect
     endif
+
+    kamp_c table knote, giNoteAmpsCentroid
+    tablew 0, knote, giNoteAmpsCentroid
+    if (kamp_c > kamp_on) && (knote > klow_note) && (knote < khigh_note) then		; if high enough amp in band, and note not already playing
+      kvelocity = dbfsamp(kamp_c);90;10^(dbfsamp(kamp)/40); * 80 + 47
+      kinstNum = 202 + (knote*0.001)
+      kdur_centroid += (kdur_centroid*kdur_ampscale_centroid*kamp_c)
+      event "i", kinstNum, 0, kdur_centroid, knote, kvelocity, kmidichan_centroid
+    endif
+
+    kamp_m table knote, giNoteAmpsMfcc
+    tablew 0, knote, giNoteAmpsMfcc
+    if (kamp_m > kamp_on) && (knote > klow_note) && (knote < khigh_note) then		; if high enough amp in band, and note not already playing
+      kvelocity = dbfsamp(kamp_m);90;10^(dbfsamp(kamp)/40); * 80 + 47
+      kinstNum = 203 + (knote*0.001)
+      kdur_mfcc += (kdur_mfcc*kdur_ampscale_mfcc*kamp_m)
+      event "i", kinstNum, 0, kdur_mfcc, knote, kvelocity, kmidichan_mfcc
+    endif
+
+    kamp_z table knote, giNoteAmpsZerocross
+    tablew 0, knote, giNoteAmpsZerocross
+    if (kamp_z > kamp_on) && (knote > klow_note) && (knote < khigh_note) then		; if high enough amp in band, and note not already playing
+      kvelocity = dbfsamp(kamp_z);90;10^(dbfsamp(kamp)/40); * 80 + 47
+      kinstNum = 204 + (knote*0.001)
+      kdur_zeroc += (kdur_zeroc*kdur_ampscale_zeroc*kamp_z)
+      event "i", kinstNum, 0, kdur_zeroc, knote, kvelocity, kmidichan_zeroc
+    endif
+
     knote = knote + 1
     if knote < 127 goto readnotes
-
-  ;kcent_sh samphold kcent_test, kdel_trans  
-  ;kcent_pow_test_sh samphold kcent_pow_test, kdel_trans
   endif
   
-  ;outs a(kcentroid/(sr*0.25)), askewness*0.05; a(kdel_trans)+(a(kcent_sh)/20000)
-  ;outs a(kcent_sh/(sr*0.25)), a((kmfcc1/500)^2)
-  ;outs a(kdel_trans), atest
   outs aleft, aright
 endin
 
 ;***************************************************
-instr	201
+instr	201, 202, 203, 204
   ; midi  output
 
   inote = p4
