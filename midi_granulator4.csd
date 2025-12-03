@@ -294,7 +294,7 @@ instr 3,4,5,6,10
     krand_pitch rnd31 1, -0.15; favor smaller deviations
     krand_pitch *= krpitch
     krandur rnd31 1, 1
-    kdur = kabsdur > 0 ? limit(kdur, 0,1/kfq) : kdur/kfq
+    kdur = kabsdur > 0 ? limit(kdur, 0,(1/kfq)-0.01) : kdur/kfq
     if random:k(0,1) > krmask then
       event "i", i_nstrnum, 0, kdur+(krandur*kdur*krdur), ivel, knote+krand_pitch, ichan
     endif

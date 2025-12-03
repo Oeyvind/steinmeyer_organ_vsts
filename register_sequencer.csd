@@ -213,7 +213,9 @@ instr 10
     SIgnoreChannels[2] = "ndex"
     SFilenam = sprintfk:S("%s\\%s.pre", SPath, SFilename)
     kOk = cabbageChannelStateRecall:k(SFilenam, SIgnoreChannels)
-    Stest sprintfk "test %s", "9,10";cabbageGetValue:k("programs_2")
+    Stest[] cabbageGetStateValue "programs_2"
+    ;printarray Stest
+    ;sprintfk "test %s", "9,10";cabbageGetValue:k("programs_2")
     ;cabbageSet 1, "programs_2", "text(\"hello world\")"
   endif
   if changed:k(chnget:k("triggerSave")) == 1 then

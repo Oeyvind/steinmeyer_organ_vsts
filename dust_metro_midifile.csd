@@ -35,7 +35,8 @@ rslider bounds(95, 8, 50, 50) channel("transpose") range(-24, 24, 0, 1, 1), text
 rslider bounds(155, 8, 50, 50) channel("speed") range(0.5, 2, 1, 1, 0.001), text("Speed")
 button bounds(210, 10, 60, 25) channel("reset"), text("Reset")
 checkbox bounds(210, 40, 60, 25) channel("midifile_monitor"), text("Monitor")
-combobox bounds(280, 10, 80, 25) channel("midifile"), items("988-aria", "Shi05M", "Beet_5th")
+;combobox bounds(280, 10, 80, 25) channel("midifile"), items("988-aria", "Shi05M", "Beet_5th")
+combobox bounds(280, 10, 80, 25), channelType("string"), channel("midifile"), populate("*.mid", "C:\\Cabbage_VST\\CabbageEfx\\midiplugs\\domen_ai\\midifiles", 1)
 }
 csoundoutput bounds(0, 250, 600, 420)
 </Cabbage>
@@ -162,15 +163,12 @@ instr 2
 endin
 
 instr 3
-  kfile chnget "midifile"
-  kfile limit kfile, 1, 99
-  printk2 kfile
-  Sfiles[] fillarray "988-aria_type0.mid", "Shi05M_type0.mid", "Beet_5th_type0.mid"
+  Sfile chnget "midifile"
+  puts Sfile, changed(Sfile)+1
   SCsdPath chnget "CSD_PATH"
-  if changed(kfile) > 0 then
+  if changed(Sfile) > 0 then
     event "i", -4, 0, .1
-    Sfile = Sfiles[kfile-1]
-    Smidifile sprintfk "%s/%s", SCsdPath, Sfile
+    Smidifile sprintfk "%s/midifiles/%s.mid", SCsdPath, Sfile
     Scoreline sprintfk {{i4 0 -1 "%s"}}, Smidifile
     scoreline Scoreline, 1
   endif
