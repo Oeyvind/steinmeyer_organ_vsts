@@ -135,6 +135,7 @@ instr 2
     kcount += 1
     kvel = 90
     kdur chnget "duration"
+    kdur /= (1+kforce_metro2+(kforce_metro3*2))
     kpoly_count = 0
     klen = 0
     while gkNotesSorted[klen] > 0 do
@@ -168,7 +169,7 @@ instr 2
       knum_chan chnget "num_chan"
       kchan = floor(random:k(0,knum_chan))
       kchan = iChannels[kchan]
-      event "i", 201, 0, kdur, knote, kvel, kchan
+      event "i", 202, 0, kdur, knote, kvel, kchan
       kpoly_count += 1+(random:k(0,divz(1,kpoly_chance,1))+(kpoly_count*0.25))
     od
   endif
@@ -247,7 +248,7 @@ instr 200
   endif
 endin
 
-instr 201
+instr 201,202
   ; midi  output
   inote = p4
   ivel = p5;*127
