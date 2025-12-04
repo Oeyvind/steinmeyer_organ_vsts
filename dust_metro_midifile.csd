@@ -2,11 +2,11 @@
 form caption("Dust/metro with midi file read") size(600, 670), colour(30, 35, 40), guiMode("queue"), pluginId("dmt2")
 button channel("Play"), bounds(5, 5, 50, 30), text("Play"), colour:0("black"), colour:1("green")
 
-groupbox bounds(5, 40, 375, 120), colour(25,35,40), lineThickness("0"){ 
+groupbox bounds(5, 40, 450, 120), colour(25,35,40), lineThickness("0"){ 
 rslider bounds( 5,  5, 50, 50), channel("duration"), text("Duration"), range(0,2,0.1, 0.3, 0.0001)
-nslider bounds(65, 15, 30, 25), channel("base_pitch"), range(36, 72, 48, 1, 1), fontSize(17)
+nslider bounds(65, 15, 30, 25), channel("base_pitch"), range(36, 72, 60, 1, 1), fontSize(17)
 label bounds(65, 40, 30, 15), text("Bpitch"), , fontSize(10)
-nslider bounds(115, 15, 30, 25), channel("pitch_range"), range(1,60,1, 1, 1), fontSize(17)
+nslider bounds(115, 15, 30, 25), channel("pitch_range"), range(1,60,24, 1, 1), fontSize(17)
 label bounds(115, 40, 30, 15), text("Prange"), fontSize(10)
 nslider bounds(155, 15, 30, 25), channel("num_chan"), range(1,5,1, 1, 1), fontSize(17)
 label bounds(155, 40, 30, 15), text("nchan"), fontSize(10)
@@ -23,13 +23,18 @@ nslider bounds(195, 70, 30, 25), channel("max_metro"), range(1, 50, 10, 1, 1), f
 label bounds(195, 95, 35, 15), text("max_metro"), , fontSize(10)
 rslider bounds(245,  60, 50, 50), channel("metro_freq"), text("metro_fq"), range(0.1,10,0.5, 0.3, 0.01)
 
-button bounds(300, 40, 70, 20), channel("rand_midi_switch"), text("rand/midi"), colour:0("black"), colour:1("green")
-button bounds(300, 65, 70, 20), channel("midi_oct_shift"), text("oct_shift"), colour:0("black"), colour:1("green")
-button bounds(300, 90, 70, 20), channel("orig_rhythm"), text("orig_rhythm"), colour:0("black"), colour:1("green")
+button bounds(300, 15, 70, 20), channel("force_metro1"), text("force_mtr1"), colour:0("black"), colour:1("green")
+button bounds(300, 40, 70, 20), channel("force_metro2"), text("force_mtr2"), colour:0("black"), colour:1("green")
+button bounds(300, 65, 70, 20), channel("force_metro3"), text("force_mtr3"), colour:0("black"), colour:1("green")
+
+button bounds(375, 15, 70, 20), channel("rand_midi_switch"), text("rand/midi"), colour:0("black"), colour:1("green")
+button bounds(375, 40, 70, 20), channel("midi_oct_shift"), text("oct_shift"), colour:0("black"), colour:1("green")
+button bounds(375, 65, 70, 20), channel("orig_rhythm"), text("orig_rhythm"), colour:0("black"), colour:1("green")
+button bounds(375, 90, 70, 20), channel("orig_clean"), text("orig_clean"), colour:0("black"), colour:1("green")
 }
 
 groupbox bounds(5, 170, 375, 75), colour(25,35,40), lineThickness("0"){ 
-checkbox bounds(8, 10, 80, 25) channel("play"), text("Play")
+checkbox bounds(8, 10, 80, 25) channel("playmidi"), text("Play")
 checkbox bounds(8, 40, 80, 25) channel("loop"), text("Loop")
 rslider bounds(95, 8, 50, 50) channel("transpose") range(-24, 24, 0, 1, 1), text("Transp")
 rslider bounds(155, 8, 50, 50) channel("speed") range(0.5, 2, 1, 1, 0.001), text("Speed")
@@ -47,7 +52,7 @@ csoundoutput bounds(0, 250, 600, 420)
 </CsOptions>
 <CsInstruments>
 
-ksmps = 64
+ksmps = 8
 massign -1, 2
 pgmassign -1, -1
 gkNotesActive[] init 127
@@ -79,7 +84,12 @@ instr 2
   kdust_freq chnget "dust_freq"
   kdust dust 1, kdust_freq
   kdust = kdust > 0 ? 1 : 0
+  kforce_metro1 chnget "force_metro1"
+  kforce_metro2 chnget "force_metro2"
+  kforce_metro3 chnget "force_metro3"
+  
   kmetro_freq chnget "metro_freq"
+  kmetro_freq = kmetro_freq*(1+kforce_metro2+(kforce_metro3*2))
   kmetro metro kmetro_freq
   
   kmin_dust chnget "min_dust"
@@ -87,6 +97,7 @@ instr 2
   kcount_switch init 0
   ktrig init 0
   ktrig_switch init 0
+  ktrig_switch = kforce_metro1 > 0 || kforce_metro2 > 0 || kforce_metro3 > 0 ? 1 : ktrig_switch ; optional force to metro
   if ktrig_switch == 0 then
     ktrig = kdust
   else  
@@ -113,13 +124,14 @@ instr 2
   kpoly_max_ chnget "poly_max"
   kpoly_chance chnget "poly_chance"
   korig_rhythm chnget "orig_rhythm"
+  korig_clean chnget "orig_clean"
+  cabbageSetValue "midifile_monitor", korig_clean, changed(korig_clean)
   krand_midi chnget "rand_midi_switch"
-  korig_rhythm *= krand_midi ; only active when using midi recorded pitches 
   kmidi_oct_shift chnget "midi_oct_shift"
   if korig_rhythm > 0 then
     ktrig changed2 gkNotesSorted
   endif
-  if ktrig > 0 then
+  if ktrig > 0 && korig_clean == 0 then
     kcount += 1
     kvel = 90
     kdur chnget "duration"
@@ -187,21 +199,21 @@ instr 4
     ktest sumarray gkNotesActive
     printk2 ktest
   endif
-  kStatus[], kChan[], kNote[], kVel[], kNumEvents, kTrig cabbageMidiFileReader Smidifile, 0, cabbageGetValue("play"), cabbageGetValue("loop"), cabbageGetValue("speed"), kResetTrigger, 0
+  kStatus[], kChan[], kNote[], kVel[], kNumEvents, kTrig cabbageMidiFileReader Smidifile, 0, cabbageGetValue("playmidi"), cabbageGetValue("loop"), cabbageGetValue("speed"), kResetTrigger, 0
   //printing this many events can have a serious impact on performance..
   //printk2 kNumEvents
-  imidiout_instr = 200
+  imidistore_instr = 200
   imonitorout_instr = 201
   kmonitor chnget "midifile_monitor"
   if kTrig == 1 then
       while kEventIndex < kNumEvents do
             if (kStatus[kEventIndex] == 128 || kVel[kEventIndex] == 0) then            //note off
                 kfrac_instr = kNote[kEventIndex]*0.001
-                turnoff2 imidiout_instr, 1, 1
+                turnoff2 imidistore_instr, 1, 1
                 turnoff2 imonitorout_instr, 1, 1
             elseif (kStatus[kEventIndex] == 144) then        //note on 
                 kfrac_instr = kNote[kEventIndex]*0.001    
-                event "i", imidiout_instr, 0, 10, kNote[kEventIndex]+cabbageGetValue:k("transpose"), kVel[kEventIndex]
+                event "i", imidistore_instr, 0, 10, kNote[kEventIndex]+cabbageGetValue:k("transpose"), kVel[kEventIndex]
                 if kmonitor > 0 then
                   event "i", imonitorout_instr, 0, 10, kNote[kEventIndex]+cabbageGetValue:k("transpose"), kVel[kEventIndex]       
                 endif
@@ -240,7 +252,7 @@ instr 201
   inote = p4
   ivel = p5;*127
   ichan = p6
-  print inote, ichan
+  ;print inote, p3, ichan
   ;print p3
   noteondur ichan, inote, ivel, p3
 endin
