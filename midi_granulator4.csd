@@ -16,7 +16,7 @@ rslider bounds(115, 65, 50, 50), channel("sync_phase"), text("s_Phas"), range(0,
 rslider bounds(165, 65, 50, 50), channel("t_init_offset"), text("Ti_offset"), range(0, 1, 0)
 rslider bounds(215, 65, 50, 50), channel("vel_t_offset"), text("Vel_t"), range(0, 1, 0)
 rslider bounds(265, 65, 50, 50), channel("rphase"), text("Rphase"), range(0, 1, 0, 0.6)
-rslider bounds(315, 65, 50, 50), channel("rtempo"), text("Rtempo"), range(0,1,0, 0.3)
+rslider bounds(315, 65, 50, 50), channel("rtempo"), text("Rtempo"), range(0,1,0, 0.3, 0.0001)
 ;rslider bounds(365, 65, 50, 50), channel("master_tempo"), text("M_tmpo"), range(1,20,2, 1)
 
 rslider bounds(440,  5, 50, 50), channel("tempo_1"), text("Tpo1"), range(1,20,2x)
@@ -224,7 +224,6 @@ instr 3,4,5,6,10
   ivel = p5
   ichan = p6
   print p1, inote, ichan
-
   Stranspose sprintf "transp_%i", ichan
   ktranspose chnget Stranspose
   krpitch chnget "rpitch"
@@ -242,7 +241,7 @@ instr 3,4,5,6,10
     ktempo_update = ktempo_bps
   endif
   ktempo_update init itempo_bps
-  printk2 ktempo_update
+  ;printk2 ktempo_update, p1*2
 
   ;kdur chnget "duration"
   Sdur sprintf "duration_%i", ichan
@@ -257,6 +256,7 @@ instr 3,4,5,6,10
   krtempo chnget "rtempo"
   
   klast_started_voice chnget "last_started_voice"
+  k_is_master = p1 == klast_started_voice ? 1 : 0
   kinphase chnget "ext_phase"
 
   itempo_init_offset = 1; (bypass)chnget "t_init_offset"
@@ -265,20 +265,22 @@ instr 3,4,5,6,10
   ifq = (itempo_init_offset*itempo_bps)+(ivelocity_tempo*ivel*itempo_bps)
   print ifq, itempo_init_offset
   ksync_on chnget "sync"
-  kfqgain = chnget:k("sync_rate")*ksync_on*0.002
-  kphaseadjust = chnget:k("sync_phase")*ksync_on
+  kfqgain = chnget:k("sync_rate")*ksync_on*0.002*(1-k_is_master)
+  kphaseadjust = chnget:k("sync_phase")*ksync_on*(1-k_is_master)
   kphaseadjust tonek kphaseadjust, 0.1
   krphase chnget "rphase"
   knumpulses = 1
   kfallback chnget "fallback"
   ktrig, kphase, kfq RhythmPLL3 kinphase, ifq, ktempo_update, kfqgain, kphaseadjust, knumpulses, krphase, kfallback
-  
-  if p1 == klast_started_voice then
+  printk2 int(kfq*10)/10, p1*2
+  if k_is_master > 0 then
     chnset kphase, "ext_phase"
   endif
   
   if ktrig > 0 && krtempo > 0 then
-    if kfq > ktempo_bps then
+    krand_t_init trigger krtempo, 0, 0
+    ktempo_update = krand_t_init > 0 ? kfq : ktempo_update ; set base tempo for random dev when initiating random dev
+    if ktempo_update > kfq then
       kcount_up += 1
       kcount_down = 1
     else
@@ -286,15 +288,15 @@ instr 3,4,5,6,10
       kcount_up = 1
     endif
     ; random tempo adjustment
-    if ktempo_update > ktempo_bps*(1+krtempo) then
-      ktempo_update -= random(limit(kcount_up,ktempo_bps*0.1,ktempo_bps), ktempo_bps*krtempo*1.8)
-    elseif ktempo_update < ktempo_bps*(1-krtempo) then
-      ktempo_update += random(limit(kcount_down,ktempo_bps*0.1,ktempo_bps), ktempo_bps*krtempo*1.8)
+    if ktempo_update > kfq*(1+krtempo) then
+      ktempo_update -= random(limit(kcount_up,kfq*0.1,kfq), kfq*krtempo*1.8)
+    elseif ktempo_update < kfq*(1-krtempo) then
+      ktempo_update += random(limit(kcount_down,kfq*0.1,kfq), kfq*krtempo*1.8)
     else  
-      ktempo_update += random(-ktempo_bps*krtempo*0.8,ktempo_bps*krtempo*0.8)
+      ktempo_update += random(-kfq*krtempo*0.8,kfq*krtempo*0.8)
     endif
     ktempo_update limit ktempo_update, ktempo_update*(1-(krtempo*0.5)), ktempo_update*(1+krtempo)
-    ktempo_update limit ktempo_update, ktempo_bps*0.3, 40 ; sanitize
+    ktempo_update limit ktempo_update, kfq*0.3, 40 ; sanitize
   endif
   
   i_nstrnum = 201+frac(p1)  
