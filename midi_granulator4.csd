@@ -1,5 +1,5 @@
 <Cabbage>
-form caption("Midi granulator 4") size(560, 305), colour(30, 35, 40), guiMode("queue"), pluginId("mgr4")
+form caption("Midi granulator 4") size(620, 305), colour(30, 35, 40), guiMode("queue"), pluginId("mgr4")
 
 button  bounds(  5, 10, 50, 30), channel("absdur"), text("absdur"), colour:0("black"), colour:1("green")
 ;rslider bounds( 65,  5, 50, 50), channel("duration"), text("Duration"), range(0,1,0.5, 0.3, 0.0001)
@@ -7,7 +7,7 @@ rslider bounds(115, 5, 50, 50), channel("rdur"), text("Rdur"), range(0,3,0, 0.3,
 rslider bounds(165, 5, 50, 50), channel("d_keyfollow"), text("d_kbf"), range(-3,3,0)
 rslider bounds(265, 5, 50, 50), channel("rmask"), text("Rmask"), range(0, 1, 0, 0.3)
 rslider bounds(315, 5, 50, 50), channel("rpitch"), text("Rpitch"), range(0, 12, 0, 1,1)
-rslider bounds(365, 5, 50, 50), channel("transpose"), text("Transpose"), range(-24, 24, 0, 1, 1)
+;rslider bounds(365, 5, 50, 50), channel("transpose"), text("Transpose"), range(-24, 24, 0, 1, 1)
 
 button  bounds(  5, 70, 50, 20), channel("sync"), text("sync"), colour:0("black"), colour:1("green")
 rslider bounds(  5, 90, 30, 30), channel("fallback"), text("fallback"), range(0, 1, 0, 0.3, 0.01)
@@ -19,17 +19,24 @@ rslider bounds(265, 65, 50, 50), channel("rphase"), text("Rphase"), range(0, 1, 
 rslider bounds(315, 65, 50, 50), channel("rtempo"), text("Rtempo"), range(0,1,0, 0.3)
 ;rslider bounds(365, 65, 50, 50), channel("master_tempo"), text("M_tmpo"), range(1,20,2, 1)
 
-rslider bounds(440,  5, 50, 50), channel("duration_1"), text("Dur1"), range(0,1,0.5, 0.3, 0.0001)
-rslider bounds(440, 65, 50, 50), channel("duration_2"), text("Dur2"), range(0,1,0.5, 0.3, 0.0001)
-rslider bounds(440, 115, 50, 50), channel("duration_3"), text("Dur3"), range(0,1,0.5, 0.3, 0.0001)
-rslider bounds(440, 165, 50, 50), channel("duration_4"), text("Dur4"), range(0,1,0.5, 0.3, 0.0001)
-rslider bounds(440, 215, 50, 50), channel("duration_8"), text("Dur8"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(440,  5, 50, 50), channel("tempo_1"), text("Tpo1"), range(1,20,2x)
+rslider bounds(440, 65, 50, 50), channel("tempo_2"), text("Tpo2"), range(1,20,2)
+rslider bounds(440,115, 50, 50), channel("tempo_3"), text("Tpo3"), range(1,20,2)
+rslider bounds(440,165, 50, 50), channel("tempo_4"), text("Tpo4"), range(1,20,2)
+rslider bounds(440,215, 50, 50), channel("tempo_8"), text("Tpo8"), range(1,20,2)
 
-rslider bounds(500,  5, 50, 50), channel("tempo_1"), text("Tpo1"), range(1,20,2, 1)
-rslider bounds(500, 65, 50, 50), channel("tempo_2"), text("Tpo2"), range(1,20,2, 1)
-rslider bounds(500,115, 50, 50), channel("tempo_3"), text("Tpo3"), range(1,20,2, 1)
-rslider bounds(500,165, 50, 50), channel("tempo_4"), text("Tpo4"), range(1,20,2, 1)
-rslider bounds(500,215, 50, 50), channel("tempo_8"), text("Tpo8"), range(1,20,2, 1)
+rslider bounds(500,  5, 50, 50), channel("duration_1"), text("Dur1"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 65, 50, 50), channel("duration_2"), text("Dur2"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 115, 50, 50), channel("duration_3"), text("Dur3"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 165, 50, 50), channel("duration_4"), text("Dur4"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 215, 50, 50), channel("duration_8"), text("Dur8"), range(0,1,0.5, 0.3, 0.0001)
+
+rslider bounds(560,  5, 50, 50), channel("transp_1"), text("Trsp1"), range(-12,12,0, 1, 1)
+rslider bounds(560, 65, 50, 50), channel("transp_2"), text("Trsp2"), range(-12,12,0, 1, 1)
+rslider bounds(560,115, 50, 50), channel("transp_3"), text("Trsp3"), range(-12,12,0, 1, 1)
+rslider bounds(560,165, 50, 50), channel("transp_4"), text("Trsp4"), range(-12,12,0, 1, 1)
+rslider bounds(560,215, 50, 50), channel("transp_8"), text("Trsp8"), range(-12,12,0, 1, 1)
+
 
 button  bounds(  5, 130, 65, 20), channel("clear_all"), text("clear all"), latched(0), colour:0("green"), colour:1("red")
 button  bounds( 75, 130, 65, 20), channel("clear_ch_1"), text("clear_ch_1"), latched(0), colour:0("green"), colour:1("red")
@@ -217,8 +224,9 @@ instr 3,4,5,6,10
   ivel = p5
   ichan = p6
   print p1, inote, ichan
-  
-  ktranspose chnget "transpose"
+
+  Stranspose sprintf "transp_%i", ichan
+  ktranspose chnget Stranspose
   krpitch chnget "rpitch"
   krmask chnget "rmask"
   knote = inote+ktranspose

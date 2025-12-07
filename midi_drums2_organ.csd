@@ -167,6 +167,11 @@ instr 201
     ichan = p6
     idur    = (p3 < 0 ? 999 : p3)  ; use very long duration for negative dur, noteondur will create note off when instrument stops
     noteondur ichan, inote, ivel, idur
+    ;safety hung notes
+    ktime timeinsts
+    if ktime > 1 then
+      turnoff
+    endif
     
 endin
 

@@ -1,47 +1,52 @@
 <Cabbage>
-form caption("Register Sequencer") size(500, 300), colour(30, 35, 40), guiMode("queue"), pluginId("rsq1")
+form caption("Register Sequencer") size(670, 380), colour(30, 35, 40), guiMode("queue"), pluginId("rsq1")
 
 button  bounds(  5, 10, 50, 30), channel("play"), text("Play"), colour:0("black"), colour:1("green")
-nslider bounds( 65, 10, 30, 20), channel("tempo"), range(30,300,1, 1, 1), fontSize(13)
+nslider bounds( 65, 10, 30, 20), channel("tempo"), range(30,300,120, 1, 1), fontSize(13)
 label   bounds( 65, 30, 30, 15), text("tempo"), fontSize(10)
-nslider bounds(100, 10, 30, 20), channel("numsteps"), range(1,8,8, 1, 1), fontSize(13)
-label   bounds(100, 30, 30, 15), text("numsteps"), fontSize(10)
-nslider bounds(135, 10, 30, 20), channel("ndex"), range(1,8,1, 1, 1), fontSize(13)
-label   bounds(135, 30, 30, 15), text("index"), fontSize(10)
-nslider bounds(170, 10, 30, 20), channel("outchan"), range(1,16,1, 1, 1), fontSize(13)
-label   bounds(170, 30, 30, 15), text("outchan"), fontSize(10)
 
+nslider bounds(5, 45, 40, 20), channel("duration"), range(0,1,1), fontSize(13)
+label   bounds(5, 60, 40, 15), text("duration"), fontSize(10)
 combobox bounds( 60, 45, 35, 20), channel("tempo_mult"), items(1,2,3,4,5,6,7,8), value(0)
-nslider bounds(100, 45, 30, 20), channel("stepmod"), range(1,8,8, 1, 1), fontSize(13)
-label   bounds(100, 65, 30, 15), text("%"), fontSize(10)
 
-nslider bounds(135, 45, 30, 20), channel("rmod3"), range(0,1,0), fontSize(13)
-label   bounds(135, 65, 30, 15), text("r%3"), fontSize(10)
-nslider bounds(170, 45, 30, 20), channel("rmod5"), range(0,1,0), fontSize(13)
-label   bounds(170, 65, 30, 15), text("r%5"), fontSize(10)
+groupbox bounds(5, 80, 130, 290), colour(25,35,40), lineThickness("0"){ 
+nslider bounds(5, 5, 30, 20), channel("outchan"), range(1,16,1, 1, 1), fontSize(13)
+label   bounds(5, 25, 30, 15), text("outchan"), fontSize(10)
+nslider bounds(40, 5, 30, 20), channel("numsteps"), range(1,8,8, 1, 1), fontSize(13)
+label   bounds(40, 25, 30, 15), text("numsteps"), fontSize(10)
+nslider bounds(75, 5, 30, 20), channel("ndex"), range(1,8,1, 1, 1), fontSize(13)
+label   bounds(75, 25, 30, 15), text("index"), fontSize(10)
 
-label bounds(5, 65, 130, 12), text("programs"), fontSize(10), align("left")
-button     bounds(5, 82, 23, 16), text("1:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_1")
-texteditor bounds(33, 80, 130, 20) fontSize(16), channel("programs_1"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 107, 23, 16), text("2:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_2")
-texteditor bounds(33, 105, 130, 20) fontSize(16), channel("programs_2"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 132, 23, 16), text("3:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_3")
-texteditor bounds(33, 130, 130, 20) fontSize(16), channel("programs_3"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 157, 23, 16), text("4:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_4")
-texteditor bounds(33, 155, 130, 20) fontSize(16), channel("programs_4"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 182, 23, 16), text("5:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_5")
-texteditor bounds(33, 180, 130, 20) fontSize(16), channel("programs_5"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 207, 23, 16), text("6:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_6")
-texteditor bounds(33, 205, 130, 20) fontSize(16), channel("programs_6"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 232, 23, 16), text("7:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_7")
-texteditor bounds(33, 230, 130, 20) fontSize(16), channel("programs_7"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
-button     bounds(5, 257, 23, 16), text("8:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_8")
-texteditor bounds(33, 255, 130, 20) fontSize(16), channel("programs_8"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+nslider bounds(5, 40, 30, 20), channel("stepmod"), range(1,8,8, 1, 1), fontSize(13)
+label   bounds(5, 60, 30, 15), text("%"), fontSize(10)
+nslider bounds(40, 40, 30, 20), channel("rmod3"), range(0,1,0), fontSize(13)
+label   bounds(40, 60, 30, 15), text("r%3"), fontSize(10)
+nslider bounds(75, 40, 30, 20), channel("rmod5"), range(0,1,0), fontSize(13)
+label   bounds(75, 60, 30, 15), text("r%5"), fontSize(10)
 
+label bounds(5, 78, 110, 12), text("programs"), fontSize(10), align("left")
+button     bounds(5, 92, 23, 16), text("1:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_1")
+texteditor bounds(33, 90, 90, 20) fontSize(16), channel("programs_1"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+button     bounds(5, 117, 23, 16), text("2:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_2")
+texteditor bounds(33, 115, 90, 20) fontSize(16), channel("programs_2"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+button     bounds(5, 142, 23, 16), text("3:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_3")
+texteditor bounds(33, 140, 90, 20) fontSize(16), channel("programs_3"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+button     bounds(5, 167, 23, 16), text("4:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_4")
+texteditor bounds(33, 165, 90, 20) fontSize(16), channel("programs_4"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+button     bounds(5, 192, 23, 16), text("5:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_5")
+texteditor bounds(33, 190, 90, 20) fontSize(16), channel("programs_5"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+button     bounds(5, 217, 23, 16), text("6:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_6")
+texteditor bounds(33, 215, 90, 20) fontSize(16), channel("programs_6"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+button     bounds(5, 242, 23, 16), text("7:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_7")
+texteditor bounds(33, 240, 90, 20) fontSize(16), channel("programs_7"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+button     bounds(5, 267, 23, 16), text("8:"), colour:0("black"), colour:1("green"), active(0), channel("ndex_8")
+texteditor bounds(33, 265, 90, 20) fontSize(16), channel("programs_8"), fontColour(255, 255, 255), colour(0, 0, 0), caretColour("white"), fontSize(14)
+}
 
-csoundoutput bounds(205, 0, 295, 250)
+csoundoutput bounds(210, 0, 270, 250)
 button bounds(205, 255, 80, 25), channel("triggerSave"), text("Save state")
 combobox bounds(290, 255, 200, 25), populate("*.pre", "."), channel("recallCombo"), channelType("string")
+nslider bounds(205, 280, 30, 20), channel("filenumber"), range(0,999,0,1,1,1), fontSize(13)
 
 </Cabbage>
 
@@ -114,26 +119,28 @@ instr 2
   iseq_ndx = p4
   Sprograms = p5
   print iseq_ndx
-  puts Sprograms, 1
-  iprogtable table iseq_ndx-1, giProg_tables
-  indx = 0
-  while indx < 128 do
-    tablew 0, indx, iprogtable ; clear (tablecopy could not be used as it seemds to do the work at the end of the init cycle)
-    indx += 1
-  od
-  icomma strindex Sprograms, ","  
-  indx = 0
-  while icomma > 0 do  
-    Snum strsub Sprograms, 0, icomma
+  if strlen(Sprograms) > 0 then
+    puts Sprograms, 1
+    iprogtable table iseq_ndx-1, giProg_tables
+    indx = 0
+    while indx < 128 do
+      tablew 0, indx, iprogtable ; clear (tablecopy could not be used as it seemds to do the work at the end of the init cycle)
+      indx += 1
+    od
+    icomma strindex Sprograms, ","  
+    indx = 0
+    while icomma > 0 do  
+      Snum strsub Sprograms, 0, icomma
+      iprog strtod Snum
+      tablew 1, iprog, iprogtable ; write a 1 to the prog position in the table
+      Sprograms strsub Sprograms, icomma+1, -1
+      icomma strindex Sprograms, ","
+      indx += 1
+    od
+    Snum strsub Sprograms, 0, icomma ; last one, or if no comma
     iprog strtod Snum
     tablew 1, iprog, iprogtable ; write a 1 to the prog position in the table
-    Sprograms strsub Sprograms, icomma+1, -1
-    icomma strindex Sprograms, ","
-    indx += 1
-  od
-  Snum strsub Sprograms, 0, icomma ; last one, or if no comma
-  iprog strtod Snum
-  tablew 1, iprog, iprogtable ; write a 1 to the prog position in the table
+  endif
 endin
 
 instr 3
@@ -184,19 +191,33 @@ instr 3
     iprogtable table icount, giProg_tables
     copyf2array kThis_step, iprogtable
     rireturn
-    kProg_update[] = kThis_step-kLast_step
-    kLast_step = kThis_step
-    ; send prog for those who has been updated
-    kndx = 0
-    while kndx < 128 do
-      kinstrnum = 202+(kndx*0.001)
-      if kProg_update[kndx] > 0 then
-        event "i", kinstrnum, 0, -1, kndx, koutchan 
-      elseif kProg_update[kndx] < 0 then
-        event "i", -kinstrnum, 0, .1, kndx, koutchan 
-      endif
-      kndx += 1
-    od
+    kdur chnget "duration"
+    if kdur >= 1 then
+      kProg_update[] = kThis_step-kLast_step
+      kLast_step = kThis_step
+      ; send prog for those who has been updated
+      kndx = 0
+      while kndx < 128 do
+        kinstrnum = 202+(kndx*0.001)
+        if kProg_update[kndx] > 0 then
+          event "i", kinstrnum, 0, -1, kndx, koutchan 
+        elseif kProg_update[kndx] < 0 then
+          event "i", -kinstrnum, 0, .1, kndx, koutchan 
+        endif
+        kndx += 1
+      od
+    else
+      kndx = 0
+      while kndx < 128 do
+        kinstrnum = 202+(kndx*0.001)
+        if kThis_step[kndx] > 0 then
+          event "i", kinstrnum, 0, kdur*(1/kbps), kndx, koutchan 
+        ;else
+        ;  event "i", -kinstrnum, 0, .1, kndx, koutchan 
+        endif
+        kndx += 1
+      od
+    endif
   endif
 
 endin
@@ -207,25 +228,53 @@ instr 10
   SPath = chnget:S("CSD_PATH")
   kFileNumber chnget "filenumber"
   if kTrig == 1 then
-    SIgnoreChannels[] init 3
-    SIgnoreChannels[0] = "triggerSave"
-    SIgnoreChannels[1] = "recallCombo"
-    SIgnoreChannels[2] = "ndex"
     SFilenam = sprintfk:S("%s\\%s.pre", SPath, SFilename)
-    kOk = cabbageChannelStateRecall:k(SFilenam, SIgnoreChannels)
-    Stest[] cabbageGetStateValue "programs_2"
-    ;printarray Stest
-    ;sprintfk "test %s", "9,10";cabbageGetValue:k("programs_2")
-    ;cabbageSet 1, "programs_2", "text(\"hello world\")"
+    ftloadk SFilenam, 1, 1, giPrograms_1,giPrograms_2,giPrograms_3,giPrograms_4, giPrograms_5,giPrograms_6, giPrograms_7,giPrograms_8 
+    event "i", 11, 0, .1
   endif
+  kFileNumber chnget "filenumber"
+  ktriggerSave cabbageGetValue "triggerSave"
   if changed:k(chnget:k("triggerSave")) == 1 then
-    SFilename = sprintfk:S("%s\\PresetTest%d.pre", SPath, kFileNumber)
-    printks "%s", 0, SFilename
-    kOk = cabbageChannelStateSave:k(SFilename)
+    SFilename = sprintfk:S("%s\\preset%i.pre", SPath, kFileNumber)
+    puts SFilename, random(0,1)+1
+    ftsavek SFilename, 1, 1, giPrograms_1,giPrograms_2,giPrograms_3,giPrograms_4, giPrograms_5,giPrograms_6, giPrograms_7,giPrograms_8 
     kFileNumber+=1
     chnset kFileNumber, "filenumber"
-    cabbageSet 1, "recallCombo", "refreshFiles(1)" 
+    cabbageSet 1, "recallCombo", "refreshFiles(1)"
   endif
+endin
+
+instr 11
+print p1, p2
+itab_indx = 0
+while itab_indx < 8 do
+  print itab_indx
+  itab table itab_indx, giProg_tables
+  Swidget sprintf "programs_%i", itab_indx+1
+  Sprog_list = ""
+  indx = 0
+  while indx < 128 do
+    if table(indx,itab) > 0 then
+      print itab, indx
+      ilen strlen Sprog_list
+      if ilen < 1 then
+        Sprog_list sprintf "%i", indx 
+      else 
+        Sprog_list strcat Sprog_list, sprintf(", %i", indx)
+      endif
+    endif
+    indx += 1
+  od 
+  if strlen(Sprog_list) == 0 then
+    Sprog_txt = "text(\" \")"
+  else  
+    Sprog_txt sprintf "text(\"%s\")", Sprog_list
+  endif
+  puts Swidget, 1
+  puts Sprog_txt, 1
+  cabbageSet Swidget, Sprog_txt
+  itab_indx += 1
+od  
 endin
 
 instr 202
