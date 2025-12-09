@@ -1,5 +1,5 @@
 <Cabbage>
-form caption("Midi granulator 4") size(620, 305), colour(30, 35, 40), guiMode("queue"), pluginId("mgr4")
+form caption("Midi granulator 4") size(690, 305), colour(30, 35, 40), guiMode("queue"), pluginId("mgr4")
 
 button  bounds(  5, 10, 50, 30), channel("absdur"), text("absdur"), colour:0("black"), colour:1("green")
 ;rslider bounds( 65,  5, 50, 50), channel("duration"), text("Duration"), range(0,1,0.5, 0.3, 0.0001)
@@ -21,22 +21,27 @@ rslider bounds(315, 65, 50, 50), channel("rtempo"), text("Rtempo"), range(0,1,0,
 
 rslider bounds(440,  5, 50, 50), channel("tempo_1"), text("Tpo1"), range(1,20,2x)
 rslider bounds(440, 65, 50, 50), channel("tempo_2"), text("Tpo2"), range(1,20,2)
-rslider bounds(440,115, 50, 50), channel("tempo_3"), text("Tpo3"), range(1,20,2)
-rslider bounds(440,165, 50, 50), channel("tempo_4"), text("Tpo4"), range(1,20,2)
-rslider bounds(440,215, 50, 50), channel("tempo_8"), text("Tpo8"), range(1,20,2)
+rslider bounds(440,125, 50, 50), channel("tempo_3"), text("Tpo3"), range(1,20,2)
+rslider bounds(440,185, 50, 50), channel("tempo_4"), text("Tpo4"), range(1,20,2)
+rslider bounds(440,245, 50, 50), channel("tempo_8"), text("Tpo8"), range(1,20,2)
 
 rslider bounds(500,  5, 50, 50), channel("duration_1"), text("Dur1"), range(0,1,0.5, 0.3, 0.0001)
 rslider bounds(500, 65, 50, 50), channel("duration_2"), text("Dur2"), range(0,1,0.5, 0.3, 0.0001)
-rslider bounds(500, 115, 50, 50), channel("duration_3"), text("Dur3"), range(0,1,0.5, 0.3, 0.0001)
-rslider bounds(500, 165, 50, 50), channel("duration_4"), text("Dur4"), range(0,1,0.5, 0.3, 0.0001)
-rslider bounds(500, 215, 50, 50), channel("duration_8"), text("Dur8"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 125, 50, 50), channel("duration_3"), text("Dur3"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 185, 50, 50), channel("duration_4"), text("Dur4"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 245, 50, 50), channel("duration_8"), text("Dur8"), range(0,1,0.5, 0.3, 0.0001)
 
 rslider bounds(560,  5, 50, 50), channel("transp_1"), text("Trsp1"), range(-12,12,0, 1, 1)
 rslider bounds(560, 65, 50, 50), channel("transp_2"), text("Trsp2"), range(-12,12,0, 1, 1)
-rslider bounds(560,115, 50, 50), channel("transp_3"), text("Trsp3"), range(-12,12,0, 1, 1)
-rslider bounds(560,165, 50, 50), channel("transp_4"), text("Trsp4"), range(-12,12,0, 1, 1)
-rslider bounds(560,215, 50, 50), channel("transp_8"), text("Trsp8"), range(-12,12,0, 1, 1)
+rslider bounds(560,125, 50, 50), channel("transp_3"), text("Trsp3"), range(-12,12,0, 1, 1)
+rslider bounds(560,185, 50, 50), channel("transp_4"), text("Trsp4"), range(-12,12,0, 1, 1)
+rslider bounds(560,245, 50, 50), channel("transp_8"), text("Trsp8"), range(-12,12,0, 1, 1)
 
+checkbox bounds(620, 10, 60, 20), channel("midi_to_1"), text("Mid1")
+checkbox bounds(620, 70, 60, 20), channel("midi_to_2"), text("Mid2")
+checkbox bounds(620,130, 60, 20), channel("midi_to_3"), text("Mid3")
+checkbox bounds(620,190, 60, 20), channel("midi_to_4"), text("Mid4")
+checkbox bounds(620,250, 60, 20), channel("midi_to_8"), text("Mid8")
 
 button  bounds(  5, 130, 65, 20), channel("clear_all"), text("clear all"), latched(0), colour:0("green"), colour:1("red")
 button  bounds( 75, 130, 65, 20), channel("clear_ch_1"), text("clear_ch_1"), latched(0), colour:0("green"), colour:1("red")
@@ -200,6 +205,16 @@ instr 2
   inote notnum
   ivel veloc 0, 1
   ichn midichn
+  imidi1 chnget "midi_to_1"
+  imidi2 chnget "midi_to_2"
+  imidi3 chnget "midi_to_3"
+  imidi4 chnget "midi_to_4"
+  imidi8 chnget "midi_to_8"
+  ichn = imidi1 > 0 ? 1 : ichn
+  ichn = imidi2 > 0 ? 2 : ichn
+  ichn = imidi3 > 0 ? 3 : ichn
+  ichn = imidi4 > 0 ? 4 : ichn
+  ichn = imidi8 > 0 ? 8 : ichn
   ihold_thresh = 0.3
   instnum = gimetro_instr+(ichn-1)+(inote*0.001)
   iVoicetab table ichn-1, giVoices
