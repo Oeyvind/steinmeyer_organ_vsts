@@ -87,7 +87,8 @@ instr 3
         kndx = 0
         while kndx < inumvoice do
           koutchan = iChans[kndx]
-          printk2 koutchan
+          Sdebug sprintfk "off note %i, chan %i", inote, koutchan
+          puts Sdebug, koutchan+1
           kinstnum = 201+(inote*0.001)+(koutchan*0.00001)
           kndx += 1
           event "i", -kinstnum, 0, .1

@@ -1,0 +1,227 @@
+<CsoundSynthesizer>
+<CsOptions>
+-o7_formants_a.wav
+</CsOptions>
+<CsInstruments>
+
+;***************************************************
+; globals
+;***************************************************
+
+	sr 	= 44100
+	ksmps 	= 10
+	nchnls 	= 2
+	0dbfs	= 1
+
+;***************************************************
+;ftables
+;***************************************************
+
+	; load audio files
+	giStruglKor	ftgen	0, 0, 0, 1, "StruglKor.wav", 0, 0, 0			; soundfile
+
+	; classic waveforms
+	giSine		ftgen	0, 0, 65537, 10, 1					; sine wave
+	giCosine	ftgen	0, 0, 8193, 9, 1, 1, 90					; cosine wave
+	giTri		ftgen	0, 0, 8193, 7, 0, 2048, 1, 4096, -1, 2048, 0		; triangle wave 
+
+	; grain envelope tables
+	giSigmoRise 	ftgen	0, 0, 8193, 19, 0.5, 1, 270, 1				; rising sigmoid
+	giSigmoFall 	ftgen	0, 0, 8193, 19, 0.5, 1, 90, 1				; falling sigmoid
+	giExpFall	ftgen	0, 0, 8193, 5, 1, 8193, 0.00001				; exponential decay
+	giTriangleWin 	ftgen	0, 0, 8193, 7, 0, 4096, 1, 4096, 0			; triangular window 
+
+;******************************************************
+; partikkel instr
+;******************************************************
+		instr 1
+
+;*******************************
+; setup of source waveforms
+; (needs to be done first, because grain pitch and time pointer depends on source waveform lengths)
+;*******************************
+
+; select source waveforms
+	kwaveform1	= giSine		; source audio waveform 1
+	kwave1Single	= 1			; flag to set if waveform is single cycle (set to zero for sampled waveforms)
+	kwaveform2	= giSine		; source audio waveform 2
+	kwave2Single	= 1			; flag to set if waveform is single cycle (set to zero for sampled waveforms)
+	kwaveform3	= giSine		; source audio waveform 3
+	kwave3Single	= 1			; flag to set if waveform is single cycle (set to zero for sampled waveforms)
+	kwaveform4	= giSine		; source audio waveform 4
+	kwave4Single	= 1			; flag to set if waveform is single cycle (set to zero for sampled waveforms)
+
+; get source waveform length (used when calculating transposition and time pointer)
+	kfilen1		tableng	 kwaveform1		; get length of the first source waveform
+	kfilen2		tableng	 kwaveform2		; same as above, for source waveform 2
+	kfilen3		tableng	 kwaveform3		; same as above, for source waveform 3
+	kfilen4		tableng	 kwaveform4		; same as above, for source waveform 4
+	kfildur1	= kfilen1 / sr			; length in seconds, for the first source waveform
+	kfildur2	= kfilen2 / sr			; same as above, for source waveform 2
+	kfildur3	= kfilen3 / sr			; same as above, for source waveform 3
+	kfildur4	= kfilen4 / sr			; same as above, for source waveform 4
+
+; original pitch for each waveform, use if they should be transposed individually
+; can also be used as a "cycles per second" parameter for single cycle waveforms (assuming that the kwavfreq parameter has a value of 1.0)
+; in this example pitch is used for placement of formants (values used should produce the wowel "a" in a male bass0 voice)
+	kwavekey1	= 600
+	kwavekey2	= 1040
+	kwavekey3	= 2250
+	kwavekey4	= 2450
+
+	kwavekey1	linseg 600, 1,  600, \
+				  .2, 400, 1, 400,  \ 
+				  .2, 250, 1, 250, \
+					.2, 400, 1, 400, \
+					.2, 350, 1, 350
+	kwavekey2	linseg 1040, 1, 1040, \
+				    .2, 1620, 1, 1620, \
+				    .2, 1750, 1, 1750, \
+						.2, 750, 1, 750, \
+						.2, 600, 1, 600
+	kwavekey3	linseg 2250, 1, 2250, \
+				    .2, 2400, 1, 2400, \
+				    .2, 2600, 1, 2600, \
+						.2, 2400, 1, 2400, \
+						.2, 2400, 1, 2400
+	kwavekey4	linseg 2450, 1, 2450, \
+				    .2, 2800, 1, 2800,  \ 
+				    .2, 3050, 1, 3050, \
+						.2, 2600, 1, 2600, \
+						.2, 2675, 1, 2675
+
+; set original key dependant on waveform length (only for sampled waveforms, not for single cycle waves)
+	kwavekey1	= (kwave1Single > 0 ? kwavekey1 : kwavekey1/kfildur1)
+	kwavekey2	= (kwave2Single > 0 ? kwavekey2 : kwavekey2/kfildur2)
+	kwavekey3	= (kwave3Single > 0 ? kwavekey3 : kwavekey3/kfildur3)
+	kwavekey4	= (kwave4Single > 0 ? kwavekey4 : kwavekey4/kfildur4)
+
+; time pointer (phase). This can be independent for each source waveform.
+	isamplepos1	= 0				; initial phase for wave source 1
+	isamplepos2	= 0				; initial phase for wave source 2
+	isamplepos3	= 0				; initial phase for wave source 3
+	isamplepos4	= 0				; initial phase for wave source 4
+
+	kTimeRate	= 1				; time pointer rate
+	asamplepos1	phasor kTimeRate / kfildur1	; phasor from 0 to 1, scaled to the length of the first source waveform
+	asamplepos2	phasor kTimeRate / kfildur2	; same as above, scaled for source wave 2
+	asamplepos3	phasor kTimeRate / kfildur3	; same as above, scaled for source wave 3
+	asamplepos4	phasor kTimeRate / kfildur4	; same as above, scaled for source wave 4
+
+	; mix initial phase and moving phase value (moving phase only for sampled waveforms, single cycle waveforms use static samplepos)
+	asamplepos1	= asamplepos1*(1-kwave1Single) + isamplepos1
+	asamplepos2	= asamplepos2*(1-kwave2Single) + isamplepos2
+	asamplepos3	= asamplepos3*(1-kwave3Single) + isamplepos3
+	asamplepos4	= asamplepos4*(1-kwave4Single) + isamplepos4
+
+;*******************************
+; other granular synthesis parameters
+;*******************************
+
+; amplitude
+	kamp		= ampdbfs(-3)				; output amplitude
+
+; sync
+	async 		= 0.0					; set the sync input to zero (disable external sync)
+
+; grain rate
+	kGrainRate	= p4					; number of grains per second
+
+; grain rate FM
+	kGrFmFreq	= kGrainRate/4				; FM freq for modulating the grainrate 
+	kGrFmIndex	= 0.0					; FM index for modulating the grainrate (normally kept in a 0.0 to 1.0 range)
+	iGrFmWave	= giSine				; FM waveform, for modulating the grainrate 
+	aGrFmSig	oscil kGrFmIndex, kGrFmFreq, iGrFmWave	; audio signal for frequency modulation of grain rate
+	agrainrate	= kGrainRate + (aGrFmSig*kGrainRate)	; add the modulator signal to the grain rate signal
+
+; distribution 
+	kdistribution	= 0.0						; grain random distribution in time
+	idisttab	ftgentmp	0, 0, 16, 16, 1, 16, -10, 0	; probability distribution for random grain masking
+
+; grain shape (empirical adjustment of grain envelope for formant synthesis)
+	kGrainDur	= 0.8					; length of each grain relative to grain rate 
+	kduration	= (kGrainDur*1000)/kGrainRate		; grain dur in milliseconds, relative to grain rate
+
+	ienv_attack	= giSigmoRise 				; grain attack shape (from table)
+	ienv_decay	= giSigmoFall 				; grain decay shape (from table)
+	ksustain_amount	= 0.2					; balance between enveloped time(attack+decay) and sustain level time, 0.0 = no time at sustain level
+	ka_d_ratio	= 0.25					; balance between attack time and decay time, 0.0 = zero attack time and full decay time
+
+	kenv2amt	= 0.5					; amount of secondary enveloping per grain (e.g. for fof synthesis)
+	ienv2tab	= giExpFall 				; secondary grain shape (from table), enveloping the whole grain if used
+
+; grain pitch (transpose, or "playback speed")
+	kwavfreq	= 1					; transposition factor (playback speed) of audio inside grains, 
+
+; pitch sweep
+	ksweepshape		= 0.5						; grain wave pitch sweep shape (sweep speed), 0.5 is linear sweep
+	iwavfreqstarttab 	ftgentmp	0, 0, 16, -2, 0, 0,   1		; start freq scalers, per grain
+	iwavfreqendtab		ftgentmp	0, 0, 16, -2, 0, 0,   1		; end freq scalers, per grain
+
+; FM of grain pitch (playback speed)
+	kPtchFmFreq	= 440							; FM freq, modulating waveform pitch
+	kPtchFmIndex	= 0							; FM index, modulating waveform pitch
+	iPtchFmWave	= giSine						; FM waveform, modulating waveform pitch
+	ifmamptab	ftgentmp	0, 0, 16, -2, 0, 0,   1			; FM index scalers, per grain
+	ifmenv		= giTriangleWin 					; FM index envelope, over each grain (from table)
+	kPtchFmIndex	= kPtchFmIndex + (kPtchFmIndex*kPtchFmFreq*0.00001) 	; FM index scaling formula
+	awavfm		oscil	kPtchFmIndex, kPtchFmFreq, iPtchFmWave		; Modulator signal for frequency modulation inside grain
+
+; trainlet parameters
+	icosine		= giCosine				; needs to be a cosine wave to create trainlets
+	kTrainCps	= kGrainRate				; set cps equal to grain freq, creating a single cycle of a trainlet inside each grain
+	knumpartials	= 7					; number of partials in trainlet
+	kchroma		= 3					; chroma, falloff of partial amplitude towards sr/2
+
+; masking
+	; gain masking table, amplitude for individual grains
+	igainmasks	ftgentmp	0, 0, 16, -2, 0, 0,   1
+
+	; channel masking table, output routing for individual grains (zero based, a value of 0.0 routes to output 1)
+	ichannelmasks	ftgentmp	0, 0, 16, -2,  0, 0,  0.5
+	
+	; random masking (muting) of individual grains
+	krandommask	= 0
+
+	; wave mix masking. 
+	; Set gain per source waveform per grain, 
+	; in groups of 5 amp values, reflecting source1, source2, source3, source4, and the 5th slot is for trainlet amplitude.
+	; in this example wave mix is used to set the relative amplitude of the different formants 
+	; (values used approximates 0, -7 and -9 db, for the wowel "a" in a male bass0 voice)
+	iwaveamptab	ftgentmp	0, 0, 32, -2, 0, 0,   1,0.5,0.5,0.4,0
+
+	iwaveamptab4	ftgentmp	0, 0, 32, -2, 0, 0,   1,0.5,0.5,0.4,0	; formant 'a'
+	iwaveamptab5	ftgentmp	0, 0, 32, -2, 0, 0,   1,0.2,0.4,0.2,0	; formant 'e'
+	iwavetabs	ftgentmp	0, 0, 2, -2, iwaveamptab4, iwaveamptab5
+	kwavemorf	linseg		0, 1, 0,\
+					   2, 1,\
+					   1, 1
+			ftmorf		kwavemorf, iwavetabs, iwaveamptab
+; system parameter
+	imax_grains	= 100				; max number of grains per k-period
+
+;***********
+
+
+a1,a2,a3,a4,a5,a6,a7,a8	partikkel agrainrate, kdistribution, idisttab, async, kenv2amt, ienv2tab, \
+               	  ienv_attack, ienv_decay, ksustain_amount, ka_d_ratio, kduration, kamp, igainmasks, \
+               	  kwavfreq, ksweepshape, iwavfreqstarttab, iwavfreqendtab, awavfm, \
+               	  ifmamptab, ifmenv, icosine, kTrainCps, knumpartials, \
+               	  kchroma, ichannelmasks, krandommask, kwaveform1, kwaveform2, kwaveform3, kwaveform4, \
+               	  iwaveamptab, asamplepos1, asamplepos2, asamplepos3, asamplepos4, \
+               	  kwavekey1, kwavekey2, kwavekey3, kwavekey4, imax_grains
+
+	outs	a1, a2
+        
+		endin
+
+;******************************************************
+
+</CsInstruments>
+<CsScore>
+;  start  dur	cps
+i1   0 	  7	110
+
+</CsScore>
+
+</CsoundSynthesizer>
