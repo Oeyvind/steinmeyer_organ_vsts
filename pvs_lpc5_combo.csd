@@ -137,7 +137,7 @@ instr 1
 
 	kcps EpochCps a1     ; pitch analysis by epoch filtering and zero cross count
   kcps limit kcps, 10, 2000
-  kcps_semi = int(12 * log2(kcps / 440) + 69)
+  kcps_semi = round(12 * log2(kcps / 440) + 69)
   kcps = cpsmidinn(kcps_semi) ; qunatize to semitones
 
   ioverlap = ifftsize / 4

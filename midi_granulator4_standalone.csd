@@ -19,17 +19,17 @@ rslider bounds(265, 65, 50, 50), channel("rphase"), text("Rphase"), range(0, 1, 
 rslider bounds(315, 65, 50, 50), channel("rtempo"), text("Rtempo"), range(0,1,0, 0.3, 0.0001)
 ;rslider bounds(365, 65, 50, 50), channel("master_tempo"), text("M_tmpo"), range(1,20,2, 1)
 
-rslider bounds(440,  5, 50, 50), channel("tempo_1"), text("Tpo1"), range(2,22,2,0.5)
-rslider bounds(440, 65, 50, 50), channel("tempo_2"), text("Tpo2"), range(2,22,2,0.5)
-rslider bounds(440,125, 50, 50), channel("tempo_3"), text("Tpo3"), range(2,22,2,0.5)
-rslider bounds(440,185, 50, 50), channel("tempo_4"), text("Tpo4"), range(2,22,2,0.5)
-rslider bounds(440,245, 50, 50), channel("tempo_8"), text("Tpo8"), range(2,22,2,0.5)
+rslider bounds(440,  5, 50, 50), channel("tempo_1"), text("Tpo1"), range(1,30,2x)
+rslider bounds(440, 65, 50, 50), channel("tempo_2"), text("Tpo2"), range(1,30,2)
+rslider bounds(440,125, 50, 50), channel("tempo_3"), text("Tpo3"), range(1,30,2)
+rslider bounds(440,185, 50, 50), channel("tempo_4"), text("Tpo4"), range(1,30,2)
+rslider bounds(440,245, 50, 50), channel("tempo_8"), text("Tpo8"), range(1,30,2)
 
-rslider bounds(500,   5, 50, 50), channel("duration_1"), text("Dur1"), range(0.01,0.3,0.05, 0.3, 0.0001)
-rslider bounds(500,  65, 50, 50), channel("duration_2"), text("Dur2"), range(0.01,0.3,0.05, 0.3, 0.0001)
-rslider bounds(500, 125, 50, 50), channel("duration_3"), text("Dur3"), range(0.01,0.3,0.05, 0.3, 0.0001)
-rslider bounds(500, 185, 50, 50), channel("duration_4"), text("Dur4"), range(0.01,0.3,0.05, 0.3, 0.0001)
-rslider bounds(500, 245, 50, 50), channel("duration_8"), text("Dur8"), range(0.01,0.3,0.05, 0.3, 0.0001)
+rslider bounds(500,  5, 50, 50), channel("duration_1"), text("Dur1"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 65, 50, 50), channel("duration_2"), text("Dur2"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 125, 50, 50), channel("duration_3"), text("Dur3"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 185, 50, 50), channel("duration_4"), text("Dur4"), range(0,1,0.5, 0.3, 0.0001)
+rslider bounds(500, 245, 50, 50), channel("duration_8"), text("Dur8"), range(0,1,0.5, 0.3, 0.0001)
 
 rslider bounds(560,  5, 50, 50), channel("transp_1"), text("Trsp1"), range(-12,12,0, 1, 1)
 rslider bounds(560, 65, 50, 50), channel("transp_2"), text("Trsp2"), range(-12,12,0, 1, 1)
@@ -55,11 +55,16 @@ csoundoutput bounds(0, 155, 425, 150)
 
 <CsoundSynthesizer>
 <CsOptions>
--n -d -+rtmidi=NULL -M0 -Q0 -m0d; -b4 -B8 
+;-n -d -+rtmidi=NULL -M0 -Q0 -m0d 
+-odac11 -M0 -Q6 
 </CsOptions>
 <CsInstruments>
 
-ksmps = 2
+sr = 48000
+ksmps = 64
+nchnls = 2
+0dbfs = 1
+
 massign -1, 2
 pgmassign -1, -1
 
@@ -195,6 +200,9 @@ instr 1
 ; TEST
   ;kinphase phasor 2
   ;chnset kinphase, "ext_phase"
+  chnset 5, "tempo_1"
+  chnset 0.1, "duration_1"
+  chnset 1, "absdur"
 
 endin
 
@@ -202,9 +210,9 @@ instr 2
   ; midi notes input, 
   ; trigger held notes on noteoff if note held longer than thresh
   ; turn off notes on noteoff if note held shorter than thresh
-  inote notnum
-  ivel veloc 0, 1
-  ichn midichn
+  inote = 60;notnum
+  ivel = 0.5; veloc 0, 1
+  ichn = 1; midichn
   imidi1 chnget "midi_to_1"
   imidi2 chnget "midi_to_2"
   imidi3 chnget "midi_to_3"
@@ -217,11 +225,15 @@ instr 2
   ichn = imidi8 > 0 ? 8 : ichn
   ihold_thresh = 0.3
   instnum = gimetro_instr+(ichn-1)+(inote*0.001)
+
   iVoicetab table ichn-1, giVoices
   ktime timeinsts
   ktrig lastcycle
+  ;printk2 ktime
+  printk2 ktrig, 20
   knote = inote ; needed just to force the table update at k-rate
   if ktrig > 0 then
+    printk2 ktime, 40
     if ktime >= ihold_thresh then
       event "i", instnum, 0, -1, inote, ivel, ichn
       tablew 1, knote, iVoicetab
@@ -287,11 +299,14 @@ instr 3,4,5,6,10
   knumpulses = 1
   kfallback chnget "fallback"
   ktrig, kphase, kfq RhythmPLL3 kinphase, ifq, ktempo_update, kfqgain, kphaseadjust, knumpulses, krphase, kfallback
-  printk2 int(kfq*10)/10, p1*2
+  ;printk2 int(kfq*10)/10, p1*2
+  ;printk2 ktrig, 20
   if k_is_master > 0 then
     chnset kphase, "ext_phase"
   endif
-  
+  xtratim 0.1
+  ktest release
+  printk2 ktest, 30
   if ktrig > 0 && krtempo > 0 then
     krand_t_init trigger krtempo, 0, 0
     ktempo_update = krand_t_init > 0 ? kfq : ktempo_update ; set base tempo for random dev when initiating random dev
@@ -328,6 +343,7 @@ instr 3,4,5,6,10
 endin
 
 instr 201
+  
   ; midi  output
   ivel = p4*127
   inote = p5
@@ -335,7 +351,7 @@ instr 201
   idur    = (p3 < 0 ? 999 : p3)  ; use very long duration for negative dur, noteondur will create note off when instrument stops
   ;idur    = (p3 < 0.0105 ? 0 : p3)  ; avoid extremely short notes as they won't play
   noteondur ichan, inote, ivel, idur
-  a1 oscil ivel, cpsmidinn(inote)
+  a1 oscil ivel*0.001, cpsmidinn(inote)
   outs a1, a1
 
 endin
@@ -343,6 +359,6 @@ endin
 </CsInstruments>
 <CsScore>
 i1 0 86400
-
+i2 1 0.4
 </CsScore>
 </CsoundSynthesizer>

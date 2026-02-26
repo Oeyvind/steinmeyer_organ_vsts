@@ -216,7 +216,13 @@ instr 4
                 kfrac_instr = kNote[kEventIndex]*0.001    
                 event "i", imidistore_instr, 0, 10, kNote[kEventIndex]+cabbageGetValue:k("transpose"), kVel[kEventIndex]
                 if kmonitor > 0 then
-                  event "i", imonitorout_instr, 0, 10, kNote[kEventIndex]+cabbageGetValue:k("transpose"), kVel[kEventIndex]       
+                  kdur chnget "duration"
+                  kdur *= 0.5 ; shorter dur when we play the whole original aas it is over powered
+                  korig_clean chnget "orig_clean"
+                  if korig_clean == 0 then
+                    kdur = 10
+                  endif
+                  event "i", imonitorout_instr, 0, kdur, kNote[kEventIndex]+cabbageGetValue:k("transpose"), kVel[kEventIndex]       
                 endif
             endif
           kEventIndex += 1
