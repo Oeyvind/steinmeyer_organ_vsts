@@ -26,6 +26,26 @@ Or for another WAV file:
 python stones/run_stones_pipeline.py --wav "C:/path/to/your/file.wav"
 ```
 
+To test alternate trace band splits (matching live `Lo1/Hi1 ... Lo3/Hi3`):
+
+```bash
+python stones/run_stones_pipeline.py --wav "C:/path/to/your/file.wav" --lo1 20 --hi1 500 --lo2 500 --hi2 1000 --lo3 1000 --hi3 3000
+```
+
+To keep outputs from different tests (no overwrite), add a run tag:
+
+```bash
+python stones/run_stones_pipeline.py --wav "C:/path/to/your/file.wav" --tag my_test
+```
+
+### Band-split sweep example (Lo1 starts at 150 Hz, then +25% twice)
+
+```bash
+python stones/run_stones_pipeline.py --wav "C:/path/to/your/file.wav" --lo1 150 --hi1 500 --lo2 500 --hi2 1000 --lo3 1000 --hi3 3000 --tag lo1_150_base
+python stones/run_stones_pipeline.py --wav "C:/path/to/your/file.wav" --lo1 187.5 --hi1 625 --lo2 625 --hi2 1250 --lo3 1250 --hi3 3750 --tag lo1_150_p25
+python stones/run_stones_pipeline.py --wav "C:/path/to/your/file.wav" --lo1 234.375 --hi1 781.25 --lo2 781.25 --hi2 1562.5 --lo3 1562.5 --hi3 4687.5 --tag lo1_150_p25x2
+```
+
 ## Generated outputs
 - `*_note_compare_hits.csv` — note outputs per hit for BEFORE/AFTER presets
 - `*_note_compare_spreads.csv` — grouped consistency spreads (3 hits per stone)
@@ -33,6 +53,7 @@ python stones/run_stones_pipeline.py --wav "C:/path/to/your/file.wav"
 - `*_raw_features.png` — raw feature plots
 - `*_notes_compare.png` — per-hit note comparison plots
 - `*_spreads_compare.png` — spread comparison plots
+- `*_suggested_live_settings.txt` — run-specific manual transfer settings
 
 ## Quick tune checklist
 1. Run `python stones/run_stones_pipeline.py --wav "..."` and open `*_notes_compare.png` + `*_spreads_compare.png`.

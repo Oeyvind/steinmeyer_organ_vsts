@@ -1,0 +1,70 @@
+Stones Session - Suggested Live Parameter Settings
+=================================================
+
+Auto-updated from analyze_stones.py
+Generated: 2026-02-26 17:14:05
+
+Use this as a manual checklist for applying the Python/offline tuning in:
+  stones/pvstrace_3band.csd
+
+A) Main recommended values (current tuned baseline)
+----------------------------------------------------
+1) Noise gate and timing
+    - NoiseFloorDb = -55
+    - MidiAnalysisMs = 120
+
+2) Band split frequencies (affect Trace MIDI B1/B2/B3)
+    - Lo1 = 20.0
+    - Hi1 = 500.0
+    - Lo2 = 500.0
+    - Hi2 = 1000.0
+    - Lo3 = 1000.0
+    - Hi3 = 3000.0
+
+3) Trace MIDI ranges/transposition
+    - MidiTrace1Lo = 36
+    - MidiTrace1Hi = 84
+    - MidiTrace1Trsp = 0
+
+    - MidiTrace2Lo = 36
+    - MidiTrace2Hi = 100
+    - MidiTrace2Trsp = 0
+
+    - MidiTrace3Lo = 36
+    - MidiTrace3Hi = 108
+    - MidiTrace3Trsp = -12
+
+4) Feature mapping limits
+    - CrestMapMax = 140
+      (GUI slider "CrMapMax"; feature-domain max for crest mapping)
+
+B) Optional per-recording tweaks
+--------------------------------
+If notes are saturating at top/bottom:
+- Widen Lo/Hi ranges first (especially MidiTrace2Hi / MidiTrace3Hi)
+
+If gate triggers too often on noise:
+- Raise NoiseFloorDb (less negative), e.g. -52 to -48
+
+If triggers feel unstable/jittery:
+- Increase MidiAnalysisMs, e.g. 140-180
+
+If response feels too slow:
+- Reduce MidiAnalysisMs, e.g. 80-100
+
+C) Quick apply order in UI
+--------------------------
+1. Set NoiseFloorDb and MidiAnalysisMs
+2. Set Lo1/Hi1, Lo2/Hi2, Lo3/Hi3
+3. Set B1/B2/B3 Lo/Hi/Trsp values
+4. Set CrestMapMax (CrMapMax) to 140
+5. Test with your recording and adjust only one control at a time
+
+D) Python band-split parameters (match live Lo/Hi channels)
+-----------------------------------------------------------
+  --lo1 20.0 --hi1 500.0 --lo2 500.0 --hi2 1000.0 --lo3 1000.0 --hi3 3000.0
+
+E) Notes
+--------
+- Python analysis does not auto-write to the live Csound patch.
+- This file is auto-generated as the manual transfer checklist.

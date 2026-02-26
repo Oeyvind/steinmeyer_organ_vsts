@@ -2,6 +2,8 @@ import wave
 import math
 import csv
 import argparse
+from itertools import combinations
+from datetime import datetime
 from pathlib import Path
 import numpy as np
 
@@ -14,8 +16,12 @@ WINDOW_MS = 120
 REFRACTORY_MS = 180
 NOISE_DB = -55.0
 
-BANDS = [(20, 500), (500, 1000), (1000, 3000)]
+DEFAULT_BANDS = [(20, 500), (500, 1000), (1000, 3000)]
 NBINS = [2, 2, 2]
+
+DEFAULT_NOISE_DB = -55
+DEFAULT_MIDI_ANALYSIS_MS = 120
+DEFAULT_CREST_MAP_MAX = 140
 
 FEATURE_NOTE_RANGES = {
     "centroid": (36, 84),
@@ -119,7 +125,7 @@ def hz_to_midi(freq):
     return 69.0 + 12.0 * math.log2(max(freq, 1e-12) / 440.0)
 
 
-def analyze_hit(frames: np.ndarray, sr: int):
+def analyze_hit(frames: np.ndarray, sr: int, bands):
     win = np.hanning(FFT_SIZE)
     mags = []
     for fr in frames:
@@ -134,13 +140,13 @@ def analyze_hit(frames: np.ndarray, sr: int):
     arith = float(np.mean(mag_mean) + 1e-12)
     flatness = float(np.exp(np.mean(np.log(mag_mean + 1e-12))) / arith)
 
-    lo_mask = (freqs >= BANDS[0][0]) & (freqs <= BANDS[0][1])
-    hi_mask = (freqs >= BANDS[2][0]) & (freqs <= BANDS[2][1])
+    lo_mask = (freqs >= bands[0][0]) & (freqs <= bands[0][1])
+    hi_mask = (freqs >= bands[2][0]) & (freqs <= bands[2][1])
     tilt = float(math.log((np.sum(mag_mean[hi_mask]) + 1e-9) / (np.sum(mag_mean[lo_mask]) + 1e-9)))
     crest = float(np.max(mag_mean) / arith)
 
     trace_hz = []
-    for (f0, f1), ntrace in zip(BANDS, NBINS):
+    for (f0, f1), ntrace in zip(bands, NBINS):
         mask = (freqs >= f0) & (freqs <= f1)
         band_mag = np.where(mask, mag_mean, 0.0)
         idx = np.argpartition(band_mag, -ntrace)[-ntrace:]
@@ -190,11 +196,63 @@ def print_consistency(rows):
     return spread_rows
 
 
-def build_output_paths(wav_path: Path):
-    hits_csv = wav_path.with_name(f"{wav_path.stem}_note_compare_hits.csv")
-    spreads_csv = wav_path.with_name(f"{wav_path.stem}_note_compare_spreads.csv")
-    raw_features_csv = wav_path.with_name(f"{wav_path.stem}_raw_features.csv")
-    return hits_csv, spreads_csv, raw_features_csv
+def build_split_band_candidates(lo_floor: float, hi_ceiling: float, step_hz: float, min_width_hz: float):
+    candidates = []
+    b1_hi = lo_floor + min_width_hz
+    while b1_hi <= hi_ceiling - (2 * min_width_hz):
+        b2_hi = b1_hi + min_width_hz
+        while b2_hi <= hi_ceiling - min_width_hz:
+            candidates.append([
+                (lo_floor, b1_hi),
+                (b1_hi, b2_hi),
+                (b2_hi, hi_ceiling),
+            ])
+            b2_hi += step_hz
+        b1_hi += step_hz
+    return candidates
+
+
+def separation_score(rows):
+    if len(rows) < 12:
+        return -1e9, 0.0, 0.0
+
+    groups = [rows[i:i + 3] for i in range(0, 12, 3)]
+    group_arrays = [np.array([x[2:] for x in g], dtype=np.float64) for g in groups]
+    centroids = [arr.mean(axis=0) for arr in group_arrays]
+
+    within_vals = []
+    for arr, centroid in zip(group_arrays, centroids):
+        dists = np.sqrt(np.sum((arr - centroid) ** 2, axis=1))
+        within_vals.append(float(np.mean(dists)))
+    within = float(np.mean(within_vals))
+
+    between_vals = []
+    for c1, c2 in combinations(centroids, 2):
+        between_vals.append(float(np.sqrt(np.sum((c1 - c2) ** 2))))
+    between = float(np.mean(between_vals)) if between_vals else 0.0
+
+    score = between - within
+    return score, within, between
+
+
+def evaluate_bands(hit_frames, sr: int, bands, preset: dict):
+    rows = []
+    for k, t, frames in hit_frames:
+        feat = analyze_hit(frames, sr, bands)
+        note_row = map_hit_to_notes(feat, preset)
+        rows.append((k, t, *note_row))
+    score, within, between = separation_score(rows)
+    return score, within, between, rows
+
+
+def build_output_paths(wav_path: Path, tag: str = ""):
+    suffix = f"_{tag}" if tag else ""
+    stem = f"{wav_path.stem}{suffix}"
+    hits_csv = wav_path.with_name(f"{stem}_note_compare_hits.csv")
+    spreads_csv = wav_path.with_name(f"{stem}_note_compare_spreads.csv")
+    raw_features_csv = wav_path.with_name(f"{stem}_raw_features.csv")
+    suggested_settings_txt = wav_path.with_name(f"{stem}_suggested_live_settings.txt")
+    return hits_csv, spreads_csv, raw_features_csv, suggested_settings_txt
 
 
 def write_hits_csv(rows_by_preset: dict, hits_csv_path: Path):
@@ -243,9 +301,101 @@ def write_raw_features_csv(hits: list, raw_features_csv_path: Path):
             ])
 
 
+def write_suggested_settings_txt(bands, preset_after: dict, suggested_settings_path: Path):
+    trace_ranges = preset_after["trace_note_ranges"]
+    trace_transpose = preset_after["trace_transpose"]
+    crest_map_max = preset_after["crest_max"]
+
+    text = f"""Stones Session - Suggested Live Parameter Settings
+=================================================
+
+Auto-updated from analyze_stones.py
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+Use this as a manual checklist for applying the Python/offline tuning in:
+  stones/pvstrace_3band.csd
+
+A) Main recommended values (current tuned baseline)
+----------------------------------------------------
+1) Noise gate and timing
+    - NoiseFloorDb = {DEFAULT_NOISE_DB}
+    - MidiAnalysisMs = {DEFAULT_MIDI_ANALYSIS_MS}
+
+2) Band split frequencies (affect Trace MIDI B1/B2/B3)
+    - Lo1 = {bands[0][0]:.1f}
+    - Hi1 = {bands[0][1]:.1f}
+    - Lo2 = {bands[1][0]:.1f}
+    - Hi2 = {bands[1][1]:.1f}
+    - Lo3 = {bands[2][0]:.1f}
+    - Hi3 = {bands[2][1]:.1f}
+
+3) Trace MIDI ranges/transposition
+    - MidiTrace1Lo = {trace_ranges[0][0]}
+    - MidiTrace1Hi = {trace_ranges[0][1]}
+    - MidiTrace1Trsp = {trace_transpose[0]}
+
+    - MidiTrace2Lo = {trace_ranges[1][0]}
+    - MidiTrace2Hi = {trace_ranges[1][1]}
+    - MidiTrace2Trsp = {trace_transpose[1]}
+
+    - MidiTrace3Lo = {trace_ranges[2][0]}
+    - MidiTrace3Hi = {trace_ranges[2][1]}
+    - MidiTrace3Trsp = {trace_transpose[2]}
+
+4) Feature mapping limits
+    - CrestMapMax = {crest_map_max}
+      (GUI slider \"CrMapMax\"; feature-domain max for crest mapping)
+
+B) Optional per-recording tweaks
+--------------------------------
+If notes are saturating at top/bottom:
+- Widen Lo/Hi ranges first (especially MidiTrace2Hi / MidiTrace3Hi)
+
+If gate triggers too often on noise:
+- Raise NoiseFloorDb (less negative), e.g. -52 to -48
+
+If triggers feel unstable/jittery:
+- Increase MidiAnalysisMs, e.g. 140-180
+
+If response feels too slow:
+- Reduce MidiAnalysisMs, e.g. 80-100
+
+C) Quick apply order in UI
+--------------------------
+1. Set NoiseFloorDb and MidiAnalysisMs
+2. Set Lo1/Hi1, Lo2/Hi2, Lo3/Hi3
+3. Set B1/B2/B3 Lo/Hi/Trsp values
+4. Set CrestMapMax (CrMapMax) to {crest_map_max}
+5. Test with your recording and adjust only one control at a time
+
+D) Python band-split parameters (match live Lo/Hi channels)
+-----------------------------------------------------------
+  --lo1 {bands[0][0]:.1f} --hi1 {bands[0][1]:.1f} --lo2 {bands[1][0]:.1f} --hi2 {bands[1][1]:.1f} --lo3 {bands[2][0]:.1f} --hi3 {bands[2][1]:.1f}
+
+E) Notes
+--------
+- Python analysis does not auto-write to the live Csound patch.
+- This file is auto-generated as the manual transfer checklist.
+"""
+
+    with open(suggested_settings_path, "w", encoding="utf-8") as fp:
+        fp.write(text)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Analyze stone-hit WAV and export feature/note comparison CSVs.")
     parser.add_argument("--wav", type=str, default=str(DEFAULT_WAV_PATH), help="Path to input WAV file")
+    parser.add_argument("--lo1", type=float, default=DEFAULT_BANDS[0][0], help="Band 1 low frequency (Hz)")
+    parser.add_argument("--hi1", type=float, default=DEFAULT_BANDS[0][1], help="Band 1 high frequency (Hz)")
+    parser.add_argument("--lo2", type=float, default=DEFAULT_BANDS[1][0], help="Band 2 low frequency (Hz)")
+    parser.add_argument("--hi2", type=float, default=DEFAULT_BANDS[1][1], help="Band 2 high frequency (Hz)")
+    parser.add_argument("--lo3", type=float, default=DEFAULT_BANDS[2][0], help="Band 3 low frequency (Hz)")
+    parser.add_argument("--hi3", type=float, default=DEFAULT_BANDS[2][1], help="Band 3 high frequency (Hz)")
+    parser.add_argument("--auto-bands", action="store_true", help="Auto-tune contiguous band split points for better stone separation")
+    parser.add_argument("--auto-step", type=float, default=100.0, help="Hz step for auto band search")
+    parser.add_argument("--auto-min-width", type=float, default=250.0, help="Minimum width per auto band (Hz)")
+    parser.add_argument("--auto-topk", type=int, default=5, help="Number of top auto-band candidates to print")
+    parser.add_argument("--tag", type=str, default="", help="Optional suffix tag to keep outputs from different runs")
     args = parser.parse_args()
 
     wav_path = Path(args.wav).expanduser().resolve()
@@ -253,7 +403,17 @@ def main():
         print(f"Input WAV not found: {wav_path}")
         raise SystemExit(1)
 
-    hits_csv_path, spreads_csv_path, raw_features_csv_path = build_output_paths(wav_path)
+    bands = [
+        (float(args.lo1), float(args.hi1)),
+        (float(args.lo2), float(args.hi2)),
+        (float(args.lo3), float(args.hi3)),
+    ]
+    for index, (lo_freq, hi_freq) in enumerate(bands, start=1):
+        if lo_freq < 0 or hi_freq <= lo_freq:
+            print(f"Invalid band {index}: lo={lo_freq}, hi={hi_freq} (require lo>=0 and hi>lo)")
+            raise SystemExit(1)
+
+    hits_csv_path, spreads_csv_path, raw_features_csv_path, suggested_settings_path = build_output_paths(wav_path, args.tag)
 
     sr, x = read_wav_mono(wav_path)
     idx, env = rms_envelope(x, win=1024, hop=256)
@@ -262,13 +422,59 @@ def main():
     onsets = detect_onsets(env_db, times)
 
     print(f"file={wav_path.name} sr={sr} len_s={len(x)/sr:.3f} detected_hits={len(onsets)}")
-
-    hits = []
+    hit_frames = []
     for k, oi in enumerate(onsets, start=1):
         s = int(idx[oi])
         frames = feature_window(x, sr, s, WINDOW_MS)
-        feat = analyze_hit(frames, sr)
-        hits.append((k, float(times[oi]), feat))
+        hit_frames.append((k, float(times[oi]), frames))
+
+    if args.auto_bands:
+        auto_candidates = build_split_band_candidates(
+            lo_floor=float(args.lo1),
+            hi_ceiling=float(args.hi3),
+            step_hz=float(args.auto_step),
+            min_width_hz=float(args.auto_min_width),
+        )
+        if len(auto_candidates) == 0:
+            print("auto-bands: no valid candidates from current bounds; check --lo1/--hi3/--auto-step/--auto-min-width")
+            raise SystemExit(1)
+
+        auto_results = []
+        for band_candidate in auto_candidates:
+            score, within, between, _ = evaluate_bands(hit_frames, sr, band_candidate, PRESETS["after"])
+            auto_results.append((score, within, between, band_candidate))
+        auto_results.sort(key=lambda x: x[0], reverse=True)
+
+        best_score, best_within, best_between, best_bands = auto_results[0]
+        bands = best_bands
+        print(f"auto-bands: tested={len(auto_candidates)} best_score={best_score:.3f} within={best_within:.3f} between={best_between:.3f}")
+        print(
+            "auto-bands best="
+            f"Lo1:{bands[0][0]:.1f}-Hi1:{bands[0][1]:.1f}, "
+            f"Lo2:{bands[1][0]:.1f}-Hi2:{bands[1][1]:.1f}, "
+            f"Lo3:{bands[2][0]:.1f}-Hi3:{bands[2][1]:.1f}"
+        )
+        top_k = max(1, int(args.auto_topk))
+        print(f"auto-bands top{top_k}:")
+        for rank, (score, within, between, band_candidate) in enumerate(auto_results[:top_k], start=1):
+            print(
+                f"  #{rank} score={score:.3f} within={within:.3f} between={between:.3f} "
+                f"| [{band_candidate[0][0]:.0f},{band_candidate[0][1]:.0f}] "
+                f"[{band_candidate[1][0]:.0f},{band_candidate[1][1]:.0f}] "
+                f"[{band_candidate[2][0]:.0f},{band_candidate[2][1]:.0f}]"
+            )
+
+    print(
+        "bands="
+        f"Lo1:{bands[0][0]:.1f}-Hi1:{bands[0][1]:.1f}, "
+        f"Lo2:{bands[1][0]:.1f}-Hi2:{bands[1][1]:.1f}, "
+        f"Lo3:{bands[2][0]:.1f}-Hi3:{bands[2][1]:.1f}"
+    )
+
+    hits = []
+    for k, t, frames in hit_frames:
+        feat = analyze_hit(frames, sr, bands)
+        hits.append((k, t, feat))
 
     rows_by_preset = {}
     spreads_by_preset = {}
@@ -286,9 +492,11 @@ def main():
     write_hits_csv(rows_by_preset, hits_csv_path)
     write_spreads_csv(spreads_by_preset, spreads_csv_path)
     write_raw_features_csv(hits, raw_features_csv_path)
+    write_suggested_settings_txt(bands, PRESETS["after"], suggested_settings_path)
     print(f"\nwritten_csv_hits={hits_csv_path.name}")
     print(f"written_csv_spreads={spreads_csv_path.name}")
     print(f"written_csv_raw_features={raw_features_csv_path.name}")
+    print(f"written_settings={suggested_settings_path.name}")
 
 
 if __name__ == "__main__":

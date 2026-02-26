@@ -1,0 +1,9 @@
+preset,stone,C_spread,F_spread,T_spread,Cr_spread,B1_spread,B2_spread,B3_spread
+before,1,1,1,1,6,0,1,0
+before,2,0,0,0,0,0,3,0
+before,3,0,3,3,21,0,3,0
+before,4,0,1,1,0,0,9,0
+after,1,1,1,1,4,0,1,3
+after,2,0,0,0,1,0,3,0
+after,3,0,3,3,17,0,3,3
+after,4,0,1,1,2,0,12,1

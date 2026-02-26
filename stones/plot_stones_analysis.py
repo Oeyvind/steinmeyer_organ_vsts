@@ -12,13 +12,15 @@ BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_WAV = BASE_DIR / "stones_rec_example.wav"
 
 
-def build_paths(base_wav: Path):
-    raw_csv = base_wav.with_name(f"{base_wav.stem}_raw_features.csv")
-    hits_csv = base_wav.with_name(f"{base_wav.stem}_note_compare_hits.csv")
-    spreads_csv = base_wav.with_name(f"{base_wav.stem}_note_compare_spreads.csv")
-    raw_png = base_wav.with_name(f"{base_wav.stem}_raw_features.png")
-    notes_png = base_wav.with_name(f"{base_wav.stem}_notes_compare.png")
-    spreads_png = base_wav.with_name(f"{base_wav.stem}_spreads_compare.png")
+def build_paths(base_wav: Path, tag: str = ""):
+    suffix = f"_{tag}" if tag else ""
+    stem = f"{base_wav.stem}{suffix}"
+    raw_csv = base_wav.with_name(f"{stem}_raw_features.csv")
+    hits_csv = base_wav.with_name(f"{stem}_note_compare_hits.csv")
+    spreads_csv = base_wav.with_name(f"{stem}_note_compare_spreads.csv")
+    raw_png = base_wav.with_name(f"{stem}_raw_features.png")
+    notes_png = base_wav.with_name(f"{stem}_notes_compare.png")
+    spreads_png = base_wav.with_name(f"{stem}_spreads_compare.png")
     return raw_csv, hits_csv, spreads_csv, raw_png, notes_png, spreads_png
 
 
@@ -177,10 +179,11 @@ def plot_spreads_compare(by_preset, out_path: Path):
 def main():
     parser = argparse.ArgumentParser(description="Plot analyzer CSV outputs for a given WAV stem.")
     parser.add_argument("--wav", type=str, default=str(DEFAULT_WAV), help="Path to WAV used for CSV naming")
+    parser.add_argument("--tag", type=str, default="", help="Optional suffix tag to read/write run-specific files")
     args = parser.parse_args()
 
     base_wav = Path(args.wav).expanduser().resolve()
-    raw_csv, hits_csv, spreads_csv, raw_png, notes_png, spreads_png = build_paths(base_wav)
+    raw_csv, hits_csv, spreads_csv, raw_png, notes_png, spreads_png = build_paths(base_wav, args.tag)
 
     missing = [p for p in [raw_csv, hits_csv, spreads_csv] if not p.exists()]
     if missing:

@@ -42,6 +42,7 @@ nslider channel("PkDens_scale"), bounds(140, 210, 120, 27), fontSize(11), text("
 nslider channel("PkDens_raw"), bounds(270, 210, 100, 27), fontSize(11), text("PkRaw"), range(0, 2, 0, 1, 0.001), active(0)
 nslider channel("FluxGain"), bounds(10, 240, 120, 27), fontSize(11), text("FluxGain"), range(1, 1000, 200, 1, 1)
 nslider channel("MidiAnalysisMs"), bounds(140, 240, 120, 27), fontSize(11), text("MidiWinMs"), range(10, 400, 120, 1, 1, 1)
+nslider channel("CrestMapMax"), bounds(270, 240, 100, 27), fontSize(11), text("CrMapMax"), range(20, 300, 140, 1, 1, 1)
 label bounds(10, 275, 150, 12), text("Feature MIDI (gate on)"), fontSize(10), align("left")
 checkbox channel("MidiCentroidOn"), bounds(10, 292, 20, 18), text("")
 label bounds(30, 294, 60, 12), text("Cent"), fontSize(10), align("left")
@@ -139,6 +140,7 @@ instr 1
   kpkdens_scale chnget "PkDens_scale"
   kflux_gain chnget "FluxGain"
   kmidi_analysis_ms chnget "MidiAnalysisMs"
+  kcrest_map_max chnget "CrestMapMax"
   kmidi_centroid_on chnget "MidiCentroidOn"
   kmidi_flatness_on chnget "MidiFlatnessOn"
   kmidi_tilt_on chnget "MidiTiltOn"
@@ -479,7 +481,7 @@ instr 1
         event "i", 201, 0, 0.2, kavg_tilt, kmidi_tilt_lo, kmidi_tilt_hi, int(limit(kmidi_tilt_chan,1,16)), -8, 8
       endif
       if kmidi_crest_on > 0 then
-        event "i", 201, 0, 0.2, kavg_crest, kmidi_crest_lo, kmidi_crest_hi, int(limit(kmidi_crest_chan,1,16)), 0, 140
+        event "i", 201, 0, 0.2, kavg_crest, kmidi_crest_lo, kmidi_crest_hi, int(limit(kmidi_crest_chan,1,16)), 0, limit(kcrest_map_max, 1, 1000)
       endif
       if kmidi_trace1_on > 0 && kavg_trace1 > 0 then
         event "i", 202, 0, 0.2, kavg_trace1, kmidi_trace1_lo, kmidi_trace1_hi, int(limit(kmidi_trace1_chan,1,16)), kmidi_trace1_trsp
