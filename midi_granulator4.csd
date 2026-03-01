@@ -1,5 +1,5 @@
 <Cabbage>
-form caption("Midi granulator 4") size(690, 305), colour(30, 35, 40), guiMode("queue"), pluginId("mgr4")
+form caption("Midi granulator 4") size(900, 430), colour(30, 35, 40), guiMode("queue"), pluginId("mgr4")
 
 button  bounds(  5, 10, 50, 30), channel("absdur"), text("absdur"), colour:0("black"), colour:1("green")
 ;rslider bounds( 65,  5, 50, 50), channel("duration"), text("Duration"), range(0,1,0.5, 0.3, 0.0001)
@@ -51,6 +51,71 @@ button  bounds(285, 130, 65, 20), channel("clear_ch_4"), text("clear_ch_4"), lat
 button  bounds(355, 130, 65, 20), channel("clear_ch_8"), text("clear_ch_8"), latched(0), colour:0("green"), colour:1("red")
 
 csoundoutput bounds(0, 155, 425, 150)
+
+label bounds(10, 312, 190, 20), text("Active stream monitor (5 octaves)")
+combobox bounds(205, 312, 170, 20), channel("viz_chan"), text("MIDI ch 1","MIDI ch 2","MIDI ch 3","MIDI ch 4","MIDI ch 8"), value(1)
+
+button bounds( 10, 340, 16, 80), channel("viz_36"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds( 26, 340, 16, 80), channel("viz_38"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds( 42, 340, 16, 80), channel("viz_40"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds( 58, 340, 16, 80), channel("viz_41"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds( 74, 340, 16, 80), channel("viz_43"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds( 90, 340, 16, 80), channel("viz_45"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(106, 340, 16, 80), channel("viz_47"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(122, 340, 16, 80), channel("viz_48"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(138, 340, 16, 80), channel("viz_50"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(154, 340, 16, 80), channel("viz_52"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(170, 340, 16, 80), channel("viz_53"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(186, 340, 16, 80), channel("viz_55"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(202, 340, 16, 80), channel("viz_57"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(218, 340, 16, 80), channel("viz_59"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(234, 340, 16, 80), channel("viz_60"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(250, 340, 16, 80), channel("viz_62"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(266, 340, 16, 80), channel("viz_64"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(282, 340, 16, 80), channel("viz_65"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(298, 340, 16, 80), channel("viz_67"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(314, 340, 16, 80), channel("viz_69"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(330, 340, 16, 80), channel("viz_71"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(346, 340, 16, 80), channel("viz_72"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(362, 340, 16, 80), channel("viz_74"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(378, 340, 16, 80), channel("viz_76"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(394, 340, 16, 80), channel("viz_77"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(410, 340, 16, 80), channel("viz_79"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(426, 340, 16, 80), channel("viz_81"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(442, 340, 16, 80), channel("viz_83"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(458, 340, 16, 80), channel("viz_84"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(474, 340, 16, 80), channel("viz_86"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(490, 340, 16, 80), channel("viz_88"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(506, 340, 16, 80), channel("viz_89"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(522, 340, 16, 80), channel("viz_91"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(538, 340, 16, 80), channel("viz_93"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+button bounds(554, 340, 16, 80), channel("viz_95"), text("",""), latched(1), value(0), colour:0(230,230,230), colour:1(80,220,120)
+
+button bounds( 21, 340, 10, 48), channel("viz_37"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds( 37, 340, 10, 48), channel("viz_39"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds( 69, 340, 10, 48), channel("viz_42"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds( 85, 340, 10, 48), channel("viz_44"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(101, 340, 10, 48), channel("viz_46"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(133, 340, 10, 48), channel("viz_49"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(149, 340, 10, 48), channel("viz_51"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(181, 340, 10, 48), channel("viz_54"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(197, 340, 10, 48), channel("viz_56"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(213, 340, 10, 48), channel("viz_58"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(245, 340, 10, 48), channel("viz_61"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(261, 340, 10, 48), channel("viz_63"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(293, 340, 10, 48), channel("viz_66"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(309, 340, 10, 48), channel("viz_68"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(325, 340, 10, 48), channel("viz_70"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(357, 340, 10, 48), channel("viz_73"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(373, 340, 10, 48), channel("viz_75"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(405, 340, 10, 48), channel("viz_78"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(421, 340, 10, 48), channel("viz_80"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(437, 340, 10, 48), channel("viz_82"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(469, 340, 10, 48), channel("viz_85"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(485, 340, 10, 48), channel("viz_87"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(517, 340, 10, 48), channel("viz_90"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(533, 340, 10, 48), channel("viz_92"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
+button bounds(549, 340, 10, 48), channel("viz_94"), text("",""), latched(1), value(0), colour:0(20,20,20), colour:1(255,170,70)
 </Cabbage>
 
 <CsoundSynthesizer>
@@ -173,6 +238,38 @@ opcode ClearButton, 0, i
     od
   endif
 endop
+
+instr 98
+  ; visual monitor for active stream notes (5 octaves: MIDI 36..95)
+  kviz_sel chnget "viz_chan"
+  kviz_ch = (kviz_sel == 5 ? 8 : kviz_sel)
+
+  kvoicetab = giVoices1
+  if kviz_ch == 1 then
+    kvoicetab = giVoices1
+  elseif kviz_ch == 2 then
+    kvoicetab = giVoices2
+  elseif kviz_ch == 3 then
+    kvoicetab = giVoices3
+  elseif kviz_ch == 4 then
+    kvoicetab = giVoices4
+  elseif kviz_ch == 8 then
+    kvoicetab = giVoices8
+  endif
+
+  kupdate metro 20
+  kchan_change changed kviz_ch
+  ktrig = (kupdate > 0 || kchan_change > 0 ? 1 : 0)
+  if ktrig > 0 then
+    knote = 36
+    while knote < 96 do
+      kactive tablekt knote, kvoicetab
+      Skey sprintfk "viz_%d", knote
+      cabbageSetValue Skey, (kactive > 0 ? 1 : 0), ktrig
+      knote += 1
+    od
+  endif
+endin
 
 instr 1
   ; GUI control
@@ -343,6 +440,7 @@ endin
 </CsInstruments>
 <CsScore>
 i1 0 86400
+i98 0 86400
 
 </CsScore>
 </CsoundSynthesizer>
