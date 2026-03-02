@@ -31,6 +31,7 @@ label bounds(205, 140, 40, 15), text("trsp2"), fontSize(11)
 checkbox bounds(255, 115, 120, 25), channel("tap2_enable"), value(1), text("tap2 enable")
 
 checkbox bounds(5, 215, 70, 25), channel("gen_enable"), value(0), text("gen on")
+nslider bounds(5, 245, 70, 25), channel("note_density_meter"), range(0,20,0,1,0.01)
 nslider bounds(80, 215, 60, 25), channel("gen_eps_min"), range(0.1,20,2,1,0.1)
 label bounds(80, 240, 60, 15), text("eps_min"), fontSize(11)
 nslider bounds(145, 215, 60, 25), channel("gen_eps_max"), range(0.1,20,8,1,0.1)
@@ -88,16 +89,15 @@ pgmassign -1, -1
 
 instr 1
   ; GUI control
-  if timeinsts() == 0 then
-    chnset 0, "note_density"
-    chnset -1, "last_count"
-    iidx = 0
-    while iidx < 20 do
-      Sslot sprintf "evt_%d", iidx
-      chnset -1000, Sslot
-      iidx += 1
-    od
-  endif
+  chnset 0, "note_density"
+  cabbageSetValue "note_density_meter", 0
+  chnset -1, "last_count"
+  iidx = 0
+  while iidx < 20 do
+    Sslot sprintf "evt_%d", iidx
+    chnset -1000, Sslot
+    iidx += 1
+  od
 
 endin
 
@@ -181,11 +181,7 @@ instr 2
     iwindow_count = ikeep_count + 1
     idensity = iwindow_count/2.0
     chnset idensity, "note_density"
-    ilast_count chnget "last_count"
-    if iwindow_count != ilast_count then
-      print iwindow_count, idensity
-      chnset iwindow_count, "last_count"
-    endif
+    cabbageSetValue "note_density_meter", idensity
     if idensity >= ieps_max then
       iprob = 1
     elseif idensity >= ieps_min then
