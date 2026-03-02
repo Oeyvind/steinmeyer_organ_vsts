@@ -31,15 +31,17 @@ label bounds(205, 140, 40, 15), text("trsp2"), fontSize(11)
 checkbox bounds(255, 115, 120, 25), channel("tap2_enable"), value(1), text("tap2 enable")
 
 checkbox bounds(5, 215, 70, 25), channel("gen_enable"), value(0), text("gen on")
-nslider bounds(5, 245, 70, 25), channel("note_density_meter"), range(0,20,0,1,0.01)
-nslider bounds(80, 215, 60, 25), channel("gen_eps_min"), range(0.1,20,2,1,0.1)
-label bounds(80, 240, 60, 15), text("eps_min"), fontSize(11)
-nslider bounds(145, 215, 60, 25), channel("gen_eps_max"), range(0.1,20,8,1,0.1)
-label bounds(145, 240, 60, 15), text("eps_max"), fontSize(11)
-label bounds(210, 200, 130, 15), text("-nevents scaling-"), fontSize(11)
-checkbox bounds(210, 215, 55, 25), channel("gen_scale_tempo"), value(1), text("tvar")
-nslider bounds(270, 215, 55, 25), channel("gen_scale_density"), range(0,3,1,1,0.01)
-label bounds(270, 240, 55, 15), text("density"), fontSize(11)
+nslider bounds(80, 215, 65, 25), channel("note_density_meter"), range(0,20,0,1,0.01)
+label bounds(80, 240, 65, 15), text("ev/s"), fontSize(11)
+label bounds(155, 200, 110, 15), text("r-events  trig"), fontSize(11)
+nslider bounds(150, 215, 55, 25), channel("gen_eps_min"), range(0.1,20,2,1,0.1)
+label bounds(150, 240, 55, 15), text("eps_min"), fontSize(11)
+nslider bounds(210, 215, 55, 25), channel("gen_eps_max"), range(0.1,20,8,1,0.1)
+label bounds(210, 240, 55, 15), text("eps_max"), fontSize(11)
+label bounds(270, 200, 130, 15), text("-nevents scaling-"), fontSize(11)
+checkbox bounds(270, 215, 55, 25), channel("gen_scale_tempo"), value(1), text("tvar")
+nslider bounds(330, 215, 55, 25), channel("gen_scale_density"), range(0,3,1,1,0.01)
+label bounds(330, 240, 55, 15), text("density"), fontSize(11)
 
 nslider bounds(5, 275, 35, 25), channel("gen_outchan"), range(1,16,2,1,1)
 label bounds(5, 300, 40, 15), text("chan_g"), fontSize(11)
@@ -52,11 +54,13 @@ nslider bounds(125, 275, 35, 25), channel("gen_min"), range(1,10,1,1,1)
 label bounds(125, 300, 35, 15), text("min"), fontSize(11)
 nslider bounds(165, 275, 35, 25), channel("gen_max"), range(1,10,4,1,1)
 label bounds(165, 300, 35, 15), text("max"), fontSize(11)
+nslider bounds(205, 275, 35, 25), channel("gen_max_eff"), range(1,120,4,1,1)
+label bounds(205, 300, 35, 15), text("eff"), fontSize(11)
 label bounds(130, 315, 70, 15), text("-nevents-"), fontSize(11)
-combobox bounds(205, 275, 60, 25), channel("gen_mult"), value(2), items("slow", "medium", "fast")
-label bounds(205, 300, 60, 15), text("g_mult"), fontSize(11)
-combobox bounds(270, 275, 70, 25), channel("tempo_var"), value(1), items("unit", "1 and 2", "1 and 3", "1_2_3")
-label bounds(270, 300, 70, 15), text("tempo_var"), fontSize(11)
+combobox bounds(245, 275, 60, 25), channel("gen_mult"), value(2), items("slow", "medium", "fast")
+label bounds(245, 300, 60, 15), text("g_mult"), fontSize(11)
+combobox bounds(310, 275, 70, 25), channel("tempo_var"), value(1), items("unit", "1 and 2", "1 and 3", "1_2_3")
+label bounds(310, 300, 70, 15), text("tempo_var"), fontSize(11)
 
 
 csoundoutput bounds(0, 370, 420, 150)
@@ -82,7 +86,7 @@ csoundoutput bounds(0, 370, 420, 150)
 ; 9) Generated notes are clamped to MIDI 36..96.
 ; 10) Keep csoundoutput open to monitor density/count debug prints.
 
-ksmps = 1
+ksmps = 64
 massign -1, 2
 pgmassign -1, -1
 
@@ -91,6 +95,7 @@ instr 1
   ; GUI control
   chnset 0, "note_density"
   cabbageSetValue "note_density_meter", 0
+  cabbageSetValue "gen_max_eff", 0
   chnset -1, "last_count"
   iidx = 0
   while iidx < 20 do
@@ -191,7 +196,7 @@ instr 2
       endif
       iprob = 0.25 + (0.75*((idensity-ieps_min)/idenom))
     else
-      iprob = 0.25*(idensity/ieps_min)
+      iprob = 0
     endif
     if iprob < 0 then
       iprob = 0
@@ -322,6 +327,7 @@ instr 401
   if igen_max_scaled < igen_min then
     igen_max_scaled = igen_min
   endif
+  cabbageSetValue "gen_max_eff", igen_max_scaled
   igen_count = int(random(igen_min, igen_max_scaled+0.999))
   istep_secs = (60.0/ibpm)/(ibase_mult*itempo_var)
   itraj_mode = int(random(0, 3.999))
