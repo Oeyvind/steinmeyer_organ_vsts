@@ -56,7 +56,7 @@ image bounds(230,212, 350, 41), channel("viz_img_2"), identchannel("viz_id_2"), 
 image bounds(230,262, 350, 41), channel("viz_img_3"), identchannel("viz_id_3"), svgElement("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 350 41'><rect x='0' y='0' width='350' height='41' fill='#14171a'/></svg>"), outlineThickness(0)
 image bounds(230,312, 350, 41), channel("viz_img_4"), identchannel("viz_id_4"), svgElement("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 350 41'><rect x='0' y='0' width='350' height='41' fill='#14171a'/></svg>"), outlineThickness(0)
 image bounds(230,362, 350, 41), channel("viz_img_8"), identchannel("viz_id_8"), svgElement("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 350 41'><rect x='0' y='0' width='350' height='41' fill='#14171a'/></svg>"), outlineThickness(0)
-xypad bounds(215,147, 390, 71), channel("viz_clickx_1", "viz_clicky_1"), rangeX(0,349,0), rangeY(0,40,0), alpha(0.5), colour(100,140,255,180), fontColour(255,255,255,180), text("xypad hit area"), automatable(0)
+xypad bounds(215,147, 390, 71), channel("viz_clickx_1", "viz_clicky_1"), rangeX(0,349,0), rangeY(0,40,0), alpha(0), colour(0,0,0,0), fontColour(0,0,0,0), text(""), automatable(0)
 xypad bounds(215,197, 390, 71), channel("viz_clickx_2", "viz_clicky_2"), rangeX(0,349,0), rangeY(0,40,0), alpha(0), colour(0,0,0,0), fontColour(0,0,0,0), text(""), automatable(0)
 xypad bounds(215,247, 390, 71), channel("viz_clickx_3", "viz_clicky_3"), rangeX(0,349,0), rangeY(0,40,0), alpha(0), colour(0,0,0,0), fontColour(0,0,0,0), text(""), automatable(0)
 xypad bounds(215,297, 390, 71), channel("viz_clickx_4", "viz_clicky_4"), rangeX(0,349,0), rangeY(0,40,0), alpha(0), colour(0,0,0,0), fontColour(0,0,0,0), text(""), automatable(0)
@@ -69,7 +69,7 @@ xypad bounds(215,347, 390, 71), channel("viz_clickx_8", "viz_clicky_8"), rangeX(
 </CsOptions>
 <CsInstruments>
 
-ksmps = 2
+ksmps = 128
 massign -1, 2
 pgmassign -1, -1
 
@@ -169,6 +169,7 @@ opcode ClearButton, 0, i
   ichan xin
   Schan sprintf "clear_ch_%i", ichan
   kclear chnget Schan
+  printk2 kclear, ichan
   iVoicetab table ichan-1, giVoices
   if trigger(kclear,0.5,0) > 0 then
     kndx = 0
@@ -189,14 +190,11 @@ instr 98
   kupdate metro 15
   kfirst init 1
   kdrawtrig = (kupdate > 0 || kfirst == 1 ? 1 : 0)
-  kfirst = 0
-
-  krow = 0
-  while krow < 5 do
-    kchan = (krow == 4 ? 8 : krow+1)
-    kvoicetab table kchan-1, giVoices
-
-    if kdrawtrig > 0 then
+  if kdrawtrig > 0 then
+    krow = 0
+    while krow < 5 do
+      kchan = (krow == 4 ? 8 : krow+1)
+      kvoicetab table kchan-1, giVoices
 
       Ssvg sprintfk "%s", "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 350 41'><rect x='0' y='0' width='350' height='41' fill='#14171a'/>"
 
@@ -242,23 +240,53 @@ instr 98
       Ssvg strcatk Ssvg, "</svg>"
       Schan sprintfk "viz_img_%d", kchan
       cabbageSet kdrawtrig, Schan, "svgElement", Ssvg
-    endif
 
-    Sclickx sprintfk "viz_clickx_%d", kchan
-    Sclicky sprintfk "viz_clicky_%d", kchan
-    kclickx chnget Sclickx
-    kclicky chnget Sclicky
-    kClickOffsetX = 0
-    kclickx_adj = kclickx + kClickOffsetX
-    kclickx_adj limit kclickx_adj, 0, 349
-    kclicky_adj limit kclicky, 0, 40
-    kclicktrig = changed(kclickx) + changed(kclicky)
+      krow += 1
+    od
+  endif
+  kfirst = 0
+endin
 
-      if kclicktrig > 0 then
+instr 99
+  ; mouse click handling for keyboard off-click actions only
+  kclickx1 chnget "viz_clickx_1"
+  kclicky1 chnget "viz_clicky_1"
+  kclickx2 chnget "viz_clickx_2"
+  kclicky2 chnget "viz_clicky_2"
+  kclickx3 chnget "viz_clickx_3"
+  kclicky3 chnget "viz_clicky_3"
+  kclickx4 chnget "viz_clickx_4"
+  kclicky4 chnget "viz_clicky_4"
+  kclickx8 chnget "viz_clickx_8"
+  kclicky8 chnget "viz_clicky_8"
+
+  ktrig1 = (changed(kclickx1)+changed(kclicky1))*(kclickx1 > 0.5 || kclicky1 > 0.5 ? 1 : 0)
+  ktrig2 = (changed(kclickx2)+changed(kclicky2))*(kclickx2 > 0.5 || kclicky2 > 0.5 ? 1 : 0)
+  ktrig3 = (changed(kclickx3)+changed(kclicky3))*(kclickx3 > 0.5 || kclicky3 > 0.5 ? 1 : 0)
+  ktrig4 = (changed(kclickx4)+changed(kclicky4))*(kclickx4 > 0.5 || kclicky4 > 0.5 ? 1 : 0)
+  ktrig8 = (changed(kclickx8)+changed(kclicky8))*(kclickx8 > 0.5 || kclicky8 > 0.5 ? 1 : 0)
+  kanyclick = (ktrig1 + ktrig2 + ktrig3 + ktrig4 + ktrig8 > 0 ? 1 : 0)
+
+  if kanyclick > 0 then
+    krow = 0
+    while krow < 5 do
+      kchan = (krow == 4 ? 8 : krow+1)
+      kvoicetab table kchan-1, giVoices
+
+      Sclickx sprintfk "viz_clickx_%d", kchan
+      Sclicky sprintfk "viz_clicky_%d", kchan
+      kclickx chnget Sclickx
+      kclicky chnget Sclicky
+      kClickOffsetX = 0
+      kclickx_adj = kclickx + kClickOffsetX
+      kclickx_adj limit kclickx_adj, 0, 349
+      kclicky_adj limit kclicky, 0, 40
+      kuserclick = (kclickx > 0.5 || kclicky > 0.5 ? 1 : 0)
+
+      if kuserclick > 0 then
         knote_hit = -1
-      knote_black_hit = -1
+        knote_black_hit = -1
 
-        ; detect black-key geometry first (upper zone)
         if kclicky_adj <= 25 then
           knote = 36
           kwhite = 0
@@ -277,7 +305,6 @@ instr 98
           od
         endif
 
-        ; only prioritize black if that black stream is active
         if knote_black_hit >= 36 && knote_black_hit < 96 then
           kblack_active tablekt knote_black_hit, kvoicetab
           if kblack_active > 0 then
@@ -285,7 +312,6 @@ instr 98
           endif
         endif
 
-        ; if no black key hit, resolve to white key
         if knote_hit < 0 then
           kwhite_target = int(kclickx_adj/10)
           kwhite_target limit kwhite_target, 0, 34
@@ -304,37 +330,34 @@ instr 98
           od
         endif
 
-        ; click only turns OFF active streams, never turns on
         if knote_hit >= 36 && knote_hit < 96 then
           knote_hit_i = int(knote_hit)
           kactive tablekt knote_hit_i, kvoicetab
           if kactive > 0 then
-            turnoff2 gimetro_instr+(kchan-1)+(knote_hit_i*0.001), 0, 4
+            kinstnum = gimetro_instr+(kchan-1)+(knote_hit_i*0.001)
+            event "i", -kinstnum, 0, .1
             tablewkt 0, knote_hit_i, kvoicetab
           endif
         endif
 
-        ; reset overlay position so repeated clicks on same spot still retrigger changed()
         cabbageSet 1, Sclickx, "valueX", 0
         cabbageSet 1, Sclickx, "valueY", 0
-    endif
+      endif
 
-    krow += 1
-  od
+      krow += 1
+    od
+  endif
 endin
 
 instr 1
   ; GUI control
   kclear chnget "clear_all"
-  if trigger(kclear,0.5,0) > 0 then
-    turnoff2 gimetro_instr, 0, 1
-    tablecopy giVoices1, giVoiceclear
-    tablecopy giVoices2, giVoiceclear
-    tablecopy giVoices3, giVoiceclear
-    tablecopy giVoices4, giVoiceclear
-    tablecopy giVoices8, giVoiceclear
-  endif
-
+  cabbageSetValue "clear_ch_1", kclear, changed(kclear)
+  cabbageSetValue "clear_ch_2", kclear, changed(kclear)
+  cabbageSetValue "clear_ch_3", kclear, changed(kclear)
+  cabbageSetValue "clear_ch_4", kclear, changed(kclear)
+  cabbageSetValue "clear_ch_8", kclear, changed(kclear)
+  
   ClearButton 1
   ClearButton 2
   ClearButton 3
@@ -387,7 +410,6 @@ instr 3,4,5,6,10
   inote = p4
   ivel = p5
   ichan = p6
-  print p1, inote, ichan
   Stranspose sprintf "transp_%i", ichan
   ktranspose chnget Stranspose
   krpitch chnget "rpitch"
@@ -398,7 +420,6 @@ instr 3,4,5,6,10
   Stempo sprintf "tempo_%i", ichan
   ktempo_bps chnget Stempo
   itempo_bps chnget Stempo
-  print itempo_bps
   ktempo_bps init itempo_bps ; make sure it is valid at i-time
   ;ktempo_bps_filt tonek ktempo_bps, 0.2
   if changed(ktempo_bps) > 0 then
@@ -427,7 +448,6 @@ instr 3,4,5,6,10
 
   ivelocity_tempo chnget "vel_t_offset"
   ifq = (itempo_init_offset*itempo_bps)+(ivelocity_tempo*ivel*itempo_bps)
-  print ifq, itempo_init_offset
   ksync_on chnget "sync"
   kfqgain = chnget:k("sync_rate")*ksync_on*0.002*(1-k_is_master)
   kphaseadjust = chnget:k("sync_phase")*ksync_on*(1-k_is_master)
@@ -493,6 +513,7 @@ endin
 <CsScore>
 i1 0 86400
 i98 0 86400
+;i99 0 86400
 
 </CsScore>
 </CsoundSynthesizer>
