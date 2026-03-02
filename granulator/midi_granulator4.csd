@@ -169,7 +169,6 @@ opcode ClearButton, 0, i
   ichan xin
   Schan sprintf "clear_ch_%i", ichan
   kclear chnget Schan
-  printk2 kclear, ichan
   iVoicetab table ichan-1, giVoices
   if trigger(kclear,0.5,0) > 0 then
     kndx = 0
@@ -196,6 +195,28 @@ instr 98
       kchan = (krow == 4 ? 8 : krow+1)
       kvoicetab table kchan-1, giVoices
 
+      if kchan == 1 then
+        kColR = 255
+        kColG = 0
+        kColB = 0
+      elseif kchan == 2 then
+        kColR = 255
+        kColG = 220
+        kColB = 0
+      elseif kchan == 3 then
+        kColR = 0
+        kColG = 220
+        kColB = 0
+      elseif kchan == 4 then
+        kColR = 0
+        kColG = 120
+        kColB = 255
+      else
+        kColR = 255
+        kColG = 140
+        kColB = 0
+      endif
+
       Ssvg sprintfk "%s", "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 350 41'><rect x='0' y='0' width='350' height='41' fill='#14171a'/>"
 
       knote = 36
@@ -207,7 +228,7 @@ instr 98
           kactive tablekt knote, kvoicetab
           kx = kwhite*10
           if kactive > 0 then
-            Srect sprintfk "<rect x='%d' y='0' width='10' height='41' fill='#39ff14' stroke='#1c1c1c' stroke-width='0.6'/>", kx
+            Srect sprintfk "<rect x='%d' y='0' width='10' height='41' fill='rgb(%d,%d,%d)' stroke='#1c1c1c' stroke-width='0.6'/>", kx, kColR, kColG, kColB
           else
             Srect sprintfk "<rect x='%d' y='0' width='10' height='41' fill='#f0f0f0' stroke='#1c1c1c' stroke-width='0.6'/>", kx
           endif
@@ -228,7 +249,7 @@ instr 98
           kactive tablekt knote, kvoicetab
           kx = (kwhite*10)-3
           if kactive > 0 then
-            Srect sprintfk "<rect x='%d' y='0' width='6' height='25' fill='#39ff14' stroke='#111111' stroke-width='0.6'/>", kx
+            Srect sprintfk "<rect x='%d' y='0' width='6' height='25' fill='rgb(%d,%d,%d)' stroke='#111111' stroke-width='0.6'/>", kx, kColR, kColG, kColB
           else
             Srect sprintfk "<rect x='%d' y='0' width='6' height='25' fill='#1f2328' stroke='#111111' stroke-width='0.6'/>", kx
           endif
@@ -377,6 +398,7 @@ instr 2
   inote notnum
   ivel veloc 0, 1
   ichn midichn
+  ichn = ichn == 6 ? 8 : ichn ; remap channel 6 to 8 
   imidi1 chnget "midi_to_1"
   imidi2 chnget "midi_to_2"
   imidi3 chnget "midi_to_3"
