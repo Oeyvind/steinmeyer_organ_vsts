@@ -1,5 +1,5 @@
 <Cabbage>
-form caption("Register Sequencer") size(1220, 520), colour(30, 35, 40), guiMode("queue"), pluginId("rsq1")
+form caption("Register Sequencer") size(1220, 550), colour(30, 35, 40), guiMode("queue"), pluginId("rsq1")
 
 button  bounds(  5, 10, 50, 30), channel("play"), text("Play"), colour:0("black"), colour:1("green")
 nslider bounds( 65, 10, 30, 20), channel("tempo"), range(30,300,120, 1, 1), fontSize(13)
@@ -83,10 +83,121 @@ button bounds(5, 300, 55, 20), channel("ch2ClearStep"), text("ClrStep")
 button bounds(65, 300, 55, 20), channel("ch2ClearAll"), text("ClearAll")
 }
 
-label bounds(295, 12, 70, 16), text("Edit Ch"), fontSize(10), align("left")
-combobox bounds(365, 10, 60, 22), channel("editorSel"), items(1,2), value(1)
+groupbox bounds(285, 80, 130, 430), colour(25,35,40), lineThickness("0"){
+nslider bounds(5, 5, 30, 20), channel("ch3_outchan"), range(1,16,3, 1, 1), fontSize(13)
+label   bounds(5, 25, 30, 15), text("outchan"), fontSize(10)
+nslider bounds(40, 5, 30, 20), channel("ch3_numsteps"), range(1,8,8, 1, 1), fontSize(13)
+label   bounds(40, 25, 30, 15), text("numsteps"), fontSize(10)
+nslider bounds(75, 5, 30, 20), channel("ch3_ndex"), range(1,8,1, 1, 1), fontSize(13)
+label   bounds(75, 25, 30, 15), text("index"), fontSize(10)
 
-groupbox bounds(295, 40, 430, 220), channel("ch1EditorBox"), visible(1), colour(25,35,40), lineThickness("1"), text("Step Editor Ch1"){
+nslider bounds(5, 40, 30, 20), channel("ch3_stepmod"), range(1,8,8, 1, 1), fontSize(13)
+label   bounds(5, 60, 30, 15), text("%"), fontSize(10)
+nslider bounds(40, 40, 30, 20), channel("ch3_rmod3"), range(0,1,0), fontSize(13)
+label   bounds(40, 60, 30, 15), text("r%3"), fontSize(10)
+nslider bounds(75, 40, 30, 20), channel("ch3_rmod5"), range(0,1,0), fontSize(13)
+label   bounds(75, 60, 30, 15), text("r%5"), fontSize(10)
+
+label bounds(5, 78, 110, 12), text("steps ch3"), fontSize(10), align("left")
+button bounds(5, 92, 23, 16), text("1:"), colour:0("black"), colour:1("green"), channel("ch3_ndex_1")
+label  bounds(33, 90, 90, 18), channel("ch3_steptxt_1"), text("-"), fontSize(10), align("left")
+button bounds(5, 117, 23, 16), text("2:"), colour:0("black"), colour:1("green"), channel("ch3_ndex_2")
+label  bounds(33, 115, 90, 18), channel("ch3_steptxt_2"), text("-"), fontSize(10), align("left")
+button bounds(5, 142, 23, 16), text("3:"), colour:0("black"), colour:1("green"), channel("ch3_ndex_3")
+label  bounds(33, 140, 90, 18), channel("ch3_steptxt_3"), text("-"), fontSize(10), align("left")
+button bounds(5, 167, 23, 16), text("4:"), colour:0("black"), colour:1("green"), channel("ch3_ndex_4")
+label  bounds(33, 165, 90, 18), channel("ch3_steptxt_4"), text("-"), fontSize(10), align("left")
+button bounds(5, 192, 23, 16), text("5:"), colour:0("black"), colour:1("green"), channel("ch3_ndex_5")
+label  bounds(33, 190, 90, 18), channel("ch3_steptxt_5"), text("-"), fontSize(10), align("left")
+button bounds(5, 217, 23, 16), text("6:"), colour:0("black"), colour:1("green"), channel("ch3_ndex_6")
+label  bounds(33, 215, 90, 18), channel("ch3_steptxt_6"), text("-"), fontSize(10), align("left")
+button bounds(5, 242, 23, 16), text("7:"), colour:0("black"), colour:1("green"), channel("ch3_ndex_7")
+label  bounds(33, 240, 90, 18), channel("ch3_steptxt_7"), text("-"), fontSize(10), align("left")
+button bounds(5, 267, 23, 16), text("8:"), colour:0("black"), colour:1("green"), channel("ch3_ndex_8")
+label  bounds(33, 265, 90, 18), channel("ch3_steptxt_8"), text("-"), fontSize(10), align("left")
+
+button bounds(5, 300, 55, 20), channel("ch3ClearStep"), text("ClrStep")
+button bounds(65, 300, 55, 20), channel("ch3ClearAll"), text("ClearAll")
+}
+
+groupbox bounds(425, 80, 130, 430), colour(25,35,40), lineThickness("0"){
+nslider bounds(5, 5, 30, 20), channel("ch4_outchan"), range(1,16,4, 1, 1), fontSize(13)
+label   bounds(5, 25, 30, 15), text("outchan"), fontSize(10)
+nslider bounds(40, 5, 30, 20), channel("ch4_numsteps"), range(1,8,8, 1, 1), fontSize(13)
+label   bounds(40, 25, 30, 15), text("numsteps"), fontSize(10)
+nslider bounds(75, 5, 30, 20), channel("ch4_ndex"), range(1,8,1, 1, 1), fontSize(13)
+label   bounds(75, 25, 30, 15), text("index"), fontSize(10)
+
+nslider bounds(5, 40, 30, 20), channel("ch4_stepmod"), range(1,8,8, 1, 1), fontSize(13)
+label   bounds(5, 60, 30, 15), text("%"), fontSize(10)
+nslider bounds(40, 40, 30, 20), channel("ch4_rmod3"), range(0,1,0), fontSize(13)
+label   bounds(40, 60, 30, 15), text("r%3"), fontSize(10)
+nslider bounds(75, 40, 30, 20), channel("ch4_rmod5"), range(0,1,0), fontSize(13)
+label   bounds(75, 60, 30, 15), text("r%5"), fontSize(10)
+
+label bounds(5, 78, 110, 12), text("steps ch4"), fontSize(10), align("left")
+button bounds(5, 92, 23, 16), text("1:"), colour:0("black"), colour:1("green"), channel("ch4_ndex_1")
+label  bounds(33, 90, 90, 18), channel("ch4_steptxt_1"), text("-"), fontSize(10), align("left")
+button bounds(5, 117, 23, 16), text("2:"), colour:0("black"), colour:1("green"), channel("ch4_ndex_2")
+label  bounds(33, 115, 90, 18), channel("ch4_steptxt_2"), text("-"), fontSize(10), align("left")
+button bounds(5, 142, 23, 16), text("3:"), colour:0("black"), colour:1("green"), channel("ch4_ndex_3")
+label  bounds(33, 140, 90, 18), channel("ch4_steptxt_3"), text("-"), fontSize(10), align("left")
+button bounds(5, 167, 23, 16), text("4:"), colour:0("black"), colour:1("green"), channel("ch4_ndex_4")
+label  bounds(33, 165, 90, 18), channel("ch4_steptxt_4"), text("-"), fontSize(10), align("left")
+button bounds(5, 192, 23, 16), text("5:"), colour:0("black"), colour:1("green"), channel("ch4_ndex_5")
+label  bounds(33, 190, 90, 18), channel("ch4_steptxt_5"), text("-"), fontSize(10), align("left")
+button bounds(5, 217, 23, 16), text("6:"), colour:0("black"), colour:1("green"), channel("ch4_ndex_6")
+label  bounds(33, 215, 90, 18), channel("ch4_steptxt_6"), text("-"), fontSize(10), align("left")
+button bounds(5, 242, 23, 16), text("7:"), colour:0("black"), colour:1("green"), channel("ch4_ndex_7")
+label  bounds(33, 240, 90, 18), channel("ch4_steptxt_7"), text("-"), fontSize(10), align("left")
+button bounds(5, 267, 23, 16), text("8:"), colour:0("black"), colour:1("green"), channel("ch4_ndex_8")
+label  bounds(33, 265, 90, 18), channel("ch4_steptxt_8"), text("-"), fontSize(10), align("left")
+
+button bounds(5, 300, 55, 20), channel("ch4ClearStep"), text("ClrStep")
+button bounds(65, 300, 55, 20), channel("ch4ClearAll"), text("ClearAll")
+}
+
+groupbox bounds(565, 80, 130, 430), colour(25,35,40), lineThickness("0"){
+nslider bounds(5, 5, 30, 20), channel("ch8_outchan"), range(1,16,8, 1, 1), fontSize(13)
+label   bounds(5, 25, 30, 15), text("outchan"), fontSize(10)
+nslider bounds(40, 5, 30, 20), channel("ch8_numsteps"), range(1,8,8, 1, 1), fontSize(13)
+label   bounds(40, 25, 30, 15), text("numsteps"), fontSize(10)
+nslider bounds(75, 5, 30, 20), channel("ch8_ndex"), range(1,8,1, 1, 1), fontSize(13)
+label   bounds(75, 25, 30, 15), text("index"), fontSize(10)
+
+nslider bounds(5, 40, 30, 20), channel("ch8_stepmod"), range(1,8,8, 1, 1), fontSize(13)
+label   bounds(5, 60, 30, 15), text("%"), fontSize(10)
+nslider bounds(40, 40, 30, 20), channel("ch8_rmod3"), range(0,1,0), fontSize(13)
+label   bounds(40, 60, 30, 15), text("r%3"), fontSize(10)
+nslider bounds(75, 40, 30, 20), channel("ch8_rmod5"), range(0,1,0), fontSize(13)
+label   bounds(75, 60, 30, 15), text("r%5"), fontSize(10)
+
+label bounds(5, 78, 110, 12), text("steps ch8"), fontSize(10), align("left")
+button bounds(5, 92, 23, 16), text("1:"), colour:0("black"), colour:1("green"), channel("ch8_ndex_1")
+label  bounds(33, 90, 90, 18), channel("ch8_steptxt_1"), text("-"), fontSize(10), align("left")
+button bounds(5, 117, 23, 16), text("2:"), colour:0("black"), colour:1("green"), channel("ch8_ndex_2")
+label  bounds(33, 115, 90, 18), channel("ch8_steptxt_2"), text("-"), fontSize(10), align("left")
+button bounds(5, 142, 23, 16), text("3:"), colour:0("black"), colour:1("green"), channel("ch8_ndex_3")
+label  bounds(33, 140, 90, 18), channel("ch8_steptxt_3"), text("-"), fontSize(10), align("left")
+button bounds(5, 167, 23, 16), text("4:"), colour:0("black"), colour:1("green"), channel("ch8_ndex_4")
+label  bounds(33, 165, 90, 18), channel("ch8_steptxt_4"), text("-"), fontSize(10), align("left")
+button bounds(5, 192, 23, 16), text("5:"), colour:0("black"), colour:1("green"), channel("ch8_ndex_5")
+label  bounds(33, 190, 90, 18), channel("ch8_steptxt_5"), text("-"), fontSize(10), align("left")
+button bounds(5, 217, 23, 16), text("6:"), colour:0("black"), colour:1("green"), channel("ch8_ndex_6")
+label  bounds(33, 215, 90, 18), channel("ch8_steptxt_6"), text("-"), fontSize(10), align("left")
+button bounds(5, 242, 23, 16), text("7:"), colour:0("black"), colour:1("green"), channel("ch8_ndex_7")
+label  bounds(33, 240, 90, 18), channel("ch8_steptxt_7"), text("-"), fontSize(10), align("left")
+button bounds(5, 267, 23, 16), text("8:"), colour:0("black"), colour:1("green"), channel("ch8_ndex_8")
+label  bounds(33, 265, 90, 18), channel("ch8_steptxt_8"), text("-"), fontSize(10), align("left")
+
+button bounds(5, 300, 55, 20), channel("ch8ClearStep"), text("ClrStep")
+button bounds(65, 300, 55, 20), channel("ch8ClearAll"), text("ClearAll")
+}
+
+label bounds(705, 12, 70, 16), text("Edit Ch"), fontSize(10), align("left")
+combobox bounds(775, 10, 120, 22), channel("editorSel"), items("Ch1","Ch2","Ch3","Ch4","Ch8"), value(1)
+
+groupbox bounds(705, 40, 430, 188), channel("ch1EditorBox"), visible(1), colour(25,35,40), lineThickness("1"), text("Step Editor Ch1"){
 label bounds(10, 15, 330, 14), text("Programs 1-27. Ruck map: 99 + 101-112"), fontSize(10), align("left")
 
 checkbox bounds(10, 35, 48, 18), channel("ch1progSel_1"), text("1"), colour:1(220,200,0)
@@ -136,7 +247,7 @@ checkbox bounds(160, 150, 48, 18), channel("ch1progSel_39"), text("111"), colour
 checkbox bounds(210, 150, 48, 18), channel("ch1progSel_40"), text("112"), colour:1(220,200,0)
 }
 
-groupbox bounds(295, 40, 430, 220), channel("ch2EditorBox"), visible(0), colour(25,35,40), lineThickness("1"), text("Step Editor Ch2"){
+groupbox bounds(705, 40, 430, 188), channel("ch2EditorBox"), visible(0), colour(25,35,40), lineThickness("1"), text("Step Editor Ch2/3/4/8"){
 label bounds(10, 15, 330, 14), text("Programs 1-26. Ruck map: 99 + 101-112"), fontSize(10), align("left")
 
 checkbox bounds(10, 35, 48, 18), channel("ch2progSel_1"), text("1"), colour:1(220,200,0)
@@ -185,12 +296,13 @@ checkbox bounds(160, 150, 48, 18), channel("ch2progSel_38"), text("111"), colour
 checkbox bounds(210, 150, 48, 18), channel("ch2progSel_39"), text("112"), colour:1(220,200,0)
 }
 
-csoundoutput bounds(295, 270, 870, 240)
-button bounds(720, 20, 80, 25), channel("triggerSave"), text("Save state")
-combobox bounds(805, 20, 160, 25), populate("*.pre", "."), channel("recallCombo"), channelType("string")
-nslider bounds(720, 50, 40, 20), channel("filenumber"), range(0,999,0,1,1,1), fontSize(13)
-label bounds(765, 50, 130, 15), text("preset index"), fontSize(10), align("left")
-checkbox bounds(900, 50, 65, 18), channel("debugSafe"), text("Debug"), value(0)
+button bounds(705, 236, 80, 25), channel("triggerSave"), text("Save state")
+combobox bounds(790, 236, 160, 25), populate("*.pre", "."), channel("recallCombo"), channelType("string")
+checkbox bounds(955, 236, 90, 25), channel("allowOverwrite"), text("Overwrite"), value(0)
+label bounds(705, 266, 90, 15), text("preset name"), fontSize(10), align("left")
+texteditor bounds(795, 264, 155, 22), channel("presetName"), channelType("string"), text("preset_name")
+label bounds(955, 266, 180, 15), channel("saveStatus"), text(""), fontSize(10), align("left")
+csoundoutput bounds(705, 292, 430, 245)
 
 </Cabbage>
 
@@ -224,6 +336,37 @@ giPrograms_ch2_7 ftgen 0, 0, 128, 2, 0
 giPrograms_ch2_8 ftgen 0, 0, 128, 2, 0
 giProg_tables_ch2 ftgen 0, 0, 8, -2, giPrograms_ch2_1, giPrograms_ch2_2, giPrograms_ch2_3, giPrograms_ch2_4, giPrograms_ch2_5, giPrograms_ch2_6, giPrograms_ch2_7, giPrograms_ch2_8
 
+giPrograms_ch3_1 ftgen 0, 0, 128, 2, 0
+giPrograms_ch3_2 ftgen 0, 0, 128, 2, 0
+giPrograms_ch3_3 ftgen 0, 0, 128, 2, 0
+giPrograms_ch3_4 ftgen 0, 0, 128, 2, 0
+giPrograms_ch3_5 ftgen 0, 0, 128, 2, 0
+giPrograms_ch3_6 ftgen 0, 0, 128, 2, 0
+giPrograms_ch3_7 ftgen 0, 0, 128, 2, 0
+giPrograms_ch3_8 ftgen 0, 0, 128, 2, 0
+giProg_tables_ch3 ftgen 0, 0, 8, -2, giPrograms_ch3_1, giPrograms_ch3_2, giPrograms_ch3_3, giPrograms_ch3_4, giPrograms_ch3_5, giPrograms_ch3_6, giPrograms_ch3_7, giPrograms_ch3_8
+
+giPrograms_ch4_1 ftgen 0, 0, 128, 2, 0
+giPrograms_ch4_2 ftgen 0, 0, 128, 2, 0
+giPrograms_ch4_3 ftgen 0, 0, 128, 2, 0
+giPrograms_ch4_4 ftgen 0, 0, 128, 2, 0
+giPrograms_ch4_5 ftgen 0, 0, 128, 2, 0
+giPrograms_ch4_6 ftgen 0, 0, 128, 2, 0
+giPrograms_ch4_7 ftgen 0, 0, 128, 2, 0
+giPrograms_ch4_8 ftgen 0, 0, 128, 2, 0
+giProg_tables_ch4 ftgen 0, 0, 8, -2, giPrograms_ch4_1, giPrograms_ch4_2, giPrograms_ch4_3, giPrograms_ch4_4, giPrograms_ch4_5, giPrograms_ch4_6, giPrograms_ch4_7, giPrograms_ch4_8
+
+giPrograms_ch5_1 ftgen 0, 0, 128, 2, 0
+giPrograms_ch5_2 ftgen 0, 0, 128, 2, 0
+giPrograms_ch5_3 ftgen 0, 0, 128, 2, 0
+giPrograms_ch5_4 ftgen 0, 0, 128, 2, 0
+giPrograms_ch5_5 ftgen 0, 0, 128, 2, 0
+giPrograms_ch5_6 ftgen 0, 0, 128, 2, 0
+giPrograms_ch5_7 ftgen 0, 0, 128, 2, 0
+giPrograms_ch5_8 ftgen 0, 0, 128, 2, 0
+; Bank 5 is used by visible sequencer channel 8.
+giProg_tables_ch8 ftgen 0, 0, 8, -2, giPrograms_ch5_1, giPrograms_ch5_2, giPrograms_ch5_3, giPrograms_ch5_4, giPrograms_ch5_5, giPrograms_ch5_6, giPrograms_ch5_7, giPrograms_ch5_8
+
 giAllowedPrograms_ch1 ftgen 0, 0, 40, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,99,101,102,103,104,105,106,107,108,109,110,111,112
 giAllowedPrograms_ch2 ftgen 0, 0, 39, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,99,101,102,103,104,105,106,107,108,109,110,111,112
 
@@ -246,6 +389,18 @@ opcode RefreshStepLabel, 0, ii
   iprog_count = 0
   if ieditor_sel == 2 then
     itab table istep-1, giProg_tables_ch2
+    iallowed_tab = giAllowedPrograms_ch2
+    iprog_count = 39
+  elseif ieditor_sel == 3 then
+    itab table istep-1, giProg_tables_ch3
+    iallowed_tab = giAllowedPrograms_ch2
+    iprog_count = 39
+  elseif ieditor_sel == 4 then
+    itab table istep-1, giProg_tables_ch4
+    iallowed_tab = giAllowedPrograms_ch2
+    iprog_count = 39
+  elseif ieditor_sel == 8 then
+    itab table istep-1, giProg_tables_ch8
     iallowed_tab = giAllowedPrograms_ch2
     iprog_count = 39
   else
@@ -274,6 +429,12 @@ opcode RefreshStepLabel, 0, ii
   endif
   if ieditor_sel == 2 then
     S_widget sprintf "ch2_steptxt_%i", istep
+  elseif ieditor_sel == 3 then
+    S_widget sprintf "ch3_steptxt_%i", istep
+  elseif ieditor_sel == 4 then
+    S_widget sprintf "ch4_steptxt_%i", istep
+  elseif ieditor_sel == 8 then
+    S_widget sprintf "ch8_steptxt_%i", istep
   else
     S_widget sprintf "steptxt_%i", istep
   endif
@@ -285,8 +446,14 @@ instr 1
   if kstart > 0 then
     chnset 1, "outchan"
     chnset 2, "ch2_outchan"
+    chnset 3, "ch3_outchan"
+    chnset 4, "ch4_outchan"
+    chnset 8, "ch8_outchan"
     cabbageSet "outchan", "active(0)"
     cabbageSet "ch2_outchan", "active(0)"
+    cabbageSet "ch3_outchan", "active(0)"
+    cabbageSet "ch4_outchan", "active(0)"
+    cabbageSet "ch8_outchan", "active(0)"
     cabbageSet kstart, "ch1EditorBox", "visible(1)"
     cabbageSet kstart, "ch2EditorBox", "visible(0)"
     event "i", 11, 0, .05, 1
@@ -297,22 +464,33 @@ instr 1
   if k_editor_sel < 1 then
     k_editor_sel = 1
   endif
-  if k_editor_sel > 2 then
-    k_editor_sel = 2
+  if k_editor_sel > 5 then
+    k_editor_sel = 5
   endif
+
+  k_editor_chan = 1
+  if k_editor_sel == 2 then
+    k_editor_chan = 2
+  elseif k_editor_sel == 3 then
+    k_editor_chan = 3
+  elseif k_editor_sel == 4 then
+    k_editor_chan = 4
+  elseif k_editor_sel == 5 then
+    k_editor_chan = 8
+  endif
+
   k_editor_changed changed k_editor_sel
   if k_editor_changed > 0 then
-    if k_editor_sel == 1 then
+    if k_editor_chan == 1 then
       cabbageSet k_editor_changed, "ch1EditorBox", "visible(1)"
       cabbageSet k_editor_changed, "ch2EditorBox", "visible(0)"
     else
       cabbageSet k_editor_changed, "ch1EditorBox", "visible(0)"
       cabbageSet k_editor_changed, "ch2EditorBox", "visible(1)"
     endif
-    event "i", 11, 0, .05, k_editor_sel
+    event "i", 11, 0, .05, k_editor_chan
   endif
 
-  k_debug chnget "debugSafe"
   k_ui_poll metro 120
 
   k_step_btn_sync_busy chnget "stepBtnSyncBusy"
@@ -320,6 +498,12 @@ instr 1
   k_step_btn_prev[] init 8
   k_step2_btn_vals[] init 8
   k_step2_btn_prev[] init 8
+  k_step3_btn_vals[] init 8
+  k_step3_btn_prev[] init 8
+  k_step4_btn_vals[] init 8
+  k_step4_btn_prev[] init 8
+  k_step8_btn_vals[] init 8
+  k_step8_btn_prev[] init 8
   if k_ui_poll > 0 then
     kbtn_ndx = 1
     while kbtn_ndx <= 8 do
@@ -327,9 +511,6 @@ instr 1
       kstep_btn_val chnget Sstep_btn
       k_step_btn_vals[kbtn_ndx-1] = kstep_btn_val
       if k_step_btn_vals[kbtn_ndx-1] > 0.5 && k_step_btn_prev[kbtn_ndx-1] <= 0.5 && k_step_btn_sync_busy < 0.5 then
-        if k_debug > 0.5 then
-          event "i", 90, 0, 0.1, 1, kbtn_ndx, kstep_btn_val
-        endif
         chnset 1, "editorSel"
         chnset kbtn_ndx, "ndex"
         event "i", 20, 0, .01, kbtn_ndx, 1
@@ -344,14 +525,53 @@ instr 1
       kstep2_btn_val chnget Sstep2_btn
       k_step2_btn_vals[kbtn_ndx-1] = kstep2_btn_val
       if k_step2_btn_vals[kbtn_ndx-1] > 0.5 && k_step2_btn_prev[kbtn_ndx-1] <= 0.5 && k_step_btn_sync_busy < 0.5 then
-        if k_debug > 0.5 then
-          event "i", 90, 0, 0.1, 1, kbtn_ndx, kstep2_btn_val
-        endif
         chnset 2, "editorSel"
         chnset kbtn_ndx, "ch2_ndex"
         event "i", 20, 0, .01, kbtn_ndx, 2
       endif
       k_step2_btn_prev[kbtn_ndx-1] = k_step2_btn_vals[kbtn_ndx-1]
+      kbtn_ndx += 1
+    od
+
+    kbtn_ndx = 1
+    while kbtn_ndx <= 8 do
+      Sstep3_btn sprintfk "ch3_ndex_%i", kbtn_ndx
+      kstep3_btn_val chnget Sstep3_btn
+      k_step3_btn_vals[kbtn_ndx-1] = kstep3_btn_val
+      if k_step3_btn_vals[kbtn_ndx-1] > 0.5 && k_step3_btn_prev[kbtn_ndx-1] <= 0.5 && k_step_btn_sync_busy < 0.5 then
+        chnset 3, "editorSel"
+        chnset kbtn_ndx, "ch3_ndex"
+        event "i", 20, 0, .01, kbtn_ndx, 3
+      endif
+      k_step3_btn_prev[kbtn_ndx-1] = k_step3_btn_vals[kbtn_ndx-1]
+      kbtn_ndx += 1
+    od
+
+    kbtn_ndx = 1
+    while kbtn_ndx <= 8 do
+      Sstep4_btn sprintfk "ch4_ndex_%i", kbtn_ndx
+      kstep4_btn_val chnget Sstep4_btn
+      k_step4_btn_vals[kbtn_ndx-1] = kstep4_btn_val
+      if k_step4_btn_vals[kbtn_ndx-1] > 0.5 && k_step4_btn_prev[kbtn_ndx-1] <= 0.5 && k_step_btn_sync_busy < 0.5 then
+        chnset 4, "editorSel"
+        chnset kbtn_ndx, "ch4_ndex"
+        event "i", 20, 0, .01, kbtn_ndx, 4
+      endif
+      k_step4_btn_prev[kbtn_ndx-1] = k_step4_btn_vals[kbtn_ndx-1]
+      kbtn_ndx += 1
+    od
+
+    kbtn_ndx = 1
+    while kbtn_ndx <= 8 do
+      Sstep8_btn sprintfk "ch8_ndex_%i", kbtn_ndx
+      kstep8_btn_val chnget Sstep8_btn
+      k_step8_btn_vals[kbtn_ndx-1] = kstep8_btn_val
+      if k_step8_btn_vals[kbtn_ndx-1] > 0.5 && k_step8_btn_prev[kbtn_ndx-1] <= 0.5 && k_step_btn_sync_busy < 0.5 then
+        chnset 5, "editorSel"
+        chnset kbtn_ndx, "ch8_ndex"
+        event "i", 20, 0, .01, kbtn_ndx, 8
+      endif
+      k_step8_btn_prev[kbtn_ndx-1] = k_step8_btn_vals[kbtn_ndx-1]
       kbtn_ndx += 1
     od
   endif
@@ -365,6 +585,9 @@ instr 1
 
   k_edit_step_ch1 chnget "ndex"
   k_edit_step_ch2 chnget "ch2_ndex"
+  k_edit_step_ch3 chnget "ch3_ndex"
+  k_edit_step_ch4 chnget "ch4_ndex"
+  k_edit_step_ch8 chnget "ch8_ndex"
   k_step_changed_ch1 changed k_edit_step_ch1
   if k_step_changed_ch1 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch1, 1
@@ -399,9 +622,66 @@ instr 1
     event "i", 24, 0, .02
   endif
 
+  k_step_changed_ch3 changed k_edit_step_ch3
+  if k_step_changed_ch3 > 0 then
+    event "i", 20, 0, .01, k_edit_step_ch3, 3
+    chnset 1, "stepBtnSyncBusy"
+    kbtn = 1
+    while kbtn <= 8 do
+      S_btn3 sprintfk "ch3_ndex_%i", kbtn
+      if kbtn == k_edit_step_ch3 then
+        cabbageSetValue S_btn3, 1, 1
+      else
+        cabbageSetValue S_btn3, 0, 1
+      endif
+      kbtn += 1
+    od
+    event "i", 24, 0, .02
+  endif
+
+  k_step_changed_ch4 changed k_edit_step_ch4
+  if k_step_changed_ch4 > 0 then
+    event "i", 20, 0, .01, k_edit_step_ch4, 4
+    chnset 1, "stepBtnSyncBusy"
+    kbtn = 1
+    while kbtn <= 8 do
+      S_btn4 sprintfk "ch4_ndex_%i", kbtn
+      if kbtn == k_edit_step_ch4 then
+        cabbageSetValue S_btn4, 1, 1
+      else
+        cabbageSetValue S_btn4, 0, 1
+      endif
+      kbtn += 1
+    od
+    event "i", 24, 0, .02
+  endif
+
+  k_step_changed_ch8 changed k_edit_step_ch8
+  if k_step_changed_ch8 > 0 then
+    event "i", 20, 0, .01, k_edit_step_ch8, 8
+    chnset 1, "stepBtnSyncBusy"
+    kbtn = 1
+    while kbtn <= 8 do
+      S_btn8 sprintfk "ch8_ndex_%i", kbtn
+      if kbtn == k_edit_step_ch8 then
+        cabbageSetValue S_btn8, 1, 1
+      else
+        cabbageSetValue S_btn8, 0, 1
+      endif
+      kbtn += 1
+    od
+    event "i", 24, 0, .02
+  endif
+
   k_edit_step = k_edit_step_ch1
-  if k_editor_sel == 2 then
+  if k_editor_chan == 2 then
     k_edit_step = k_edit_step_ch2
+  elseif k_editor_chan == 3 then
+    k_edit_step = k_edit_step_ch3
+  elseif k_editor_chan == 4 then
+    k_edit_step = k_edit_step_ch4
+  elseif k_editor_chan == 8 then
+    k_edit_step = k_edit_step_ch8
   endif
 
   k_any_edit init 0
@@ -412,12 +692,12 @@ instr 1
   k_prog_btn_prev_ch2[] init 40
   if k_ui_poll > 0 then
     k_prog_count = 40
-    if k_editor_sel == 2 then
+    if k_editor_chan != 1 then
       k_prog_count = 39
     endif
     kndx = 1
     while kndx <= k_prog_count do
-      if k_editor_sel == 2 then
+      if k_editor_chan != 1 then
         Sprog_chan sprintfk "ch2progSel_%i", kndx
       else
         Sprog_chan sprintfk "ch1progSel_%i", kndx
@@ -425,7 +705,7 @@ instr 1
       kval chnget Sprog_chan
       k_prog_btn_vals[kndx-1] = kval
       k_this_changed = 0
-      if k_editor_sel == 2 then
+      if k_editor_chan != 1 then
         if k_prog_btn_vals[kndx-1] != k_prog_btn_prev_ch2[kndx-1] then
           k_this_changed = 1
         endif
@@ -435,7 +715,7 @@ instr 1
         endif
       endif
       if k_this_changed > 0 then
-        if k_editor_sel == 2 then
+        if k_editor_chan != 1 then
           k_prog_btn_prev_ch2[kndx-1] = k_prog_btn_vals[kndx-1]
         else
           k_prog_btn_prev_ch1[kndx-1] = k_prog_btn_vals[kndx-1]
@@ -444,14 +724,11 @@ instr 1
       if k_this_changed > 0 && k_ui_sync_busy < 0.5 then
         k_any_edit = 1
       endif
-      if k_this_changed > 0 && k_ui_sync_busy < 0.5 && k_debug > 0.5 then
-        event "i", 90, 0, 0.1, 2, kndx, kval
-      endif
       kndx += 1
     od
   endif
   if k_any_edit > 0 && k_ui_sync_busy < 0.5 then
-    event "i", 21, 0, .01, k_edit_step, k_editor_sel
+    event "i", 21, 0, .01, k_edit_step, k_editor_chan
   endif
 
   k_clear chnget "clearStep"
@@ -477,23 +754,41 @@ instr 1
     event "i", 31, 0, .01, k_edit_step_ch2, 2
     cabbageSetValue "ch2ClearAll", 0, 1
   endif
-endin
 
-instr 90
-  isrc = p4
-  i_idx = p5
-  ival = p6
-  i_step chnget "ndex"
-  if isrc == 1 then
-    printf_i "DBG stepBtn: step=%d val=%d editStepBefore=%d\n", 1, i_idx, int(ival+0.5), i_step
-  elseif isrc == 2 then
-    ieditor_sel chnget "editorSel"
-    if int(ieditor_sel+0.5) == 2 then
-      i_prog table i_idx-1, giAllowedPrograms_ch2
-    else
-      i_prog table i_idx-1, giAllowedPrograms_ch1
-    endif
-    printf_i "DBG progBtn: editorIdx=%d prog=%d val=%d step=%d\n", 1, i_idx, i_prog, int(ival+0.5), i_step
+  k3_clear chnget "ch3ClearStep"
+  if changed(k3_clear) == 1 && k3_clear > 0.5 then
+    event "i", 30, 0, .01, k_edit_step_ch3, 3
+    cabbageSetValue "ch3ClearStep", 0, 1
+  endif
+
+  k3_clear_all chnget "ch3ClearAll"
+  if changed(k3_clear_all) == 1 && k3_clear_all > 0.5 then
+    event "i", 31, 0, .01, k_edit_step_ch3, 3
+    cabbageSetValue "ch3ClearAll", 0, 1
+  endif
+
+  k4_clear chnget "ch4ClearStep"
+  if changed(k4_clear) == 1 && k4_clear > 0.5 then
+    event "i", 30, 0, .01, k_edit_step_ch4, 4
+    cabbageSetValue "ch4ClearStep", 0, 1
+  endif
+
+  k4_clear_all chnget "ch4ClearAll"
+  if changed(k4_clear_all) == 1 && k4_clear_all > 0.5 then
+    event "i", 31, 0, .01, k_edit_step_ch4, 4
+    cabbageSetValue "ch4ClearAll", 0, 1
+  endif
+
+  k8_clear chnget "ch8ClearStep"
+  if changed(k8_clear) == 1 && k8_clear > 0.5 then
+    event "i", 30, 0, .01, k_edit_step_ch8, 8
+    cabbageSetValue "ch8ClearStep", 0, 1
+  endif
+
+  k8_clear_all chnget "ch8ClearAll"
+  if changed(k8_clear_all) == 1 && k8_clear_all > 0.5 then
+    event "i", 31, 0, .01, k_edit_step_ch8, 8
+    cabbageSetValue "ch8ClearAll", 0, 1
   endif
 endin
 
@@ -503,6 +798,7 @@ instr 3
   ktempo *= ktempo_mult
   kbps = ktempo/60
   ktrig metro kbps
+
   k_num_steps chnget "numsteps"
   k_step_modulo chnget "stepmod"
   kcount_ch1 init 0
@@ -514,6 +810,24 @@ instr 3
   kcount_ch2 init 0
   kcount_ch2 = (kcount_ch2+ktrig)%k_num_steps_ch2
   k_step_tick_ch2 changed kcount_ch2
+
+  k_num_steps_ch3 chnget "ch3_numsteps"
+  k_step_modulo_ch3 chnget "ch3_stepmod"
+  kcount_ch3 init 0
+  kcount_ch3 = (kcount_ch3+ktrig)%k_num_steps_ch3
+  k_step_tick_ch3 changed kcount_ch3
+
+  k_num_steps_ch4 chnget "ch4_numsteps"
+  k_step_modulo_ch4 chnget "ch4_stepmod"
+  kcount_ch4 init 0
+  kcount_ch4 = (kcount_ch4+ktrig)%k_num_steps_ch4
+  k_step_tick_ch4 changed kcount_ch4
+
+  k_num_steps_ch8 chnget "ch8_numsteps"
+  k_step_modulo_ch8 chnget "ch8_stepmod"
+  kcount_ch8 init 0
+  kcount_ch8 = (kcount_ch8+ktrig)%k_num_steps_ch8
+  k_step_tick_ch8 changed kcount_ch8
 
   krand_mod3 chnget "rmod3"
   krand_mod5 chnget "rmod5"
@@ -547,22 +861,90 @@ instr 3
     endif
   endif
 
+  k3rand_mod3 chnget "ch3_rmod3"
+  k3rand_mod5 chnget "ch3_rmod5"
+  if k_step_tick_ch3 > 0 && kcount_ch3%k_step_modulo_ch3 == 0 then
+    kr3c random 0, 1
+    if kr3c < k3rand_mod3 then
+      cabbageSetValue "ch3_stepmod", 3, 1
+    else
+      kr5c random 0, 1
+      if kr5c < k3rand_mod5 then
+        cabbageSetValue "ch3_stepmod", 5, 1
+      else
+        cabbageSetValue "ch3_stepmod", 8, 1
+      endif
+    endif
+  endif
+
+  k4rand_mod3 chnget "ch4_rmod3"
+  k4rand_mod5 chnget "ch4_rmod5"
+  if k_step_tick_ch4 > 0 && kcount_ch4%k_step_modulo_ch4 == 0 then
+    kr3d random 0, 1
+    if kr3d < k4rand_mod3 then
+      cabbageSetValue "ch4_stepmod", 3, 1
+    else
+      kr5d random 0, 1
+      if kr5d < k4rand_mod5 then
+        cabbageSetValue "ch4_stepmod", 5, 1
+      else
+        cabbageSetValue "ch4_stepmod", 8, 1
+      endif
+    endif
+  endif
+
+  k8rand_mod3 chnget "ch8_rmod3"
+  k8rand_mod5 chnget "ch8_rmod5"
+  if k_step_tick_ch8 > 0 && kcount_ch8%k_step_modulo_ch8 == 0 then
+    kr3e random 0, 1
+    if kr3e < k8rand_mod3 then
+      cabbageSetValue "ch8_stepmod", 3, 1
+    else
+      kr5e random 0, 1
+      if kr5e < k8rand_mod5 then
+        cabbageSetValue "ch8_stepmod", 5, 1
+      else
+        cabbageSetValue "ch8_stepmod", 8, 1
+      endif
+    endif
+  endif
+
   kThis_step_ch1[] init 128
   kThis_step_ch2[] init 128
+  kThis_step_ch3[] init 128
+  kThis_step_ch4[] init 128
+  kThis_step_ch8[] init 128
   kIsOn_ch1[] init 128
   kIsOn_ch2[] init 128
+  kIsOn_ch3[] init 128
+  kIsOn_ch4[] init 128
+  kIsOn_ch8[] init 128
   k_any_tick = 0
-  if k_step_tick_ch1 > 0 || k_step_tick_ch2 > 0 then
+  if k_step_tick_ch1 > 0 || k_step_tick_ch2 > 0 || k_step_tick_ch3 > 0 || k_step_tick_ch4 > 0 || k_step_tick_ch8 > 0 then
     k_any_tick = 1
   endif
   if k_any_tick > 0 then
     k_play_step_ch1 = (kcount_ch1%k_step_modulo)+1
     k_play_step_ch2 = (kcount_ch2%k_step_modulo_ch2)+1
+    k_play_step_ch3 = (kcount_ch3%k_step_modulo_ch3)+1
+    k_play_step_ch4 = (kcount_ch4%k_step_modulo_ch4)+1
+    k_play_step_ch8 = (kcount_ch8%k_step_modulo_ch8)+1
     cabbageSetValue "ndex", k_play_step_ch1, 1
     cabbageSetValue "ch2_ndex", k_play_step_ch2, 1
+    cabbageSetValue "ch3_ndex", k_play_step_ch3, 1
+    cabbageSetValue "ch4_ndex", k_play_step_ch4, 1
+    cabbageSetValue "ch8_ndex", k_play_step_ch8, 1
+
     k_editor_sel chnget "editorSel"
-    if int(k_editor_sel+0.5) == 2 then
+    k_editor_sel_i = int(k_editor_sel+0.5)
+    if k_editor_sel_i == 2 then
       event "i", 20, 0, .01, k_play_step_ch2, 2
+    elseif k_editor_sel_i == 3 then
+      event "i", 20, 0, .01, k_play_step_ch3, 3
+    elseif k_editor_sel_i == 4 then
+      event "i", 20, 0, .01, k_play_step_ch4, 4
+    elseif k_editor_sel_i == 5 then
+      event "i", 20, 0, .01, k_play_step_ch8, 8
     else
       event "i", 20, 0, .01, k_play_step_ch1, 1
     endif
@@ -594,6 +976,49 @@ instr 3
     cabbageSetValue S_ndx_btn, 1, k_any_tick
     S_ndx_btn2 sprintfk "ch2_ndex_%i", k_play_step_ch2
     cabbageSetValue S_ndx_btn2, 1, k_any_tick
+
+    kbutn = 1
+    while kbutn <= 8 do
+      S_ndx_btn3 sprintfk "ch3_ndex_%i", kbutn
+      k_edit_step_ch3 chnget "ch3_ndex"
+      if kbutn == k_edit_step_ch3 then
+        cabbageSetValue S_ndx_btn3, 1, k_any_tick
+      else
+        cabbageSetValue S_ndx_btn3, 0, k_any_tick
+      endif
+      kbutn += 1
+    od
+    S_ndx_btn3 sprintfk "ch3_ndex_%i", k_play_step_ch3
+    cabbageSetValue S_ndx_btn3, 1, k_any_tick
+
+    kbutn = 1
+    while kbutn <= 8 do
+      S_ndx_btn4 sprintfk "ch4_ndex_%i", kbutn
+      k_edit_step_ch4 chnget "ch4_ndex"
+      if kbutn == k_edit_step_ch4 then
+        cabbageSetValue S_ndx_btn4, 1, k_any_tick
+      else
+        cabbageSetValue S_ndx_btn4, 0, k_any_tick
+      endif
+      kbutn += 1
+    od
+    S_ndx_btn4 sprintfk "ch4_ndex_%i", k_play_step_ch4
+    cabbageSetValue S_ndx_btn4, 1, k_any_tick
+
+    kbutn = 1
+    while kbutn <= 8 do
+      S_ndx_btn8 sprintfk "ch8_ndex_%i", kbutn
+      k_edit_step_ch8 chnget "ch8_ndex"
+      if kbutn == k_edit_step_ch8 then
+        cabbageSetValue S_ndx_btn8, 1, k_any_tick
+      else
+        cabbageSetValue S_ndx_btn8, 0, k_any_tick
+      endif
+      kbutn += 1
+    od
+    S_ndx_btn8 sprintfk "ch8_ndex_%i", k_play_step_ch8
+    cabbageSetValue S_ndx_btn8, 1, k_any_tick
+
     event "i", 24, 0, .02
 
     reinit progtab_ch1
@@ -610,14 +1035,41 @@ instr 3
     copyf2array kThis_step_ch2, iprogtable_ch2
     rireturn
 
+    reinit progtab_ch3
+    progtab_ch3:
+    icount3 = i(kcount_ch3)%i(k_step_modulo_ch3)
+    iprogtable_ch3 table icount3, giProg_tables_ch3
+    copyf2array kThis_step_ch3, iprogtable_ch3
+    rireturn
+
+    reinit progtab_ch4
+    progtab_ch4:
+    icount4 = i(kcount_ch4)%i(k_step_modulo_ch4)
+    iprogtable_ch4 table icount4, giProg_tables_ch4
+    copyf2array kThis_step_ch4, iprogtable_ch4
+    rireturn
+
+    reinit progtab_ch8
+    progtab_ch8:
+    icount8 = i(kcount_ch8)%i(k_step_modulo_ch8)
+    iprogtable_ch8 table icount8, giProg_tables_ch8
+    copyf2array kThis_step_ch8, iprogtable_ch8
+    rireturn
+
     kdur chnget "duration"
     if kdur >= 1 then
       kndx = 0
       while kndx < 128 do
         kinstrnum_ch1 = 202+((kndx*0.001)+0.0001)
-        kinstrnum_ch2 = 202+((kndx*0.001)+0.0005)
+        kinstrnum_ch2 = 202+((kndx*0.001)+0.0003)
+        kinstrnum_ch3 = 202+((kndx*0.001)+0.0005)
+        kinstrnum_ch4 = 202+((kndx*0.001)+0.0007)
+        kinstrnum_ch8 = 202+((kndx*0.001)+0.0009)
         k_out_chan chnget "outchan"
         k_out_chan_ch2 chnget "ch2_outchan"
+        k_out_chan_ch3 chnget "ch3_outchan"
+        k_out_chan_ch4 chnget "ch4_outchan"
+        k_out_chan_ch8 chnget "ch8_outchan"
         if kThis_step_ch1[kndx] > 0.5 && kIsOn_ch1[kndx] < 0.5 then
           event "i", kinstrnum_ch1, 0, -1, kndx, k_out_chan
           kIsOn_ch1[kndx] = 1
@@ -632,20 +1084,56 @@ instr 3
           event "i", -kinstrnum_ch2, 0, .1, kndx, k_out_chan_ch2
           kIsOn_ch2[kndx] = 0
         endif
+        if kThis_step_ch3[kndx] > 0.5 && kIsOn_ch3[kndx] < 0.5 then
+          event "i", kinstrnum_ch3, 0, -1, kndx, k_out_chan_ch3
+          kIsOn_ch3[kndx] = 1
+        elseif kThis_step_ch3[kndx] < 0.5 && kIsOn_ch3[kndx] > 0.5 then
+          event "i", -kinstrnum_ch3, 0, .1, kndx, k_out_chan_ch3
+          kIsOn_ch3[kndx] = 0
+        endif
+        if kThis_step_ch4[kndx] > 0.5 && kIsOn_ch4[kndx] < 0.5 then
+          event "i", kinstrnum_ch4, 0, -1, kndx, k_out_chan_ch4
+          kIsOn_ch4[kndx] = 1
+        elseif kThis_step_ch4[kndx] < 0.5 && kIsOn_ch4[kndx] > 0.5 then
+          event "i", -kinstrnum_ch4, 0, .1, kndx, k_out_chan_ch4
+          kIsOn_ch4[kndx] = 0
+        endif
+        if kThis_step_ch8[kndx] > 0.5 && kIsOn_ch8[kndx] < 0.5 then
+          event "i", kinstrnum_ch8, 0, -1, kndx, k_out_chan_ch8
+          kIsOn_ch8[kndx] = 1
+        elseif kThis_step_ch8[kndx] < 0.5 && kIsOn_ch8[kndx] > 0.5 then
+          event "i", -kinstrnum_ch8, 0, .1, kndx, k_out_chan_ch8
+          kIsOn_ch8[kndx] = 0
+        endif
         kndx += 1
       od
     else
       kndx = 0
       while kndx < 128 do
         kinstrnum_ch1 = 202+((kndx*0.001)+0.0001)
-        kinstrnum_ch2 = 202+((kndx*0.001)+0.0005)
+        kinstrnum_ch2 = 202+((kndx*0.001)+0.0003)
+        kinstrnum_ch3 = 202+((kndx*0.001)+0.0005)
+        kinstrnum_ch4 = 202+((kndx*0.001)+0.0007)
+        kinstrnum_ch8 = 202+((kndx*0.001)+0.0009)
         k_out_chan chnget "outchan"
         k_out_chan_ch2 chnget "ch2_outchan"
+        k_out_chan_ch3 chnget "ch3_outchan"
+        k_out_chan_ch4 chnget "ch4_outchan"
+        k_out_chan_ch8 chnget "ch8_outchan"
         if kThis_step_ch1[kndx] > 0 then
           event "i", kinstrnum_ch1, 0, kdur*(1/kbps), kndx, k_out_chan
         endif
         if kThis_step_ch2[kndx] > 0 then
           event "i", kinstrnum_ch2, 0, kdur*(1/kbps), kndx, k_out_chan_ch2
+        endif
+        if kThis_step_ch3[kndx] > 0 then
+          event "i", kinstrnum_ch3, 0, kdur*(1/kbps), kndx, k_out_chan_ch3
+        endif
+        if kThis_step_ch4[kndx] > 0 then
+          event "i", kinstrnum_ch4, 0, kdur*(1/kbps), kndx, k_out_chan_ch4
+        endif
+        if kThis_step_ch8[kndx] > 0 then
+          event "i", kinstrnum_ch8, 0, kdur*(1/kbps), kndx, k_out_chan_ch8
         endif
         kndx += 1
       od
@@ -656,8 +1144,9 @@ endin
 instr 12
   k_play chnget "play"
   if changed(k_play) == 1 && k_play < 0.5 then
-    k_edit_step chnget "ndex"
     chnset 1, "stepBtnSyncBusy"
+
+    k_edit_step chnget "ndex"
     kbtn = 1
     while kbtn <= 8 do
       S_btn sprintfk "ndex_%i", kbtn
@@ -668,46 +1157,99 @@ instr 12
       endif
       kbtn += 1
     od
+
+    k_edit_step2 chnget "ch2_ndex"
+    kbtn = 1
+    while kbtn <= 8 do
+      S_btn2 sprintfk "ch2_ndex_%i", kbtn
+      if kbtn == k_edit_step2 then
+        cabbageSetValue S_btn2, 1, 1
+      else
+        cabbageSetValue S_btn2, 0, 1
+      endif
+      kbtn += 1
+    od
+
+    k_edit_step3 chnget "ch3_ndex"
+    kbtn = 1
+    while kbtn <= 8 do
+      S_btn3 sprintfk "ch3_ndex_%i", kbtn
+      if kbtn == k_edit_step3 then
+        cabbageSetValue S_btn3, 1, 1
+      else
+        cabbageSetValue S_btn3, 0, 1
+      endif
+      kbtn += 1
+    od
+
+    k_edit_step4 chnget "ch4_ndex"
+    kbtn = 1
+    while kbtn <= 8 do
+      S_btn4 sprintfk "ch4_ndex_%i", kbtn
+      if kbtn == k_edit_step4 then
+        cabbageSetValue S_btn4, 1, 1
+      else
+        cabbageSetValue S_btn4, 0, 1
+      endif
+      kbtn += 1
+    od
+
+    k_edit_step8 chnget "ch8_ndex"
+    kbtn = 1
+    while kbtn <= 8 do
+      S_btn8 sprintfk "ch8_ndex_%i", kbtn
+      if kbtn == k_edit_step8 then
+        cabbageSetValue S_btn8, 1, 1
+      else
+        cabbageSetValue S_btn8, 0, 1
+      endif
+      kbtn += 1
+    od
+
     event "i", 24, 0, .02
   endif
 endin
 
 instr 10
+  k_skip_next_recall init 0
+
   S_filename, k_trig cabbageGetValue "recallCombo"
   S_path = chnget:S("CSD_PATH")
-  k_file_number chnget "filenumber"
-  k_editor_sel chnget "editorSel"
-  k_editor_sel = int(k_editor_sel)
-  if k_editor_sel < 1 then
-    k_editor_sel = 1
-  endif
-  if k_editor_sel > 2 then
-    k_editor_sel = 2
-  endif
+  k_file_len strlenk S_filename
   if k_trig == 1 then
-    S_filename_full = sprintfk:S("%s\\%s.pre", S_path, S_filename)
-    ; Load only the currently selected editor bank (8 tables) to avoid legacy 8-table file mismatch errors.
-    if k_editor_sel == 2 then
-      ftloadk S_filename_full, 1, 1, giPrograms_ch2_1,giPrograms_ch2_2,giPrograms_ch2_3,giPrograms_ch2_4, giPrograms_ch2_5,giPrograms_ch2_6, giPrograms_ch2_7,giPrograms_ch2_8
-    else
-      ftloadk S_filename_full, 1, 1, giPrograms_ch1_1,giPrograms_ch1_2,giPrograms_ch1_3,giPrograms_ch1_4, giPrograms_ch1_5,giPrograms_ch1_6, giPrograms_ch1_7,giPrograms_ch1_8
+    if k_skip_next_recall > 0.5 then
+      k_skip_next_recall = 0
+    elseif k_file_len > 0 then
+      ; Build absolute load path in the .csd folder and enforce .pre extension.
+      S_filename_full = sprintfk:S("%s\\%s.pre", S_path, S_filename)
+      printf "RECALL raw='%s' load='%s' csdPath='%s'\n", k_trig, S_filename, S_filename_full, S_path
+      ftloadk S_filename_full, 1, 1, giPrograms_ch1_1,giPrograms_ch1_2,giPrograms_ch1_3,giPrograms_ch1_4, giPrograms_ch1_5,giPrograms_ch1_6,giPrograms_ch1_7,giPrograms_ch1_8, giPrograms_ch2_1,giPrograms_ch2_2,giPrograms_ch2_3,giPrograms_ch2_4, giPrograms_ch2_5,giPrograms_ch2_6,giPrograms_ch2_7,giPrograms_ch2_8, giPrograms_ch3_1,giPrograms_ch3_2,giPrograms_ch3_3,giPrograms_ch3_4, giPrograms_ch3_5,giPrograms_ch3_6,giPrograms_ch3_7,giPrograms_ch3_8, giPrograms_ch4_1,giPrograms_ch4_2,giPrograms_ch4_3,giPrograms_ch4_4, giPrograms_ch4_5,giPrograms_ch4_6,giPrograms_ch4_7,giPrograms_ch4_8, giPrograms_ch5_1,giPrograms_ch5_2,giPrograms_ch5_3,giPrograms_ch5_4, giPrograms_ch5_5,giPrograms_ch5_6,giPrograms_ch5_7,giPrograms_ch5_8
+      event "i", 11, 0, .05
     endif
-    event "i", 11, 0, .05, k_editor_sel
   endif
 
   k_trigger_save cabbageGetValue "triggerSave"
-  if changed:k(chnget:k("triggerSave")) == 1 then
-    ; Save selected editor bank to a dedicated file suffix.
-    if k_editor_sel == 2 then
-      S_filename = sprintfk:S("%s\\preset%i_ch2.pre", S_path, k_file_number)
-      ftsavek S_filename, 1, 1, giPrograms_ch2_1,giPrograms_ch2_2,giPrograms_ch2_3,giPrograms_ch2_4, giPrograms_ch2_5,giPrograms_ch2_6, giPrograms_ch2_7,giPrograms_ch2_8
-    else
-      S_filename = sprintfk:S("%s\\preset%i_ch1.pre", S_path, k_file_number)
-      ftsavek S_filename, 1, 1, giPrograms_ch1_1,giPrograms_ch1_2,giPrograms_ch1_3,giPrograms_ch1_4, giPrograms_ch1_5,giPrograms_ch1_6, giPrograms_ch1_7,giPrograms_ch1_8
+  if changed(k_trigger_save) == 1 && k_trigger_save > 0.5 then
+    k_allow_overwrite chnget "allowOverwrite"
+    S_preset_name chnget "presetName"
+    k_name_len strlenk S_preset_name
+    if k_name_len < 1 then
+      S_preset_name = "preset_name"
     endif
-    k_file_number += 1
-    chnset k_file_number, "filenumber"
-    cabbageSet 1, "recallCombo", "refreshFiles(1)"
+    S_save_filename = sprintfk:S("%s\\%s.pre", S_path, S_preset_name)
+    i_exists filevalid S_save_filename
+    if i_exists > 0 && k_allow_overwrite < 0.5 then
+      S_warn sprintfk "text(\"Exists: %s.pre (check Overwrite or rename)\")", S_preset_name
+      cabbageSet 1, "saveStatus", S_warn
+    else
+      ; Global preset: all steps for all channels (future-proofed to 5 channels).
+      ftsavek S_save_filename, 1, 1, giPrograms_ch1_1,giPrograms_ch1_2,giPrograms_ch1_3,giPrograms_ch1_4, giPrograms_ch1_5,giPrograms_ch1_6,giPrograms_ch1_7,giPrograms_ch1_8, giPrograms_ch2_1,giPrograms_ch2_2,giPrograms_ch2_3,giPrograms_ch2_4, giPrograms_ch2_5,giPrograms_ch2_6,giPrograms_ch2_7,giPrograms_ch2_8, giPrograms_ch3_1,giPrograms_ch3_2,giPrograms_ch3_3,giPrograms_ch3_4, giPrograms_ch3_5,giPrograms_ch3_6,giPrograms_ch3_7,giPrograms_ch3_8, giPrograms_ch4_1,giPrograms_ch4_2,giPrograms_ch4_3,giPrograms_ch4_4, giPrograms_ch4_5,giPrograms_ch4_6,giPrograms_ch4_7,giPrograms_ch4_8, giPrograms_ch5_1,giPrograms_ch5_2,giPrograms_ch5_3,giPrograms_ch5_4, giPrograms_ch5_5,giPrograms_ch5_6,giPrograms_ch5_7,giPrograms_ch5_8
+      k_skip_next_recall = 1
+      cabbageSet 1, "recallCombo", "refreshFiles(1)"
+      S_ok sprintfk "text(\"Saved: %s.pre\")", S_preset_name
+      cabbageSet 1, "saveStatus", S_ok
+    endif
+    cabbageSetValue "triggerSave", 0, 1
   endif
 endin
 
@@ -716,23 +1258,43 @@ instr 11
   while istep <= 8 do
     RefreshStepLabel istep, 1
     RefreshStepLabel istep, 2
+    RefreshStepLabel istep, 3
+    RefreshStepLabel istep, 4
+    RefreshStepLabel istep, 8
     istep += 1
   od
   ieditor_sel = p4
-  if ieditor_sel < 1 || ieditor_sel > 2 then
+  if ieditor_sel < 1 || (ieditor_sel > 4 && ieditor_sel != 8) then
     ieditor_sel chnget "editorSel"
     ieditor_sel = int(ieditor_sel+0.5)
+    if ieditor_sel == 5 then
+      ieditor_sel = 8
+    endif
   endif
-  i_edit_step chnget "ndex"
+  i_edit_step = 1
+  if ieditor_sel == 2 then
+    i_edit_step chnget "ch2_ndex"
+  elseif ieditor_sel == 3 then
+    i_edit_step chnget "ch3_ndex"
+  elseif ieditor_sel == 4 then
+    i_edit_step chnget "ch4_ndex"
+  elseif ieditor_sel == 8 then
+    i_edit_step chnget "ch8_ndex"
+  else
+    i_edit_step chnget "ndex"
+  endif
   event_i "i", 20, 0, .01, i_edit_step, ieditor_sel
 endin
 
 instr 20
   istep = p4
   ieditor_sel = p5
-  if ieditor_sel < 1 || ieditor_sel > 2 then
+  if ieditor_sel < 1 || (ieditor_sel > 4 && ieditor_sel != 8) then
     ieditor_sel chnget "editorSel"
     ieditor_sel = int(ieditor_sel+0.5)
+    if ieditor_sel == 5 then
+      ieditor_sel = 8
+    endif
   endif
   if istep < 1 then
     istep = 1
@@ -750,6 +1312,18 @@ instr 20
     itab table istep-1, giProg_tables_ch2
     iallowed_tab = giAllowedPrograms_ch2
     iprog_count = 39
+  elseif ieditor_sel == 3 then
+    itab table istep-1, giProg_tables_ch3
+    iallowed_tab = giAllowedPrograms_ch2
+    iprog_count = 39
+  elseif ieditor_sel == 4 then
+    itab table istep-1, giProg_tables_ch4
+    iallowed_tab = giAllowedPrograms_ch2
+    iprog_count = 39
+  elseif ieditor_sel == 8 then
+    itab table istep-1, giProg_tables_ch8
+    iallowed_tab = giAllowedPrograms_ch2
+    iprog_count = 39
   else
     itab table istep-1, giProg_tables_ch1
     iallowed_tab = giAllowedPrograms_ch1
@@ -762,7 +1336,7 @@ instr 20
     while kndx < iprog_count do
       kprog table kndx, iallowed_tab
       kval table kprog, itab
-      if ieditor_sel == 2 then
+      if ieditor_sel != 1 then
         Sprog_chan sprintfk "ch2progSel_%i", kndx+1
       else
         Sprog_chan sprintfk "ch1progSel_%i", kndx+1
@@ -779,9 +1353,12 @@ endin
 instr 21
   istep = p4
   ieditor_sel = p5
-  if ieditor_sel < 1 || ieditor_sel > 2 then
+  if ieditor_sel < 1 || (ieditor_sel > 4 && ieditor_sel != 8) then
     ieditor_sel chnget "editorSel"
     ieditor_sel = int(ieditor_sel+0.5)
+    if ieditor_sel == 5 then
+      ieditor_sel = 8
+    endif
   endif
   if istep < 1 then
     istep = 1
@@ -797,6 +1374,18 @@ instr 21
     itab table istep-1, giProg_tables_ch2
     iallowed_tab = giAllowedPrograms_ch2
     iprog_count = 39
+  elseif ieditor_sel == 3 then
+    itab table istep-1, giProg_tables_ch3
+    iallowed_tab = giAllowedPrograms_ch2
+    iprog_count = 39
+  elseif ieditor_sel == 4 then
+    itab table istep-1, giProg_tables_ch4
+    iallowed_tab = giAllowedPrograms_ch2
+    iprog_count = 39
+  elseif ieditor_sel == 8 then
+    itab table istep-1, giProg_tables_ch8
+    iallowed_tab = giAllowedPrograms_ch2
+    iprog_count = 39
   else
     itab table istep-1, giProg_tables_ch1
     iallowed_tab = giAllowedPrograms_ch1
@@ -805,13 +1394,13 @@ instr 21
 
   indx = 0
   while indx < 128 do
-    tableiw 0, indx, itab
+    tablew 0, indx, itab
     indx += 1
   od
 
   indx = 0
   while indx < iprog_count do
-    if ieditor_sel == 2 then
+    if ieditor_sel != 1 then
       Sprog_chan sprintf "ch2progSel_%i", indx+1
     else
       Sprog_chan sprintf "ch1progSel_%i", indx+1
@@ -819,7 +1408,7 @@ instr 21
     ival chnget Sprog_chan
     if ival > 0.5 then
       iprog table indx, iallowed_tab
-      tableiw 1, iprog, itab
+      tablew 1, iprog, itab
     endif
     indx += 1
   od
@@ -830,9 +1419,12 @@ endin
 instr 30
   istep = p4
   ieditor_sel = p5
-  if ieditor_sel < 1 || ieditor_sel > 2 then
+  if ieditor_sel < 1 || (ieditor_sel > 4 && ieditor_sel != 8) then
     ieditor_sel chnget "editorSel"
     ieditor_sel = int(ieditor_sel+0.5)
+    if ieditor_sel == 5 then
+      ieditor_sel = 8
+    endif
   endif
   if istep < 1 then
     istep = 1
@@ -842,13 +1434,13 @@ instr 30
   endif
 
   iprog_count = 40
-  if ieditor_sel == 2 then
+  if ieditor_sel != 1 then
     iprog_count = 39
   endif
 
   indx = 1
   while indx <= iprog_count do
-    if ieditor_sel == 2 then
+    if ieditor_sel != 1 then
       Sprog_chan sprintf "ch2progSel_%i", indx
     else
       Sprog_chan sprintf "ch1progSel_%i", indx
@@ -865,9 +1457,12 @@ endin
 instr 31
   istep = p4
   ieditor_sel = p5
-  if ieditor_sel < 1 || ieditor_sel > 2 then
+  if ieditor_sel < 1 || (ieditor_sel > 4 && ieditor_sel != 8) then
     ieditor_sel chnget "editorSel"
     ieditor_sel = int(ieditor_sel+0.5)
+    if ieditor_sel == 5 then
+      ieditor_sel = 8
+    endif
   endif
   if istep < 1 then
     istep = 1
@@ -879,6 +1474,12 @@ instr 31
   itab_group = 0
   if ieditor_sel == 2 then
     itab_group = giProg_tables_ch2
+  elseif ieditor_sel == 3 then
+    itab_group = giProg_tables_ch3
+  elseif ieditor_sel == 4 then
+    itab_group = giProg_tables_ch4
+  elseif ieditor_sel == 8 then
+    itab_group = giProg_tables_ch8
   else
     itab_group = giProg_tables_ch1
   endif
@@ -888,7 +1489,7 @@ instr 31
     itab2 table istep2, itab_group
     indx = 0
     while indx < 128 do
-      tableiw 0, indx, itab2
+      tablew 0, indx, itab2
       indx += 1
     od
     istep2 += 1
