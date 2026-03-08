@@ -248,7 +248,7 @@ checkbox bounds(210, 150, 48, 18), channel("ch1progSel_40"), text("112"), colour
 }
 
 groupbox bounds(705, 40, 430, 188), channel("ch2EditorBox"), visible(0), colour(25,35,40), lineThickness("1"), text("Step Editor Ch2/3/4/8"){
-label bounds(10, 15, 330, 14), text("Programs 1-26. Ruck map: 99 + 101-112"), fontSize(10), align("left")
+label bounds(10, 15, 330, 14), channel("chxEditorHint"), text("Programs vary by channel"), fontSize(10), align("left")
 
 checkbox bounds(10, 35, 48, 18), channel("ch2progSel_1"), text("1"), colour:1(220,200,0)
 checkbox bounds(60, 35, 48, 18), channel("ch2progSel_2"), text("2"), colour:1(220,200,0)
@@ -279,21 +279,27 @@ checkbox bounds(360, 81, 48, 18), channel("ch2progSel_24"), text("24"), colour:1
 
 checkbox bounds(10, 104, 48, 18), channel("ch2progSel_25"), text("25"), colour:1(220,200,0)
 checkbox bounds(60, 104, 48, 18), channel("ch2progSel_26"), text("26"), colour:1(220,200,0)
+checkbox bounds(110, 104, 48, 18), channel("ch2progSel_27"), text("27"), colour:1(220,200,0)
+checkbox bounds(160, 104, 48, 18), channel("ch2progSel_28"), text("28"), colour:1(220,200,0)
+checkbox bounds(210, 104, 48, 18), channel("ch2progSel_29"), text("29"), colour:1(220,200,0)
+checkbox bounds(260, 104, 48, 18), channel("ch2progSel_30"), text("30"), colour:1(220,200,0)
+checkbox bounds(310, 104, 48, 18), channel("ch2progSel_31"), text("31"), colour:1(220,200,0)
+checkbox bounds(360, 104, 48, 18), channel("ch2progSel_32"), text("32"), colour:1(220,200,0)
 
-checkbox bounds(10, 127, 48, 18), channel("ch2progSel_27"), text("Ruck"), colour:1(220,200,0)
-checkbox bounds(60, 127, 48, 18), channel("ch2progSel_28"), text("101"), colour:1(220,200,0)
-checkbox bounds(110, 127, 48, 18), channel("ch2progSel_29"), text("102"), colour:1(220,200,0)
-checkbox bounds(160, 127, 48, 18), channel("ch2progSel_30"), text("103"), colour:1(220,200,0)
-checkbox bounds(210, 127, 48, 18), channel("ch2progSel_31"), text("104"), colour:1(220,200,0)
-checkbox bounds(260, 127, 48, 18), channel("ch2progSel_32"), text("105"), colour:1(220,200,0)
-checkbox bounds(310, 127, 48, 18), channel("ch2progSel_33"), text("106"), colour:1(220,200,0)
-checkbox bounds(360, 127, 48, 18), channel("ch2progSel_34"), text("107"), colour:1(220,200,0)
+checkbox bounds(10, 127, 48, 18), channel("ch2progSel_33"), text("Ruck"), colour:1(220,200,0)
+checkbox bounds(60, 127, 48, 18), channel("ch2progSel_34"), text("101"), colour:1(220,200,0)
+checkbox bounds(110, 127, 48, 18), channel("ch2progSel_35"), text("102"), colour:1(220,200,0)
+checkbox bounds(160, 127, 48, 18), channel("ch2progSel_36"), text("103"), colour:1(220,200,0)
+checkbox bounds(210, 127, 48, 18), channel("ch2progSel_37"), text("104"), colour:1(220,200,0)
+checkbox bounds(260, 127, 48, 18), channel("ch2progSel_38"), text("105"), colour:1(220,200,0)
+checkbox bounds(310, 127, 48, 18), channel("ch2progSel_39"), text("106"), colour:1(220,200,0)
+checkbox bounds(360, 127, 48, 18), channel("ch2progSel_40"), text("107"), colour:1(220,200,0)
 
-checkbox bounds(10, 150, 48, 18), channel("ch2progSel_35"), text("108"), colour:1(220,200,0)
-checkbox bounds(60, 150, 48, 18), channel("ch2progSel_36"), text("109"), colour:1(220,200,0)
-checkbox bounds(110, 150, 48, 18), channel("ch2progSel_37"), text("110"), colour:1(220,200,0)
-checkbox bounds(160, 150, 48, 18), channel("ch2progSel_38"), text("111"), colour:1(220,200,0)
-checkbox bounds(210, 150, 48, 18), channel("ch2progSel_39"), text("112"), colour:1(220,200,0)
+checkbox bounds(10, 150, 48, 18), channel("ch2progSel_41"), text("108"), colour:1(220,200,0)
+checkbox bounds(60, 150, 48, 18), channel("ch2progSel_42"), text("109"), colour:1(220,200,0)
+checkbox bounds(110, 150, 48, 18), channel("ch2progSel_43"), text("110"), colour:1(220,200,0)
+checkbox bounds(160, 150, 48, 18), channel("ch2progSel_44"), text("111"), colour:1(220,200,0)
+checkbox bounds(210, 150, 48, 18), channel("ch2progSel_45"), text("112"), colour:1(220,200,0)
 }
 
 button bounds(705, 236, 80, 25), channel("triggerSave"), text("Save state")
@@ -368,7 +374,13 @@ giPrograms_ch5_8 ftgen 0, 0, 128, 2, 0
 giProg_tables_ch8 ftgen 0, 0, 8, -2, giPrograms_ch5_1, giPrograms_ch5_2, giPrograms_ch5_3, giPrograms_ch5_4, giPrograms_ch5_5, giPrograms_ch5_6, giPrograms_ch5_7, giPrograms_ch5_8
 
 giAllowedPrograms_ch1 ftgen 0, 0, 40, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,99,101,102,103,104,105,106,107,108,109,110,111,112
-giAllowedPrograms_ch2 ftgen 0, 0, 39, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,99,101,102,103,104,105,106,107,108,109,110,111,112
+; Shared editor slots 1..45 for non-ch1 channels.
+; ch2/ch4: 1-25, (26-32 hidden), 99, 101-112.
+giAllowedPrograms_ch2 ftgen 0, 0, 45, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,0,0,0,0,0,0,0,99,101,102,103,104,105,106,107,108,109,110,111,112
+; ch3: 1-29, (30-32 hidden), 99, 101-112.
+giAllowedPrograms_ch3 ftgen 0, 0, 45, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,0,0,0,99,101,102,103,104,105,106,107,108,109,110,111,112
+; ch8: 1-32, 99, 101-112.
+giAllowedPrograms_ch8 ftgen 0, 0, 45, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,99,101,102,103,104,105,106,107,108,109,110,111,112
 
 opcode ButtonEvent, 0, kij
   kbutton, instrnum, iparm xin
@@ -390,19 +402,19 @@ opcode RefreshStepLabel, 0, ii
   if ieditor_sel == 2 then
     itab table istep-1, giProg_tables_ch2
     iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iprog_count = 45
   elseif ieditor_sel == 3 then
     itab table istep-1, giProg_tables_ch3
-    iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iallowed_tab = giAllowedPrograms_ch3
+    iprog_count = 45
   elseif ieditor_sel == 4 then
     itab table istep-1, giProg_tables_ch4
     iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iprog_count = 45
   elseif ieditor_sel == 8 then
     itab table istep-1, giProg_tables_ch8
-    iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iallowed_tab = giAllowedPrograms_ch8
+    iprog_count = 45
   else
     itab table istep-1, giProg_tables_ch1
     iallowed_tab = giAllowedPrograms_ch1
@@ -412,7 +424,7 @@ opcode RefreshStepLabel, 0, ii
   indx = 0
   while indx < iprog_count do
     iprog table indx, iallowed_tab
-    if table(iprog, itab) > 0 then
+    if iprog > 0 && table(iprog, itab) > 0 then
       ilen strlen Sprog_list
       if ilen < 1 then
         Sprog_list sprintf "%i", iprog
@@ -487,6 +499,96 @@ instr 1
     else
       cabbageSet k_editor_changed, "ch1EditorBox", "visible(0)"
       cabbageSet k_editor_changed, "ch2EditorBox", "visible(1)"
+    endif
+
+    if k_editor_chan == 8 then
+      cabbageSet k_editor_changed, "chxEditorHint", "text(\"Programs 1-32. Ruck map: 99 + 101-112\")"
+      cabbageSet k_editor_changed, "ch2progSel_26", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_27", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_28", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_29", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_30", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_31", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_32", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_33", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_34", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_35", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_36", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_37", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_38", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_39", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_40", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_41", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_42", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_43", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_44", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_45", "visible(1), active(1)"
+    elseif k_editor_chan == 3 then
+      cabbageSet k_editor_changed, "chxEditorHint", "text(\"Programs 1-29. Ruck map: 99 + 101-112\")"
+      cabbageSet k_editor_changed, "ch2progSel_26", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_27", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_28", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_29", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_30", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_31", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_32", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_33", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_34", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_35", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_36", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_37", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_38", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_39", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_40", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_41", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_42", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_43", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_44", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_45", "visible(1), active(1)"
+    elseif k_editor_chan == 4 then
+      cabbageSet k_editor_changed, "chxEditorHint", "text(\"Programs 1-25. Ruck disabled on Ch4\")"
+      cabbageSet k_editor_changed, "ch2progSel_26", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_27", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_28", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_29", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_30", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_31", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_32", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_33", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_34", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_35", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_36", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_37", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_38", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_39", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_40", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_41", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_42", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_43", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_44", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_45", "visible(0), active(0)"
+    else
+      cabbageSet k_editor_changed, "chxEditorHint", "text(\"Programs 1-25. Ruck map: 99 + 101-112\")"
+      cabbageSet k_editor_changed, "ch2progSel_26", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_27", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_28", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_29", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_30", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_31", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_32", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_33", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_34", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_35", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_36", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_37", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_38", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_39", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_40", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_41", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_42", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_43", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_44", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_45", "visible(1), active(1)"
     endif
     event "i", 11, 0, .05, k_editor_chan
   endif
@@ -687,13 +789,13 @@ instr 1
   k_any_edit init 0
   k_any_edit = 0
   k_ui_sync_busy chnget "uiSyncBusy"
-  k_prog_btn_vals[] init 40
-  k_prog_btn_prev_ch1[] init 40
-  k_prog_btn_prev_ch2[] init 40
+  k_prog_btn_vals[] init 45
+  k_prog_btn_prev_ch1[] init 45
+  k_prog_btn_prev_ch2[] init 45
   if k_ui_poll > 0 then
     k_prog_count = 40
     if k_editor_chan != 1 then
-      k_prog_count = 39
+      k_prog_count = 45
     endif
     kndx = 1
     while kndx <= k_prog_count do
@@ -1311,19 +1413,19 @@ instr 20
   if ieditor_sel == 2 then
     itab table istep-1, giProg_tables_ch2
     iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iprog_count = 45
   elseif ieditor_sel == 3 then
     itab table istep-1, giProg_tables_ch3
-    iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iallowed_tab = giAllowedPrograms_ch3
+    iprog_count = 45
   elseif ieditor_sel == 4 then
     itab table istep-1, giProg_tables_ch4
     iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iprog_count = 45
   elseif ieditor_sel == 8 then
     itab table istep-1, giProg_tables_ch8
-    iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iallowed_tab = giAllowedPrograms_ch8
+    iprog_count = 45
   else
     itab table istep-1, giProg_tables_ch1
     iallowed_tab = giAllowedPrograms_ch1
@@ -1335,7 +1437,10 @@ instr 20
     kndx = 0
     while kndx < iprog_count do
       kprog table kndx, iallowed_tab
-      kval table kprog, itab
+      kval = 0
+      if kprog > 0 then
+        kval table kprog, itab
+      endif
       if ieditor_sel != 1 then
         Sprog_chan sprintfk "ch2progSel_%i", kndx+1
       else
@@ -1373,19 +1478,19 @@ instr 21
   if ieditor_sel == 2 then
     itab table istep-1, giProg_tables_ch2
     iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iprog_count = 45
   elseif ieditor_sel == 3 then
     itab table istep-1, giProg_tables_ch3
-    iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iallowed_tab = giAllowedPrograms_ch3
+    iprog_count = 45
   elseif ieditor_sel == 4 then
     itab table istep-1, giProg_tables_ch4
     iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iprog_count = 45
   elseif ieditor_sel == 8 then
     itab table istep-1, giProg_tables_ch8
-    iallowed_tab = giAllowedPrograms_ch2
-    iprog_count = 39
+    iallowed_tab = giAllowedPrograms_ch8
+    iprog_count = 45
   else
     itab table istep-1, giProg_tables_ch1
     iallowed_tab = giAllowedPrograms_ch1
@@ -1408,7 +1513,9 @@ instr 21
     ival chnget Sprog_chan
     if ival > 0.5 then
       iprog table indx, iallowed_tab
-      tablew 1, iprog, itab
+      if iprog > 0 then
+        tablew 1, iprog, itab
+      endif
     endif
     indx += 1
   od
@@ -1435,7 +1542,7 @@ instr 30
 
   iprog_count = 40
   if ieditor_sel != 1 then
-    iprog_count = 39
+    iprog_count = 45
   endif
 
   indx = 1
