@@ -198,108 +198,109 @@ label bounds(705, 12, 70, 16), text("Edit Ch"), fontSize(10), align("left")
 combobox bounds(775, 10, 120, 22), channel("editorSel"), items("Ch1","Ch2","Ch3","Ch4","Ch8"), value(1)
 
 groupbox bounds(705, 40, 430, 188), channel("ch1EditorBox"), visible(1), colour(25,35,40), lineThickness("1"), text("Step Editor Ch1"){
-label bounds(10, 15, 330, 14), text("Programs 1-27. Ruck map: 99 + 101-112"), fontSize(10), align("left")
+label bounds(10, 20, 330, 14), text("Programs 1-27. Ruck map: 99 + 101-112"), fontSize(10), align("left")
 
-checkbox bounds(10, 35, 48, 18), channel("ch1progSel_1"), text("1"), colour:1(220,200,0)
-checkbox bounds(60, 35, 48, 18), channel("ch1progSel_2"), text("2"), colour:1(220,200,0)
-checkbox bounds(110, 35, 48, 18), channel("ch1progSel_3"), text("3"), colour:1(220,200,0)
-checkbox bounds(160, 35, 48, 18), channel("ch1progSel_4"), text("4"), colour:1(220,200,0)
-checkbox bounds(210, 35, 48, 18), channel("ch1progSel_5"), text("5"), colour:1(220,200,0)
-checkbox bounds(260, 35, 48, 18), channel("ch1progSel_6"), text("6"), colour:1(220,200,0)
-checkbox bounds(310, 35, 48, 18), channel("ch1progSel_7"), text("7"), colour:1(220,200,0)
-checkbox bounds(360, 35, 48, 18), channel("ch1progSel_8"), text("8"), colour:1(220,200,0)
+checkbox bounds(10, 40, 48, 18), channel("ch1progSel_1"), text("1"), colour:1(220,200,0)
+checkbox bounds(60, 40, 48, 18), channel("ch1progSel_2"), text("2"), colour:1(220,200,0)
+checkbox bounds(110, 40, 48, 18), channel("ch1progSel_3"), text("3"), colour:1(220,200,0)
+checkbox bounds(160, 40, 48, 18), channel("ch1progSel_4"), text("4"), colour:1(220,200,0)
+checkbox bounds(210, 40, 48, 18), channel("ch1progSel_5"), text("5"), colour:1(220,200,0)
+checkbox bounds(260, 40, 48, 18), channel("ch1progSel_6"), text("6"), colour:1(220,200,0)
+checkbox bounds(310, 40, 48, 18), channel("ch1progSel_7"), text("7"), colour:1(220,200,0)
+checkbox bounds(360, 40, 48, 18), channel("ch1progSel_8"), text("8"), colour:1(220,200,0)
 
-checkbox bounds(10, 58, 48, 18), channel("ch1progSel_9"), text("9"), colour:1(220,200,0)
-checkbox bounds(60, 58, 48, 18), channel("ch1progSel_10"), text("10"), colour:1(220,200,0)
-checkbox bounds(110, 58, 48, 18), channel("ch1progSel_11"), text("11"), colour:1(220,200,0)
-checkbox bounds(160, 58, 48, 18), channel("ch1progSel_12"), text("12"), colour:1(220,200,0)
-checkbox bounds(210, 58, 48, 18), channel("ch1progSel_13"), text("13"), colour:1(220,200,0)
-checkbox bounds(260, 58, 48, 18), channel("ch1progSel_14"), text("14"), colour:1(220,200,0)
-checkbox bounds(310, 58, 48, 18), channel("ch1progSel_15"), text("15"), colour:1(220,200,0)
-checkbox bounds(360, 58, 48, 18), channel("ch1progSel_16"), text("16"), colour:1(220,200,0)
+checkbox bounds(10, 63, 48, 18), channel("ch1progSel_9"), text("9"), colour:1(220,200,0)
+checkbox bounds(60, 63, 48, 18), channel("ch1progSel_10"), text("10"), colour:1(220,200,0)
+checkbox bounds(110, 63, 48, 18), channel("ch1progSel_11"), text("11"), colour:1(220,200,0)
+checkbox bounds(160, 63, 48, 18), channel("ch1progSel_12"), text("12"), colour:1(220,200,0)
+checkbox bounds(210, 63, 48, 18), channel("ch1progSel_13"), text("13"), colour:1(220,200,0)
+checkbox bounds(260, 63, 48, 18), channel("ch1progSel_14"), text("14"), colour:1(220,200,0)
+checkbox bounds(310, 63, 48, 18), channel("ch1progSel_15"), text("15"), colour:1(220,200,0)
+checkbox bounds(360, 63, 48, 18), channel("ch1progSel_16"), text("16"), colour:1(220,200,0)
 
-checkbox bounds(10, 81, 48, 18), channel("ch1progSel_17"), text("17"), colour:1(220,200,0)
-checkbox bounds(60, 81, 48, 18), channel("ch1progSel_18"), text("18"), colour:1(220,200,0)
-checkbox bounds(110, 81, 48, 18), channel("ch1progSel_19"), text("19"), colour:1(220,200,0)
-checkbox bounds(160, 81, 48, 18), channel("ch1progSel_20"), text("20"), colour:1(220,200,0)
-checkbox bounds(210, 81, 48, 18), channel("ch1progSel_21"), text("21"), colour:1(220,200,0)
-checkbox bounds(260, 81, 48, 18), channel("ch1progSel_22"), text("22"), colour:1(220,200,0)
-checkbox bounds(310, 81, 48, 18), channel("ch1progSel_23"), text("23"), colour:1(220,200,0)
-checkbox bounds(360, 81, 48, 18), channel("ch1progSel_24"), text("24"), colour:1(220,200,0)
+checkbox bounds(10, 86, 48, 18), channel("ch1progSel_17"), text("17"), colour:1(220,200,0)
+checkbox bounds(60, 86, 48, 18), channel("ch1progSel_18"), text("18"), colour:1(220,200,0)
+checkbox bounds(110, 86, 48, 18), channel("ch1progSel_19"), text("19"), colour:1(220,200,0)
+checkbox bounds(160, 86, 48, 18), channel("ch1progSel_20"), text("20"), colour:1(220,200,0)
+checkbox bounds(210, 86, 48, 18), channel("ch1progSel_21"), text("21"), colour:1(220,200,0)
+checkbox bounds(260, 86, 48, 18), channel("ch1progSel_22"), text("22"), colour:1(220,200,0)
+checkbox bounds(310, 86, 48, 18), channel("ch1progSel_23"), text("23"), colour:1(220,200,0)
+checkbox bounds(360, 86, 48, 18), channel("ch1progSel_24"), text("24"), colour:1(220,200,0)
 
-checkbox bounds(10, 104, 48, 18), channel("ch1progSel_25"), text("25"), colour:1(220,200,0)
-checkbox bounds(60, 104, 48, 18), channel("ch1progSel_26"), text("26"), colour:1(220,200,0)
-checkbox bounds(110, 104, 48, 18), channel("ch1progSel_27"), text("27"), colour:1(220,200,0)
+checkbox bounds(10, 109, 48, 18), channel("ch1progSel_25"), text("25"), colour:1(220,200,0)
+checkbox bounds(60, 109, 48, 18), channel("ch1progSel_26"), text("26"), colour:1(220,200,0)
+checkbox bounds(110, 109, 48, 18), channel("ch1progSel_27"), text("27"), colour:1(220,200,0)
 
-checkbox bounds(10, 127, 48, 18), channel("ch1progSel_28"), text("Ruck"), colour:1(220,200,0)
-checkbox bounds(60, 127, 48, 18), channel("ch1progSel_29"), text("101"), colour:1(220,200,0)
-checkbox bounds(110, 127, 48, 18), channel("ch1progSel_30"), text("102"), colour:1(220,200,0)
-checkbox bounds(160, 127, 48, 18), channel("ch1progSel_31"), text("103"), colour:1(220,200,0)
-checkbox bounds(210, 127, 48, 18), channel("ch1progSel_32"), text("104"), colour:1(220,200,0)
-checkbox bounds(260, 127, 48, 18), channel("ch1progSel_33"), text("105"), colour:1(220,200,0)
-checkbox bounds(310, 127, 48, 18), channel("ch1progSel_34"), text("106"), colour:1(220,200,0)
-checkbox bounds(360, 127, 48, 18), channel("ch1progSel_35"), text("107"), colour:1(220,200,0)
+checkbox bounds(10, 132, 48, 18), channel("ch1progSel_28"), text("Ruck"), colour:1(220,200,0)
+checkbox bounds(60, 132, 48, 18), channel("ch1progSel_29"), text("101"), colour:1(220,200,0)
+checkbox bounds(110, 132, 48, 18), channel("ch1progSel_30"), text("102"), colour:1(220,200,0)
+checkbox bounds(160, 132, 48, 18), channel("ch1progSel_31"), text("103"), colour:1(220,200,0)
+checkbox bounds(210, 132, 48, 18), channel("ch1progSel_32"), text("104"), colour:1(220,200,0)
+checkbox bounds(260, 132, 48, 18), channel("ch1progSel_33"), text("105"), colour:1(220,200,0)
+checkbox bounds(310, 132, 48, 18), channel("ch1progSel_34"), text("106"), colour:1(220,200,0)
+checkbox bounds(360, 132, 48, 18), channel("ch1progSel_35"), text("107"), colour:1(220,200,0)
 
-checkbox bounds(10, 150, 48, 18), channel("ch1progSel_36"), text("108"), colour:1(220,200,0)
-checkbox bounds(60, 150, 48, 18), channel("ch1progSel_37"), text("109"), colour:1(220,200,0)
-checkbox bounds(110, 150, 48, 18), channel("ch1progSel_38"), text("110"), colour:1(220,200,0)
-checkbox bounds(160, 150, 48, 18), channel("ch1progSel_39"), text("111"), colour:1(220,200,0)
-checkbox bounds(210, 150, 48, 18), channel("ch1progSel_40"), text("112"), colour:1(220,200,0)
+checkbox bounds(10, 155, 48, 18), channel("ch1progSel_36"), text("108"), colour:1(220,200,0)
+checkbox bounds(60, 155, 48, 18), channel("ch1progSel_37"), text("109"), colour:1(220,200,0)
+checkbox bounds(110, 155, 48, 18), channel("ch1progSel_38"), text("110"), colour:1(220,200,0)
+checkbox bounds(160, 155, 48, 18), channel("ch1progSel_39"), text("111"), colour:1(220,200,0)
+checkbox bounds(210, 155, 48, 18), channel("ch1progSel_40"), text("112"), colour:1(220,200,0)
 }
 
-groupbox bounds(705, 40, 430, 188), channel("ch2EditorBox"), visible(0), colour(25,35,40), lineThickness("1"), text("Step Editor Ch2/3/4/8"){
-label bounds(10, 15, 330, 14), channel("chxEditorHint"), text("Programs vary by channel"), fontSize(10), align("left")
+groupbox bounds(705, 40, 430, 188), channel("ch2EditorBox"), visible(0), colour(25,35,40), lineThickness("1"), text("Step Editor"){
+label bounds(10, 20, 330, 14), channel("chxEditorHint"), text("Programs vary by channel"), fontSize(10), align("left")
+label bounds(10, 83, 120, 12), channel("ch4GroupLabel2"), text("Solo"), fontSize(10), align("left"), visible(0)
 
-checkbox bounds(10, 35, 48, 18), channel("ch2progSel_1"), text("1"), colour:1(220,200,0)
-checkbox bounds(60, 35, 48, 18), channel("ch2progSel_2"), text("2"), colour:1(220,200,0)
-checkbox bounds(110, 35, 48, 18), channel("ch2progSel_3"), text("3"), colour:1(220,200,0)
-checkbox bounds(160, 35, 48, 18), channel("ch2progSel_4"), text("4"), colour:1(220,200,0)
-checkbox bounds(210, 35, 48, 18), channel("ch2progSel_5"), text("5"), colour:1(220,200,0)
-checkbox bounds(260, 35, 48, 18), channel("ch2progSel_6"), text("6"), colour:1(220,200,0)
-checkbox bounds(310, 35, 48, 18), channel("ch2progSel_7"), text("7"), colour:1(220,200,0)
-checkbox bounds(360, 35, 48, 18), channel("ch2progSel_8"), text("8"), colour:1(220,200,0)
+checkbox bounds(10, 40, 48, 18), channel("ch2progSel_1"), text("1"), colour:1(220,200,0)
+checkbox bounds(60, 40, 48, 18), channel("ch2progSel_2"), text("2"), colour:1(220,200,0)
+checkbox bounds(110, 40, 48, 18), channel("ch2progSel_3"), text("3"), colour:1(220,200,0)
+checkbox bounds(160, 40, 48, 18), channel("ch2progSel_4"), text("4"), colour:1(220,200,0)
+checkbox bounds(210, 40, 48, 18), channel("ch2progSel_5"), text("5"), colour:1(220,200,0)
+checkbox bounds(260, 40, 48, 18), channel("ch2progSel_6"), text("6"), colour:1(220,200,0)
+checkbox bounds(310, 40, 48, 18), channel("ch2progSel_7"), text("7"), colour:1(220,200,0)
+checkbox bounds(360, 40, 48, 18), channel("ch2progSel_8"), text("8"), colour:1(220,200,0)
 
-checkbox bounds(10, 58, 48, 18), channel("ch2progSel_9"), text("9"), colour:1(220,200,0)
-checkbox bounds(60, 58, 48, 18), channel("ch2progSel_10"), text("10"), colour:1(220,200,0)
-checkbox bounds(110, 58, 48, 18), channel("ch2progSel_11"), text("11"), colour:1(220,200,0)
-checkbox bounds(160, 58, 48, 18), channel("ch2progSel_12"), text("12"), colour:1(220,200,0)
-checkbox bounds(210, 58, 48, 18), channel("ch2progSel_13"), text("13"), colour:1(220,200,0)
-checkbox bounds(260, 58, 48, 18), channel("ch2progSel_14"), text("14"), colour:1(220,200,0)
-checkbox bounds(310, 58, 48, 18), channel("ch2progSel_15"), text("15"), colour:1(220,200,0)
-checkbox bounds(360, 58, 48, 18), channel("ch2progSel_16"), text("16"), colour:1(220,200,0)
+checkbox bounds(10, 63, 48, 18), channel("ch2progSel_9"), text("9"), colour:1(220,200,0)
+checkbox bounds(60, 63, 48, 18), channel("ch2progSel_10"), text("10"), colour:1(220,200,0)
+checkbox bounds(110, 63, 48, 18), channel("ch2progSel_11"), text("11"), colour:1(220,200,0)
+checkbox bounds(160, 63, 48, 18), channel("ch2progSel_12"), text("12"), colour:1(220,200,0)
+checkbox bounds(210, 63, 48, 18), channel("ch2progSel_13"), text("13"), colour:1(220,200,0)
+checkbox bounds(260, 63, 48, 18), channel("ch2progSel_14"), text("14"), colour:1(220,200,0)
+checkbox bounds(310, 63, 48, 18), channel("ch2progSel_15"), text("15"), colour:1(220,200,0)
+checkbox bounds(360, 63, 48, 18), channel("ch2progSel_16"), text("16"), colour:1(220,200,0)
 
-checkbox bounds(10, 81, 48, 18), channel("ch2progSel_17"), text("17"), colour:1(220,200,0)
-checkbox bounds(60, 81, 48, 18), channel("ch2progSel_18"), text("18"), colour:1(220,200,0)
-checkbox bounds(110, 81, 48, 18), channel("ch2progSel_19"), text("19"), colour:1(220,200,0)
-checkbox bounds(160, 81, 48, 18), channel("ch2progSel_20"), text("20"), colour:1(220,200,0)
-checkbox bounds(210, 81, 48, 18), channel("ch2progSel_21"), text("21"), colour:1(220,200,0)
-checkbox bounds(260, 81, 48, 18), channel("ch2progSel_22"), text("22"), colour:1(220,200,0)
-checkbox bounds(310, 81, 48, 18), channel("ch2progSel_23"), text("23"), colour:1(220,200,0)
-checkbox bounds(360, 81, 48, 18), channel("ch2progSel_24"), text("24"), colour:1(220,200,0)
+checkbox bounds(10, 86, 48, 18), channel("ch2progSel_17"), text("17"), colour:1(220,200,0)
+checkbox bounds(60, 86, 48, 18), channel("ch2progSel_18"), text("18"), colour:1(220,200,0)
+checkbox bounds(110, 86, 48, 18), channel("ch2progSel_19"), text("19"), colour:1(220,200,0)
+checkbox bounds(160, 86, 48, 18), channel("ch2progSel_20"), text("20"), colour:1(220,200,0)
+checkbox bounds(210, 86, 48, 18), channel("ch2progSel_21"), text("21"), colour:1(220,200,0)
+checkbox bounds(260, 86, 48, 18), channel("ch2progSel_22"), text("22"), colour:1(220,200,0)
+checkbox bounds(310, 86, 48, 18), channel("ch2progSel_23"), text("23"), colour:1(220,200,0)
+checkbox bounds(360, 86, 48, 18), channel("ch2progSel_24"), text("24"), colour:1(220,200,0)
 
-checkbox bounds(10, 104, 48, 18), channel("ch2progSel_25"), text("25"), colour:1(220,200,0)
-checkbox bounds(60, 104, 48, 18), channel("ch2progSel_26"), text("26"), colour:1(220,200,0)
-checkbox bounds(110, 104, 48, 18), channel("ch2progSel_27"), text("27"), colour:1(220,200,0)
-checkbox bounds(160, 104, 48, 18), channel("ch2progSel_28"), text("28"), colour:1(220,200,0)
-checkbox bounds(210, 104, 48, 18), channel("ch2progSel_29"), text("29"), colour:1(220,200,0)
-checkbox bounds(260, 104, 48, 18), channel("ch2progSel_30"), text("30"), colour:1(220,200,0)
-checkbox bounds(310, 104, 48, 18), channel("ch2progSel_31"), text("31"), colour:1(220,200,0)
-checkbox bounds(360, 104, 48, 18), channel("ch2progSel_32"), text("32"), colour:1(220,200,0)
+checkbox bounds(10, 109, 48, 18), channel("ch2progSel_25"), text("25"), colour:1(220,200,0)
+checkbox bounds(60, 109, 48, 18), channel("ch2progSel_26"), text("26"), colour:1(220,200,0)
+checkbox bounds(110, 109, 48, 18), channel("ch2progSel_27"), text("27"), colour:1(220,200,0)
+checkbox bounds(160, 109, 48, 18), channel("ch2progSel_28"), text("28"), colour:1(220,200,0)
+checkbox bounds(210, 109, 48, 18), channel("ch2progSel_29"), text("29"), colour:1(220,200,0)
+checkbox bounds(260, 109, 48, 18), channel("ch2progSel_30"), text("30"), colour:1(220,200,0)
+checkbox bounds(310, 109, 48, 18), channel("ch2progSel_31"), text("31"), colour:1(220,200,0)
+checkbox bounds(360, 109, 48, 18), channel("ch2progSel_32"), text("32"), colour:1(220,200,0)
 
-checkbox bounds(10, 127, 48, 18), channel("ch2progSel_33"), text("Ruck"), colour:1(220,200,0)
-checkbox bounds(60, 127, 48, 18), channel("ch2progSel_34"), text("101"), colour:1(220,200,0)
-checkbox bounds(110, 127, 48, 18), channel("ch2progSel_35"), text("102"), colour:1(220,200,0)
-checkbox bounds(160, 127, 48, 18), channel("ch2progSel_36"), text("103"), colour:1(220,200,0)
-checkbox bounds(210, 127, 48, 18), channel("ch2progSel_37"), text("104"), colour:1(220,200,0)
-checkbox bounds(260, 127, 48, 18), channel("ch2progSel_38"), text("105"), colour:1(220,200,0)
-checkbox bounds(310, 127, 48, 18), channel("ch2progSel_39"), text("106"), colour:1(220,200,0)
-checkbox bounds(360, 127, 48, 18), channel("ch2progSel_40"), text("107"), colour:1(220,200,0)
+checkbox bounds(10, 132, 48, 18), channel("ch2progSel_33"), text("Ruck"), colour:1(220,200,0)
+checkbox bounds(60, 132, 48, 18), channel("ch2progSel_34"), text("101"), colour:1(220,200,0)
+checkbox bounds(110, 132, 48, 18), channel("ch2progSel_35"), text("102"), colour:1(220,200,0)
+checkbox bounds(160, 132, 48, 18), channel("ch2progSel_36"), text("103"), colour:1(220,200,0)
+checkbox bounds(210, 132, 48, 18), channel("ch2progSel_37"), text("104"), colour:1(220,200,0)
+checkbox bounds(260, 132, 48, 18), channel("ch2progSel_38"), text("105"), colour:1(220,200,0)
+checkbox bounds(310, 132, 48, 18), channel("ch2progSel_39"), text("106"), colour:1(220,200,0)
+checkbox bounds(360, 132, 48, 18), channel("ch2progSel_40"), text("107"), colour:1(220,200,0)
 
-checkbox bounds(10, 150, 48, 18), channel("ch2progSel_41"), text("108"), colour:1(220,200,0)
-checkbox bounds(60, 150, 48, 18), channel("ch2progSel_42"), text("109"), colour:1(220,200,0)
-checkbox bounds(110, 150, 48, 18), channel("ch2progSel_43"), text("110"), colour:1(220,200,0)
-checkbox bounds(160, 150, 48, 18), channel("ch2progSel_44"), text("111"), colour:1(220,200,0)
-checkbox bounds(210, 150, 48, 18), channel("ch2progSel_45"), text("112"), colour:1(220,200,0)
+checkbox bounds(10, 155, 48, 18), channel("ch2progSel_41"), text("108"), colour:1(220,200,0)
+checkbox bounds(60, 155, 48, 18), channel("ch2progSel_42"), text("109"), colour:1(220,200,0)
+checkbox bounds(110, 155, 48, 18), channel("ch2progSel_43"), text("110"), colour:1(220,200,0)
+checkbox bounds(160, 155, 48, 18), channel("ch2progSel_44"), text("111"), colour:1(220,200,0)
+checkbox bounds(210, 155, 48, 18), channel("ch2progSel_45"), text("112"), colour:1(220,200,0)
 }
 
 button bounds(705, 236, 80, 25), channel("triggerSave"), text("Save state")
@@ -379,6 +380,8 @@ giAllowedPrograms_ch1 ftgen 0, 0, 40, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
 giAllowedPrograms_ch2 ftgen 0, 0, 45, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,0,0,0,0,0,0,0,99,101,102,103,104,105,106,107,108,109,110,111,112
 ; ch3: 1-29, (30-32 hidden), 99, 101-112.
 giAllowedPrograms_ch3 ftgen 0, 0, 45, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,0,0,0,99,101,102,103,104,105,106,107,108,109,110,111,112
+; ch4: slot1=Fjernverk (special code 100), then 1-18.
+giAllowedPrograms_ch4 ftgen 0, 0, 45, -2, 100,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 ; ch8: 1-32, 99, 101-112.
 giAllowedPrograms_ch8 ftgen 0, 0, 45, -2, 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,99,101,102,103,104,105,106,107,108,109,110,111,112
 
@@ -409,7 +412,7 @@ opcode RefreshStepLabel, 0, ii
     iprog_count = 45
   elseif ieditor_sel == 4 then
     itab table istep-1, giProg_tables_ch4
-    iallowed_tab = giAllowedPrograms_ch2
+    iallowed_tab = giAllowedPrograms_ch4
     iprog_count = 45
   elseif ieditor_sel == 8 then
     itab table istep-1, giProg_tables_ch8
@@ -426,10 +429,15 @@ opcode RefreshStepLabel, 0, ii
     iprog table indx, iallowed_tab
     if iprog > 0 && table(iprog, itab) > 0 then
       ilen strlen Sprog_list
-      if ilen < 1 then
-        Sprog_list sprintf "%i", iprog
+      if iprog == 100 then
+        Sprog_item = "Fj"
       else
-        Sprog_list strcat Sprog_list, sprintf(" %i", iprog)
+        Sprog_item sprintf "%i", iprog
+      endif
+      if ilen < 1 then
+        Sprog_list = Sprog_item
+      else
+        Sprog_list strcat Sprog_list, sprintf(" %s", Sprog_item)
       endif
     endif
     indx += 1
@@ -503,6 +511,40 @@ instr 1
 
     if k_editor_chan == 8 then
       cabbageSet k_editor_changed, "chxEditorHint", "text(\"Programs 1-32. Ruck map: 99 + 101-112\")"
+      cabbageSet k_editor_changed, "ch4GroupLabel2", "visible(0)"
+      cabbageSet k_editor_changed, "ch2progSel_1", "text(\"1\"), bounds(10,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_2", "text(\"2\"), bounds(60,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_3", "text(\"3\"), bounds(110,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_4", "text(\"4\"), bounds(160,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_5", "text(\"5\"), bounds(210,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_6", "text(\"6\"), bounds(260,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_7", "text(\"7\"), bounds(310,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_8", "text(\"8\"), bounds(360,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_9", "text(\"9\"), bounds(10,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_10", "text(\"10\"), bounds(60,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_11", "text(\"11\"), bounds(110,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_12", "text(\"12\")"
+      cabbageSet k_editor_changed, "ch2progSel_13", "text(\"13\")"
+      cabbageSet k_editor_changed, "ch2progSel_14", "text(\"14\")"
+      cabbageSet k_editor_changed, "ch2progSel_15", "text(\"15\")"
+      cabbageSet k_editor_changed, "ch2progSel_16", "text(\"16\")"
+      cabbageSet k_editor_changed, "ch2progSel_17", "text(\"17\")"
+      cabbageSet k_editor_changed, "ch2progSel_18", "text(\"18\")"
+      cabbageSet k_editor_changed, "ch2progSel_19", "text(\"19\")"
+      cabbageSet k_editor_changed, "ch2progSel_19", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_20", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_21", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_22", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_23", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_24", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_25", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_12", "bounds(160,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_13", "bounds(210,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_14", "bounds(260,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_15", "bounds(310,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_16", "bounds(360,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_17", "bounds(10,86,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_18", "bounds(60,86,48,18)"
       cabbageSet k_editor_changed, "ch2progSel_26", "visible(1), active(1)"
       cabbageSet k_editor_changed, "ch2progSel_27", "visible(1), active(1)"
       cabbageSet k_editor_changed, "ch2progSel_28", "visible(1), active(1)"
@@ -525,6 +567,40 @@ instr 1
       cabbageSet k_editor_changed, "ch2progSel_45", "visible(1), active(1)"
     elseif k_editor_chan == 3 then
       cabbageSet k_editor_changed, "chxEditorHint", "text(\"Programs 1-29. Ruck map: 99 + 101-112\")"
+      cabbageSet k_editor_changed, "ch4GroupLabel2", "visible(0)"
+      cabbageSet k_editor_changed, "ch2progSel_1", "text(\"1\"), bounds(10,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_2", "text(\"2\"), bounds(60,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_3", "text(\"3\"), bounds(110,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_4", "text(\"4\"), bounds(160,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_5", "text(\"5\"), bounds(210,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_6", "text(\"6\"), bounds(260,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_7", "text(\"7\"), bounds(310,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_8", "text(\"8\"), bounds(360,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_9", "text(\"9\"), bounds(10,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_10", "text(\"10\"), bounds(60,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_11", "text(\"11\"), bounds(110,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_12", "text(\"12\")"
+      cabbageSet k_editor_changed, "ch2progSel_13", "text(\"13\")"
+      cabbageSet k_editor_changed, "ch2progSel_14", "text(\"14\")"
+      cabbageSet k_editor_changed, "ch2progSel_15", "text(\"15\")"
+      cabbageSet k_editor_changed, "ch2progSel_16", "text(\"16\")"
+      cabbageSet k_editor_changed, "ch2progSel_17", "text(\"17\")"
+      cabbageSet k_editor_changed, "ch2progSel_18", "text(\"18\")"
+      cabbageSet k_editor_changed, "ch2progSel_19", "text(\"19\")"
+      cabbageSet k_editor_changed, "ch2progSel_19", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_20", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_21", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_22", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_23", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_24", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_25", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_12", "bounds(160,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_13", "bounds(210,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_14", "bounds(260,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_15", "bounds(310,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_16", "bounds(360,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_17", "bounds(10,86,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_18", "bounds(60,86,48,18)"
       cabbageSet k_editor_changed, "ch2progSel_26", "visible(1), active(1)"
       cabbageSet k_editor_changed, "ch2progSel_27", "visible(1), active(1)"
       cabbageSet k_editor_changed, "ch2progSel_28", "visible(1), active(1)"
@@ -546,7 +622,33 @@ instr 1
       cabbageSet k_editor_changed, "ch2progSel_44", "visible(1), active(1)"
       cabbageSet k_editor_changed, "ch2progSel_45", "visible(1), active(1)"
     elseif k_editor_chan == 4 then
-      cabbageSet k_editor_changed, "chxEditorHint", "text(\"Programs 1-25. Ruck disabled on Ch4\")"
+      cabbageSet k_editor_changed, "chxEditorHint", "text(\"Ch4: Fjernverk + 1-11, Solo 12-18\")"
+      cabbageSet k_editor_changed, "ch4GroupLabel2", "visible(1)"
+      cabbageSet k_editor_changed, "ch2progSel_1", "text(\"Fjernverk\"), bounds(10,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_2", "text(\"1\"), bounds(60,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_3", "text(\"2\"), bounds(110,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_4", "text(\"3\"), bounds(160,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_5", "text(\"4\"), bounds(210,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_6", "text(\"5\"), bounds(260,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_7", "text(\"6\"), bounds(310,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_8", "text(\"7\"), bounds(360,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_9", "text(\"8\"), bounds(10,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_10", "text(\"9\"), bounds(60,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_11", "text(\"10\"), bounds(110,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_12", "text(\"11\"), bounds(160,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_13", "text(\"12\"), bounds(10,99,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_14", "text(\"13\"), bounds(60,99,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_15", "text(\"14\"), bounds(110,99,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_16", "text(\"15\"), bounds(160,99,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_17", "text(\"16\"), bounds(210,99,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_18", "text(\"17\"), bounds(260,99,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_19", "text(\"18\"), bounds(310,99,48,18), visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_20", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_21", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_22", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_23", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_24", "visible(0), active(0)"
+      cabbageSet k_editor_changed, "ch2progSel_25", "visible(0), active(0)"
       cabbageSet k_editor_changed, "ch2progSel_26", "visible(0), active(0)"
       cabbageSet k_editor_changed, "ch2progSel_27", "visible(0), active(0)"
       cabbageSet k_editor_changed, "ch2progSel_28", "visible(0), active(0)"
@@ -569,6 +671,47 @@ instr 1
       cabbageSet k_editor_changed, "ch2progSel_45", "visible(0), active(0)"
     else
       cabbageSet k_editor_changed, "chxEditorHint", "text(\"Programs 1-25. Ruck map: 99 + 101-112\")"
+      cabbageSet k_editor_changed, "ch4GroupLabel2", "visible(0)"
+      cabbageSet k_editor_changed, "ch2progSel_1", "text(\"1\"), bounds(10,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_2", "text(\"2\"), bounds(60,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_3", "text(\"3\"), bounds(110,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_4", "text(\"4\"), bounds(160,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_5", "text(\"5\"), bounds(210,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_6", "text(\"6\"), bounds(260,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_7", "text(\"7\"), bounds(310,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_8", "text(\"8\"), bounds(360,40,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_9", "text(\"9\"), bounds(10,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_10", "text(\"10\"), bounds(60,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_11", "text(\"11\"), bounds(110,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_12", "text(\"12\"), bounds(160,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_13", "text(\"13\"), bounds(210,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_14", "text(\"14\"), bounds(260,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_15", "text(\"15\"), bounds(310,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_16", "text(\"16\"), bounds(360,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_17", "text(\"17\"), bounds(10,86,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_18", "text(\"18\"), bounds(60,86,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_19", "text(\"19\"), bounds(110,86,48,18), visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_19", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_20", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_21", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_22", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_23", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_24", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_25", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_12", "bounds(160,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_13", "bounds(210,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_14", "bounds(260,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_15", "bounds(310,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_16", "bounds(360,63,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_17", "bounds(10,86,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_18", "bounds(60,86,48,18)"
+      cabbageSet k_editor_changed, "ch2progSel_19", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_20", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_21", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_22", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_23", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_24", "visible(1), active(1)"
+      cabbageSet k_editor_changed, "ch2progSel_25", "visible(1), active(1)"
       cabbageSet k_editor_changed, "ch2progSel_26", "visible(0), active(0)"
       cabbageSet k_editor_changed, "ch2progSel_27", "visible(0), active(0)"
       cabbageSet k_editor_changed, "ch2progSel_28", "visible(0), active(0)"
@@ -1420,7 +1563,7 @@ instr 20
     iprog_count = 45
   elseif ieditor_sel == 4 then
     itab table istep-1, giProg_tables_ch4
-    iallowed_tab = giAllowedPrograms_ch2
+    iallowed_tab = giAllowedPrograms_ch4
     iprog_count = 45
   elseif ieditor_sel == 8 then
     itab table istep-1, giProg_tables_ch8
@@ -1485,7 +1628,7 @@ instr 21
     iprog_count = 45
   elseif ieditor_sel == 4 then
     itab table istep-1, giProg_tables_ch4
-    iallowed_tab = giAllowedPrograms_ch2
+    iallowed_tab = giAllowedPrograms_ch4
     iprog_count = 45
   elseif ieditor_sel == 8 then
     itab table istep-1, giProg_tables_ch8
@@ -1622,19 +1765,25 @@ instr 202
   iprog = p4
   ichan = p5
   print iprog, ichan
-  iRegOffset[] fillarray 32,59,85,116,0,0,0,0
+  iChanMax[] fillarray 27,25,29,18,0,0,0,32
   iRuckSwitchOffset[] fillarray 72,70,74,0,0,0,0,76
 
-  if iprog == 99 && (ichan == 1 || ichan == 2 || ichan == 3 || ichan == 8) then
+  ; Backward compatibility for previously written out-of-range Ch4 marker.
+  if ichan == 4 && iprog == 127 then
+    iprog = 100
+  endif
+
+  if iprog == 100 && ichan == 4 then
+    ; Ch4 special Fjernverk: on -> PC58 (ch3), off at note end -> PC59.
+    iprognum = 58
+    ichan = 3
+    imax_this_channel = 100
+  elseif iprog == 99 && (ichan == 1 || ichan == 2 || ichan == 3 || ichan == 8) then
     iprognum = iRuckSwitchOffset[ichan-1]
     imax_this_channel = 99
   else
     iprognum = (iprog*2)-2
-    if ichan == 8 then
-      imax_this_channel = 32
-    else
-      imax_this_channel = iRegOffset[ichan] - iRegOffset[ichan-1]
-    endif
+    imax_this_channel = iChanMax[ichan-1]
   endif
 
   if (iprog <= 113) && (iprog >= 101) && (ichan == 1 || ichan == 2 || ichan == 3 || ichan == 8) then
