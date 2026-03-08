@@ -44,6 +44,8 @@ checkbox bounds(165,315, 60, 20), channel("midi_to_4"), text("Mid4")
 checkbox bounds(165,365, 60, 20), channel("midi_to_8"), text("Mid8")
 
 button  bounds(  5, 130, 65, 20), channel("clear_all"), text("clear all"), latched(0), colour:0("green"), colour:1("red")
+nslider bounds( 75,130, 45, 20), channel("dur_split"), text("Dsplit"), range(37,96,72,1,1)
+nslider bounds(120,130, 45, 20), channel("dur_scale"), text("Dscale"), range(0.1,5,1,0.4,0.001)
 button  bounds(165,185, 60, 18), channel("clear_ch_1"), text("clear1"), latched(0), colour:0("black"), colour:1("red")
 button  bounds(165,235, 60, 18), channel("clear_ch_2"), text("clear2"), latched(0), colour:0("black"), colour:1("red")
 button  bounds(165,285, 60, 18), channel("clear_ch_3"), text("clear3"), latched(0), colour:0("black"), colour:1("red")
@@ -456,6 +458,17 @@ instr 3,4,5,6,10
   krdur chnget "rdur"
   kdur_keyfollow chnget "d_keyfollow"
   kdur += (knote/100*kdur_keyfollow*kdur)
+  kdur_split chnget "dur_split"
+  kdur_scale chnget "dur_scale"
+  ; Below split: linearly move from factor 1.0 at split to dur_scale at MIDI note 36.
+  kdur_note_factor = 1
+  if knote < kdur_split then
+    ksplit_span = (kdur_split > 36 ? kdur_split-36 : 1)
+    ksplit_pos = (kdur_split-knote)/ksplit_span
+    ksplit_pos limit ksplit_pos, 0, 1
+    kdur_note_factor = 1 + ((kdur_scale-1)*ksplit_pos)
+  endif
+  kdur *= kdur_note_factor
   kabsdur chnget "absdur"
 
   kcount_up init 0
