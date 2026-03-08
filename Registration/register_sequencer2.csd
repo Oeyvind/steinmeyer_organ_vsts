@@ -822,6 +822,34 @@ instr 1
   endif
 
   k_play chnget "play"
+  k_play_changed changed k_play
+  if k_play_changed > 0 then
+    k_editor_active = 1
+    if k_play > 0.5 then
+      k_editor_active = 0
+    endif
+    S_active sprintfk "active(%d)", int(k_editor_active+0.5)
+
+    kprog_ndx = 1
+    while kprog_ndx <= 40 do
+      Sch1_prog sprintfk "ch1progSel_%i", kprog_ndx
+      cabbageSet k_play_changed, Sch1_prog, S_active
+      kprog_ndx += 1
+    od
+
+    kprog_ndx = 1
+    while kprog_ndx <= 45 do
+      Schx_prog sprintfk "ch2progSel_%i", kprog_ndx
+      cabbageSet k_play_changed, Schx_prog, S_active
+      kprog_ndx += 1
+    od
+
+    if k_play > 0.5 then
+      ; Stop any latched step-preview registrations when playback starts.
+      event "i", 42, 0, .02
+    endif
+  endif
+
   ButtonEvent k_play, 3
   kplay_off trigger k_play, 0.5, 1
   if kplay_off > 0 then
@@ -836,6 +864,9 @@ instr 1
   k_step_changed_ch1 changed k_edit_step_ch1
   if k_step_changed_ch1 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch1, 1
+    if k_play < 0.5 then
+      event "i", 40, 0, .02, k_edit_step_ch1, 1
+    endif
     chnset 1, "stepBtnSyncBusy"
     kbtn = 1
     while kbtn <= 8 do
@@ -853,6 +884,9 @@ instr 1
   k_step_changed_ch2 changed k_edit_step_ch2
   if k_step_changed_ch2 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch2, 2
+    if k_play < 0.5 then
+      event "i", 40, 0, .02, k_edit_step_ch2, 2
+    endif
     chnset 1, "stepBtnSyncBusy"
     kbtn = 1
     while kbtn <= 8 do
@@ -870,6 +904,9 @@ instr 1
   k_step_changed_ch3 changed k_edit_step_ch3
   if k_step_changed_ch3 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch3, 3
+    if k_play < 0.5 then
+      event "i", 40, 0, .02, k_edit_step_ch3, 3
+    endif
     chnset 1, "stepBtnSyncBusy"
     kbtn = 1
     while kbtn <= 8 do
@@ -887,6 +924,9 @@ instr 1
   k_step_changed_ch4 changed k_edit_step_ch4
   if k_step_changed_ch4 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch4, 4
+    if k_play < 0.5 then
+      event "i", 40, 0, .02, k_edit_step_ch4, 4
+    endif
     chnset 1, "stepBtnSyncBusy"
     kbtn = 1
     while kbtn <= 8 do
@@ -904,6 +944,9 @@ instr 1
   k_step_changed_ch8 changed k_edit_step_ch8
   if k_step_changed_ch8 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch8, 8
+    if k_play < 0.5 then
+      event "i", 40, 0, .02, k_edit_step_ch8, 8
+    endif
     chnset 1, "stepBtnSyncBusy"
     kbtn = 1
     while kbtn <= 8 do
@@ -972,7 +1015,7 @@ instr 1
       kndx += 1
     od
   endif
-  if k_any_edit > 0 && k_ui_sync_busy < 0.5 then
+  if k_any_edit > 0 && k_ui_sync_busy < 0.5 && k_play < 0.5 then
     event "i", 21, 0, .01, k_edit_step, k_editor_chan
   endif
 
@@ -1035,6 +1078,80 @@ instr 1
     event "i", 31, 0, .01, k_edit_step_ch8, 8
     cabbageSetValue "ch8ClearAll", 0, 1
   endif
+endin
+
+instr 40
+  ; Latch preview for selected step/channel while Play is off.
+  istep = p4
+  ich_sel = p5
+
+  itab_group = giProg_tables_ch1
+  ioff = 0.0001
+  Soutchan = "outchan"
+  if ich_sel == 2 then
+    itab_group = giProg_tables_ch2
+    ioff = 0.0003
+    Soutchan = "ch2_outchan"
+  elseif ich_sel == 3 then
+    itab_group = giProg_tables_ch3
+    ioff = 0.0005
+    Soutchan = "ch3_outchan"
+  elseif ich_sel == 4 then
+    itab_group = giProg_tables_ch4
+    ioff = 0.0007
+    Soutchan = "ch4_outchan"
+  elseif ich_sel == 8 then
+    itab_group = giProg_tables_ch8
+    ioff = 0.0009
+    Soutchan = "ch8_outchan"
+  endif
+
+  iout_chan chnget Soutchan
+
+  ; First clear previously latched registrations for this channel preview lane.
+  ip = 0
+  while ip < 128 do
+    instr_num = 202 + ((ip*0.001) + ioff)
+    event_i "i", -instr_num, 0, .1, ip, iout_chan
+    ip += 1
+  od
+
+  if istep < 1 then
+    istep = 1
+  endif
+  if istep > 8 then
+    istep = 8
+  endif
+
+  itab table istep-1, itab_group
+  ip = 0
+  while ip < 128 do
+    ival table ip, itab
+    if ival > 0.5 then
+      instr_num = 202 + ((ip*0.001) + ioff)
+      event_i "i", instr_num, 0, -1, ip, iout_chan
+    endif
+    ip += 1
+  od
+endin
+
+instr 42
+  ; Hard stop all latched step-preview lanes.
+  iout1 chnget "outchan"
+  iout2 chnget "ch2_outchan"
+  iout3 chnget "ch3_outchan"
+  iout4 chnget "ch4_outchan"
+  iout8 chnget "ch8_outchan"
+
+  ip = 0
+  while ip < 128 do
+    event_i "i", -(202 + ((ip*0.001) + 0.0001)), 0, .1, ip, iout1
+    event_i "i", -(202 + ((ip*0.001) + 0.0003)), 0, .1, ip, iout2
+    event_i "i", -(202 + ((ip*0.001) + 0.0005)), 0, .1, ip, iout3
+    event_i "i", -(202 + ((ip*0.001) + 0.0007)), 0, .1, ip, iout4
+    event_i "i", -(202 + ((ip*0.001) + 0.0009)), 0, .1, ip, iout8
+    ip += 1
+  od
 endin
 
 instr 3
