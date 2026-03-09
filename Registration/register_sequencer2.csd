@@ -322,6 +322,8 @@ csoundoutput bounds(705, 292, 430, 245)
 ksmps = 128
 massign -1, 99
 pgmassign -1, -1
+chn_k "editorSel", 3
+gk_editorSel init 1
 
 giPrograms_ch1_1 ftgen 0, 0, 128, 2, 0
 giPrograms_ch1_2 ftgen 0, 0, 128, 2, 0
@@ -478,16 +480,23 @@ instr 1
     cabbageSet kstart, "ch2EditorBox", "visible(0)"
     event "i", 11, 0, .05, 1
   endif
-
-  k_editor_sel_raw chnget "editorSel"
-  k_editor_sel = int(k_editor_sel_raw+0.5)
-  if k_editor_sel < 1 then
-    k_editor_sel = 1
+  
+  kplay chnget "play"
+  kplay_on trigger kplay, 0.5, 0
+  kplay_off trigger kplay, 0.5, 1
+  if kstart > 0 && kplay < 0.5 then
+    event "i", 50, 0, -1
   endif
-  if k_editor_sel > 5 then
-    k_editor_sel = 5
+  if kplay_on > 0 then
+    event "i", -50, 0, .1
+  endif
+  if kplay_off > 0 then
+    event "i", 50, 0, -1
   endif
 
+  k_editor_sel chnget "editorSel"
+  gk_editorSel = k_editor_sel
+  
   k_editor_chan = 1
   if k_editor_sel == 2 then
     k_editor_chan = 2
@@ -1152,6 +1161,111 @@ instr 42
     event_i "i", -(202 + ((ip*0.001) + 0.0009)), 0, .1, ip, iout8
     ip += 1
   od
+endin
+
+instr 50
+  ; MIDI Program Change -> step editor program button mapping.
+  ; Active only while Play is off.
+  k_status, k_chan, k_data1, k_data2 midiin
+  k_midi_changed changed k_status, k_chan, k_data1, k_data2
+  printf "I50 MIDI in: status=%f chan=%f data1=%f data2=%f\n", k_midi_changed, k_status, k_chan, k_data1, k_data2
+  
+  ; Accept Program Change status on all MIDI channels (192..207).
+  if k_status < 192 || k_status > 207 then
+    goto done
+  endif
+
+  k_editor_sel = gk_editorSel
+  k_editor_chan = 1
+  if k_editor_sel == 2 then
+    k_editor_chan = 2
+  elseif k_editor_sel == 3 then
+    k_editor_chan = 3
+  elseif k_editor_sel == 4 then
+    k_editor_chan = 4
+  elseif k_editor_sel == 5 then
+    k_editor_chan = 8
+  endif
+
+  k_prog_onoff = 1
+  if (k_data1 % 2) != 0 then
+    k_prog_onoff = 0
+  endif
+
+  k_iprog = -1
+
+  if k_editor_chan == 1 || k_editor_chan == 2 || k_editor_chan == 3 || k_editor_chan == 8 then
+    ; Ruck enable switch for this selected channel.
+    k_ruck = -999
+    if k_editor_chan == 1 then
+      k_ruck = 72
+    elseif k_editor_chan == 2 then
+      k_ruck = 70
+    elseif k_editor_chan == 3 then
+      k_ruck = 74
+    elseif k_editor_chan == 8 then
+      k_ruck = 76
+    endif
+    if k_chan == k_editor_chan && (k_data1 == k_ruck || k_data1 == (k_ruck+1)) then
+      k_iprog = 99
+    ; Shared Ruckpositiv register bank 101..112 arrives on MIDI channel 4.
+    ; Accept channel 5 as fallback for 1-based/0-based host differences.
+    elseif (k_chan == 4 || k_chan == 5) && k_data1 >= 36 && k_data1 <= 59 then
+      k_iprog = int((k_data1-36)/2) + 101
+    ; Regular register mapping for selected channel.
+    elseif k_chan == k_editor_chan then
+      k_iprog = int(k_data1/2) + 1
+    endif
+  elseif k_editor_chan == 4 then
+    ; Ch4 special Fjernverk switch arrives on MIDI channel 3: PC58/59.
+    if k_chan == 3 && (k_data1 == 58 || k_data1 == 59) then
+      k_iprog = 100
+    ; Regular Ch4 programs.
+    elseif k_chan == 4 then
+      k_iprog = int(k_data1/2) + 1
+    endif
+  endif
+
+  if k_iprog < 0 then
+    goto done
+  endif
+
+  k_allowed_tab = giAllowedPrograms_ch1
+  k_prog_count = 40
+  if k_editor_chan == 2 then
+    k_allowed_tab = giAllowedPrograms_ch2
+    k_prog_count = 45
+  elseif k_editor_chan == 3 then
+    k_allowed_tab = giAllowedPrograms_ch3
+    k_prog_count = 45
+  elseif k_editor_chan == 4 then
+    k_allowed_tab = giAllowedPrograms_ch4
+    k_prog_count = 45
+  elseif k_editor_chan == 8 then
+    k_allowed_tab = giAllowedPrograms_ch8
+    k_prog_count = 45
+  endif
+
+  k_idx = 0
+  k_found = 0
+  while k_idx < k_prog_count do
+    k_map_prog tablekt k_idx, k_allowed_tab
+    if int(k_map_prog+0.5) == int(k_iprog+0.5) then
+      if k_editor_chan == 1 then
+        S_prog_chan sprintfk "ch1progSel_%i", k_idx+1
+      else
+        S_prog_chan sprintfk "ch2progSel_%i", k_idx+1
+      endif
+      cabbageSetValue S_prog_chan, k_prog_onoff, 1
+      k_found = 1
+      kgoto map_done
+    endif
+    k_idx += 1
+  od
+
+  map_done:
+
+  done:
 endin
 
 instr 3
