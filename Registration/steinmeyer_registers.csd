@@ -91,6 +91,12 @@ instr 1
     ix += ixspace
   od
 
+  ; Send all currently active registers (placed to the right of Ch2 button 25).
+  isend_x = 472
+  isend_y = irow3y
+  SSendWidget sprintf "bounds(%d, %d, %d, %d), channel(\"sendAll\"), text(\"Send\"), colour:0(0,180,0), colour:1(220,0,0)", isend_x, isend_y, 46, iheight
+  cabbageCreate "button", SSendWidget
+
   ; Master swell
   ix = irowx2_right 
   SWidget sprintf "bounds(%d, %d, %d, %d), channel(\"check%d\"), colour:1(%d, %d, %d)", ix, iy, ixspace, iheight, ibutn, 200,200,0
@@ -186,6 +192,28 @@ instr 2
 
   kbutn = 0
   inumbuttons chnget "numbuttons"
+
+  ; Manual resend request: send ON program changes for all active register buttons.
+  ksend_all chnget "sendAll"
+  if changed(ksend_all) == 1 && ksend_all > 0.5 then
+    ksend_ndx = 0
+    while ksend_ndx < inumbuttons do
+      kactive chnget sprintfk("check%i", ksend_ndx)
+      if kactive > 0.5 then
+        kstatus = 192
+        kchan table ksend_ndx, iButnChan
+        if ksend_ndx > 145 then
+          kprognum = kRuckSwitchOffset[kchan-1]
+        else
+          kprognum = ((ksend_ndx-kRegOffset[kchan-1])*2)
+        endif
+        midiout kstatus, kchan, kprognum, 0
+      endif
+      ksend_ndx += 1
+    od
+    cabbageSetValue "sendAll", 0, 1
+  endif
+
   kButtons[] init inumbuttons
   while kbutn < inumbuttons do
     kval chnget sprintfk("check%i", kbutn)
