@@ -304,7 +304,7 @@ checkbox bounds(210, 155, 48, 18), channel("ch2progSel_45"), text("112"), colour
 }
 
 button bounds(705, 236, 80, 25), channel("triggerSave"), text("Save state")
-combobox bounds(790, 236, 160, 25), populate("*.pre", "."), channel("recallCombo"), channelType("string")
+combobox bounds(790, 236, 160, 25), populate("seq_*.pre", "."), channel("recallCombo"), channelType("string")
 checkbox bounds(955, 236, 90, 25), channel("allowOverwrite"), text("Overwrite"), value(0)
 label bounds(705, 266, 90, 15), text("preset name"), fontSize(10), align("left")
 texteditor bounds(795, 264, 155, 22), channel("presetName"), channelType("string"), text("preset_name")
@@ -1696,7 +1696,7 @@ instr 10
     if k_skip_next_recall > 0.5 then
       k_skip_next_recall = 0
     elseif k_file_len > 0 then
-      ; Build absolute load path in the .csd folder and enforce .pre extension.
+      ; Build absolute load path in the .csd folder.
       S_filename_full = sprintfk:S("%s\\%s.pre", S_path, S_filename)
       printf "RECALL raw='%s' load='%s' csdPath='%s'\n", k_trig, S_filename, S_filename_full, S_path
       ftloadk S_filename_full, 1, 1, giPrograms_ch1_1,giPrograms_ch1_2,giPrograms_ch1_3,giPrograms_ch1_4, giPrograms_ch1_5,giPrograms_ch1_6,giPrograms_ch1_7,giPrograms_ch1_8, giPrograms_ch2_1,giPrograms_ch2_2,giPrograms_ch2_3,giPrograms_ch2_4, giPrograms_ch2_5,giPrograms_ch2_6,giPrograms_ch2_7,giPrograms_ch2_8, giPrograms_ch3_1,giPrograms_ch3_2,giPrograms_ch3_3,giPrograms_ch3_4, giPrograms_ch3_5,giPrograms_ch3_6,giPrograms_ch3_7,giPrograms_ch3_8, giPrograms_ch4_1,giPrograms_ch4_2,giPrograms_ch4_3,giPrograms_ch4_4, giPrograms_ch4_5,giPrograms_ch4_6,giPrograms_ch4_7,giPrograms_ch4_8, giPrograms_ch5_1,giPrograms_ch5_2,giPrograms_ch5_3,giPrograms_ch5_4, giPrograms_ch5_5,giPrograms_ch5_6,giPrograms_ch5_7,giPrograms_ch5_8
@@ -1712,17 +1712,17 @@ instr 10
     if k_name_len < 1 then
       S_preset_name = "preset_name"
     endif
-    S_save_filename = sprintfk:S("%s\\%s.pre", S_path, S_preset_name)
+    S_save_filename = sprintfk:S("%s\\seq_%s.pre", S_path, S_preset_name)
     i_exists filevalid S_save_filename
     if i_exists > 0 && k_allow_overwrite < 0.5 then
-      S_warn sprintfk "text(\"Exists: %s.pre (check Overwrite or rename)\")", S_preset_name
+      S_warn sprintfk "text(\"Exists: seq_%s.pre (check Overwrite or rename)\")", S_preset_name
       cabbageSet 1, "saveStatus", S_warn
     else
       ; Global preset: all steps for all channels (future-proofed to 5 channels).
       ftsavek S_save_filename, 1, 1, giPrograms_ch1_1,giPrograms_ch1_2,giPrograms_ch1_3,giPrograms_ch1_4, giPrograms_ch1_5,giPrograms_ch1_6,giPrograms_ch1_7,giPrograms_ch1_8, giPrograms_ch2_1,giPrograms_ch2_2,giPrograms_ch2_3,giPrograms_ch2_4, giPrograms_ch2_5,giPrograms_ch2_6,giPrograms_ch2_7,giPrograms_ch2_8, giPrograms_ch3_1,giPrograms_ch3_2,giPrograms_ch3_3,giPrograms_ch3_4, giPrograms_ch3_5,giPrograms_ch3_6,giPrograms_ch3_7,giPrograms_ch3_8, giPrograms_ch4_1,giPrograms_ch4_2,giPrograms_ch4_3,giPrograms_ch4_4, giPrograms_ch4_5,giPrograms_ch4_6,giPrograms_ch4_7,giPrograms_ch4_8, giPrograms_ch5_1,giPrograms_ch5_2,giPrograms_ch5_3,giPrograms_ch5_4, giPrograms_ch5_5,giPrograms_ch5_6,giPrograms_ch5_7,giPrograms_ch5_8
       k_skip_next_recall = 1
       cabbageSet 1, "recallCombo", "refreshFiles(1)"
-      S_ok sprintfk "text(\"Saved: %s.pre\")", S_preset_name
+      S_ok sprintfk "text(\"Saved: seq_%s.pre\")", S_preset_name
       cabbageSet 1, "saveStatus", S_ok
     endif
     cabbageSetValue "triggerSave", 0, 1
