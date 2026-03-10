@@ -1,0 +1,65 @@
+desc:Program-Note Converter (Steinmeyer)
+
+slider1:1<0,1,1{Off,On}>Program -> Note
+slider2:1<0,1,1{Off,On}>Note -> Program
+
+@block
+while (
+  midirecv(offset, msg1, msg23) ? (
+    status = msg1 & $xF0;
+    chan0 = msg1 & $x0F;
+    chan1 = chan0 + 1;
+    data1 = msg23 & $x7F;
+    data2 = (msg23 / 256) & $x7F;
+
+    converted = 0;
+
+    // Program Change -> Note
+    slider1 >= 0.5 && status == $xC0 ? (
+      prog = data1;
+      note = floor(prog / 2);
+
+      note >= 0 && note <= 63 ? (
+        (prog % 2) == 0 ? (
+          out_status = $x90;
+          out_vel = 100;
+        ) : (
+          out_status = $x80;
+          out_vel = 0;
+        );
+
+        midisend(offset, out_status | chan0, note | (out_vel * 256));
+        converted = 1;
+      );
+    );
+
+    // Note -> Program
+    converted == 0 && slider2 >= 0.5 ? (
+      is_note_on = (status == $x90 && data2 > 0);
+      is_note_off = (status == $x80) || (status == $x90 && data2 == 0);
+
+      (is_note_on || is_note_off) ? (
+        note = data1;
+        allowed = 0;
+        chan1 == 1 ? (note <= 26 || note == 36 ? allowed = 1;);
+        chan1 == 2 ? (note <= 25 || note == 35 ? allowed = 1;);
+        chan1 == 3 ? (note <= 30 || note == 37 ? allowed = 1;);
+        chan1 == 4 ? (note <= 29 ? allowed = 1;);
+        chan1 == 8 ? (note <= 31 || note == 38 ? allowed = 1;);
+
+        allowed >= 0.5 ? (
+          is_note_on ? prog = note * 2 : prog = (note * 2) + 1;
+          midisend(offset, $xC0 | chan0, prog);
+          converted = 1;
+        );
+      );
+    );
+
+    // Pass through all events that were not converted.
+    converted == 0 ? (
+      midisend(offset, msg1, msg23);
+    );
+
+    1;
+  );
+);
