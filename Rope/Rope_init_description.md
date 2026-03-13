@@ -1,0 +1,19 @@
+# Rope tracking and sonification
+## Goal
+1: Tracking the shape of a rope, the waving motions in the rope that can be created by moving the rope from side to side. The tracking is done by realtime video analysis (OpenCV). Extract useful data about the rope movements, the shape, the number of oscillations/waves visible in the image in a given frame, the wave frequency (spatial frequency and time frequency), and other data that can be analyzed from the moving rope. The analysis should result in data that can be sent to an audio synthesizer via Open Sound Control. 
+2: A synthesizer program written in Csound that recieves the OSC data and makes sound from it. We want as many different approaches to making sound from the rope as possible. The main purpose for noe is not to make the audio itself, but to generate midi note data that can be sent to an external synthesizer. Some of the midi generation strategies might also use audio synthesis in Csound as a middle step before creating midi. We can see this in the use of the partikkel opcode that generates granular streams. The partikkel opcode also has trigger outputs via the partikkelsync opcode, so we can generate granular streams of midi data.
+
+## Initial scope
+Look at the python and csound setup, found in rope.py and rope_midi.csd. 
+1: Analyze what is already there, and make a short description of the functionality as it is now. Focus on the analyzed rope wave features that is analyzed and how these are mapped to sound/midi. 
+2: Make a short description of possible suggested optimizations to reduce CPU use, both in the Python and the Csound scripts. Look at possible optimizatiosn of the functions that are activated, and also see if there are unused functionality that is in the code but is not used for anything.
+3: See if the analysis display in the Python Open CV part, and see if it can be made more clear and easy to read. 
+4: Make short description of possible extensions and refinements that could be implemented. Are there other useful analysis of the wave motion that could be extracted? Are there possible interesting new mappings from the wave motion parameters to the sound/midi generation?
+5: The GUI in the Csound file is rather cluttered. See how we can clean this up to make it moe intuitively readable.
+6: Other cleanup
+      - if we have audio only modules, that do not produce midi, notify me so I can decide if we should delete them
+      - if we have gui controls that only affect audio synthesis, notify me so I can decide if we should delete them
+      - if we have duplicate conrols, e.g. midi transpose that does the same as frequency for the audio synthesis, notify me so I can decide if we should simplify
+7: We use the camera Blackmagic Micro Studio 4K G2, connected via an ATEM SDI Pro ISO. Parameters for tuning the camera can be set in the application ATEM Software Control. Can we set these parameters (gain, color temperature, shutter speed, focus, etc) directly from Python so we don't have to open the ATEM Software Control?
+8: Naming contraints and programming guide can be found in the file CSOUND_PROGRAMMING_NOTES.md at the parent folder from where our rope.py and rope_midi.csd reside. Use similar snake_case for the Python programming. We need the processing to happen in realtime, so any processor intensive analysis operatiosn might need to be constrained. Do not exclude any interesting options yes, based on performance expectations, but notify me which operatiosn could potentially be processing intensive. If needed, suggest possible multithread implementations that could lead to better realtime operation.
+9: Do not make any changes to the code in this initial pass. Just make a document rope_refinements.md where you describe your findings, itemized so I can easily give you feedbacvk on which items to implement.

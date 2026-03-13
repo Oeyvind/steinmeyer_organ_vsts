@@ -18,7 +18,7 @@ mask_lo_right = (0.95, 0.95)
 mask_lo_left  = (0.05, 0.95)
 displaysize = 1000
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(2)
 ret, current_frame = cap.read()
 previous_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY) 
 dimensions = current_frame.shape
