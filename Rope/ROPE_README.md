@@ -1,0 +1,124 @@
+# Rope + ATEM setup guide
+
+This project now uses one Python virtual environment for:
+- camera controls probe (`atem_camera_probe.py`)
+- auto-calibration (`atem_auto_calibrate.py`)
+- rope tracking (`rope.py`)
+
+## 1) Create the virtualenv (one-time)
+
+From PowerShell:
+
+```powershell
+& "C:\Users\obran\AppData\Local\Programs\Python\Python310\python.exe" -m venv "c:\Cabbage_VST\CabbageEfx\midiplugs\domen_ai\Rope\.venv"
+& "c:\Cabbage_VST\CabbageEfx\midiplugs\domen_ai\Rope\.venv\Scripts\python.exe" -m pip install -r "c:\Cabbage_VST\CabbageEfx\midiplugs\domen_ai\Rope\requirements-rope.txt"
+```
+
+## 2) Activate the virtualenv
+
+```powershell
+cd "c:\Cabbage_VST\CabbageEfx\midiplugs\domen_ai\Rope"
+.\.venv\Scripts\Activate.ps1
+```
+
+If activation is blocked by policy, run scripts with explicit venv python instead:
+
+```powershell
+$py = "c:\Cabbage_VST\CabbageEfx\midiplugs\domen_ai\Rope\.venv\Scripts\python.exe"
+& $py --version
+```
+
+## 3) Run camera probe
+
+```powershell
+python -B .\atem_camera_probe.py --ip 172.31.57.153 --camera 1 --write-test --target gain --step 200 --hold-seconds 3
+```
+
+(Without activation, replace `python` with `& $py`.)
+
+## 4) Run stand-alone auto-calibration
+
+Startup-style static baseline (rope not moving):
+
+```powershell
+python -B .\atem_auto_calibrate.py --ip 172.31.57.153 --camera 1 --video-device 1 --mode static
+```
+
+Motion refinement (while moving rope):
+
+```powershell
+python -B .\atem_auto_calibrate.py --ip 172.31.57.153 --camera 1 --video-device 1 --mode motion
+```
+
+## 5) Run rope tracking
+
+```powershell
+python -B .\rope.py
+```
+
+Skip startup calibration when you want instant launch:
+
+```powershell
+python -B .\rope.py --skip-init-calibration
+```
+
+### New calibration behavior in `rope.py`
+
+- On program start, `rope.py` runs ATEM calibration in `static` mode with **extended strategy** as default.
+- Extended strategy automatically falls back to simple gain/ISO calibration if extended color refinement fails.
+- Calibration now enforces shutter speed to `1/75` (when available) and triggers ATEM auto white balance before scoring.
+- While running, press `c` to run a `motion` recalibration pass (intended while you move the rope).
+- Press `q` to quit.
+
+### Calibration progress output
+
+Calibration now prints progress so it does not look frozen, for example:
+
+- `waiting for ATEM switcher reply on network`
+- `collecting initial ATEM camera packets`
+- `scanning N ISO candidates (estimated Xs)`
+- per-candidate score lines with range/sharpness/clipping values
+- extended phase scan progress and fallback notice (if needed)
+
+This makes the slow steps visible. The most time-consuming stages are:
+
+- network waits for camera control/state updates from ATEM
+- per-candidate settle + sample windows
+- extended color refinement candidate sweep
+
+To run faster, candidate sweeps are reduced:
+
+- ISO candidates are pruned to a smaller set around current ISO.
+- Extended color refinement tests fewer contrast/saturation combinations.
+
+## 6) Config values you may want to edit
+
+At the top of `rope.py`:
+- `video_device`
+- `atem_enable_calibration`
+- `atem_ip`
+- `atem_camera_input`
+- `atem_gain_values`
+- calibration timing values (`atem_collect_seconds`, `atem_settle_seconds`, `atem_sample_seconds_static`, `atem_sample_seconds_motion`)
+
+## 7) Quick troubleshooting
+
+- If ATEM does not connect, verify the IP and network route first.
+- If camera device fails to open, change `video_device` (`0`, `1`, `2`, ...).
+- If calibration output is noisy, increase `--sample-seconds` and keep framing constant.
+- If your scene lighting changes, rerun calibration (`c` in `rope.py` or standalone `atem_auto_calibrate.py`).
+
+## 8) How calibration quality is measured
+
+The scoring now includes the criteria you suggested:
+
+- **Dynamic range**: percentile spread of ROI pixels (approx darkest-to-brightest useful range)
+- **Sharpness**: Laplacian-variance-based focus/detail metric in the ROI
+- **Clipping penalty**: penalizes too many near-black or near-white pixels
+- **Brightness balance penalty**: penalizes mean brightness far from mid-range
+
+Additional anti-overexposure guard:
+
+- Final ISO selection prefers candidates under brightness/clipping safety thresholds, even if a brighter setting has similar score.
+
+For motion mode, these are combined with motion coverage/activity so tracking features remain visible while rope moves.

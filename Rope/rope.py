@@ -4,6 +4,14 @@ from scipy.ndimage import median_filter
 from scipy.signal import butter, sosfiltfilt, lfilter
 import osc_io
 import time
+import json
+import argparse
+
+try:
+    from atem_auto_calibrate import run_auto_calibration
+except Exception:
+    run_auto_calibration = None
+
 timethen = time.time()
 
 
@@ -12,13 +20,69 @@ binary_thresh = 15
 blur_size = 5
 fps = 20
 flip = False
+video_device = 1
 mask_up_left  = (0.05, 0.05)
 mask_up_right = (0.95, 0.05)
 mask_lo_right = (0.95, 0.95)
 mask_lo_left  = (0.05, 0.95)
 displaysize = 1000
 
-cap = cv2.VideoCapture(1)
+# optional ATEM calibration
+atem_enable_calibration = True
+atem_ip = '172.31.57.153'
+atem_camera_input = 1
+atem_gain_values = [100, 200, 300, 400, 500, 600]
+atem_collect_seconds = 2.0
+atem_settle_seconds = 0.8
+atem_sample_seconds_static = 1.2
+atem_sample_seconds_motion = 1.8
+
+
+parser = argparse.ArgumentParser(description='Rope tracker with optional ATEM calibration')
+parser.add_argument('--skip-init-calibration', action='store_true', help='Skip startup ATEM calibration')
+args = parser.parse_args()
+
+
+def run_atem_calibration(mode='static'):
+    if (not atem_enable_calibration) or (run_auto_calibration is None):
+        print(f'ATEM calibration skipped: enabled={atem_enable_calibration}, available={run_auto_calibration is not None}')
+        return
+
+    sample_seconds = atem_sample_seconds_static if mode == 'static' else atem_sample_seconds_motion
+    result, status = run_auto_calibration(
+        atem_ip=atem_ip,
+        camera=atem_camera_input,
+        video_device=video_device,
+        collect_seconds=atem_collect_seconds,
+        gain_values=atem_gain_values,
+        settle_seconds=atem_settle_seconds,
+        sample_seconds=sample_seconds,
+        mode=mode,
+        strategy='extended',
+        fallback_simple=True,
+        apply_best=True,
+        verbose=True,
+    )
+    if status != 0:
+        print(f'ATEM calibration ({mode}) failed:', json.dumps(result))
+        return
+
+    summary = {
+        'mode': mode,
+        'current_iso': result.get('current_iso'),
+        'best_iso': result.get('best_iso'),
+        'applied_iso': result.get('applied_iso'),
+    }
+    print('ATEM calibration complete:', json.dumps(summary))
+
+
+if atem_enable_calibration and (not args.skip_init_calibration):
+    print('Running startup ATEM calibration (static baseline)...')
+    run_atem_calibration(mode='static')
+elif args.skip_init_calibration:
+    print('Startup ATEM calibration skipped by command line argument.')
+
+cap = cv2.VideoCapture(video_device)
 ret, current_frame = cap.read()
 previous_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY) 
 dimensions = current_frame.shape
@@ -491,6 +555,15 @@ try:
 
         if key == ord('q'):
             break
+        if key == ord('c'):
+            print('Running ATEM motion calibration... keep rope moving.')
+            cap.release()
+            run_atem_calibration(mode='motion')
+            cap = cv2.VideoCapture(video_device)
+            ret, current_frame = cap.read()
+            if not ret:
+                break
+            previous_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
         if key == ord('p'):
             cv2.waitKey(-1) #wait until any key is pressed
 

@@ -1,0 +1,5 @@
+numpy
+opencv-python
+scipy
+python-osc
+pyusb
