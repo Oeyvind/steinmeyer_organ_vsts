@@ -93,7 +93,11 @@ The Csound side receives OSC into global arrays and channels, then uses several 
 
 ### Csound-side optimizations
 
-- The biggest Csound cost is likely the granular processing in instruments 12 and 13. `partikkel` plus recursive multi-voice opcodes will dominate CPU compared with simpler MIDI mappers.
+- The biggest Csound cost is likely the granular processing in instruments 12 and 13. `partikkel` plus recursive multi-voice opcodes (`DistanceGrains`, `Graincloud`, `OscBank`) will dominate CPU compared with simpler MIDI mappers.
+- In `rope_midi.csd`, those recursive opcode definitions/calls occur at:
+  - `DistanceGrains`: definition around line 641, self-recursive call around line 769, used by instr 12 around line 799.
+  - `Graincloud`: definition around line 804, self-recursive call around line 937, used by instr 13 around line 975.
+  - `OscBank`: definition around line 979, self-recursive call around line 1011, used by instr 16/17 around lines 1029 and 1096.
 - Instrument 1 parses many OSC messages every control cycle using repeated `OSClisten` loops. Reducing message count on the Python side would help Csound immediately.
 - There are several real-time console prints in active code paths. These should be disabled in performance mode:
   - `puts "OK OSC received"`
@@ -245,7 +249,7 @@ There are several channel reads for widgets that do not appear to exist in the c
 - `Peaks_on`
 - `Freq_wavd`
 - `detune_wavd`
-- `Amp_wavd`
+- `Amp_wavd`2
 - `Freq_fft`
 - `Amp_fft`
 - `chroma_fft`

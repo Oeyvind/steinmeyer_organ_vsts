@@ -170,7 +170,6 @@ pgmassign -1, -1
   gkZerocross[] init 32
   gkZerocross_distance[] init 32
   gkFftbins[] init 32
-  gkPeaks_x[] init 32
 
   gihandle OSCinit 9899 ; set the network port number where we will receive OSC data from Python
 
@@ -261,8 +260,6 @@ instr 1
   kstop_lsys_on chnget "Stop_LSYS"
   ButtonEvent kstop_lsys_on, 20
 
-  kpeaks_on chnget "Peaks_on"
-
   ; OSC receive
   kOSC_received = 0
   
@@ -301,138 +298,73 @@ instr 1
     chnset kavg_x_movement, "avg_x_movement"
     kgoto nextmsg_peakstats
   done_peakstats:
-  
-  kpeak_id init 0
-  kpeak_x init 0
-  kpeak_y init 0
-  kpeak_amp init 0
-  kpeak_movement init 0
-  kPeaks_active[] init 100
-  kpeak_trig trigger kpeaks_on, 0.5, 0
-  
-  gkPeaks_x *= 0
-  kpeaks_indx = 0
-  nextmsg_activepeaks:
-    kmess OSClisten gihandle, "active_peaks", "fffff", kpeak_id, kpeak_x, kpeak_y, kpeak_amp, kpeak_movement
-    kOSC_received += kmess
-    if kmess == 0 goto done_activepeaks
-      kpeaks_indx limit kpeaks_indx, 0, 31
-      gkPeaks_x[kpeaks_indx] = kpeak_x
-      kpeaks_indx += 1
-      ;kactive4 active 4
-      ;Sactive sprintfk "active_peaks %i instr instances%i", kpeak_id, kactive4
-      ;puts Sactive, kpeak_id+1
-      kamp = (chnget:k("Amp")-15);+abs(kpeak_y)*10
-      kcps = (((kpeak_x/1024)^2)*1600)+100
-      kpan = (limit(kpeak_y*8, -1, 1)*0.5)+0.5
-      kinstr = 4+(kpeak_id*0.001)
-      if kpeaks_on > 0 then
-        Samp sprintfk "amp_%f", kinstr
-        chnset kamp, Samp
-        Scps sprintfk "cps_%f", kinstr
-        chnset kcps, Scps
-        Span sprintfk "pan_%f", kinstr
-        chnset kpan, Span
-        ; start instr kun hvis den ikke allerede er i kPeaks_active
-        if kPeaks_active[kpeak_id] == 0 then
-          kcps_base = gkZerocross_distance[0]
-          event "i", kinstr, 0, -1, kcps_base
-        endif
-        kPeaks_active[kpeak_id] = 1 
-      endif
-      kgoto nextmsg_activepeaks
-  done_activepeaks:
 
-  nextmsg_deletepeaks:
-    kmess OSClisten gihandle, "deleted_peaks", "f", kpeak_id 
+  kleft_lobe_x init 0
+  kright_lobe_x init 0
+  kmax_lobe_x init 0
+  kshape_centroid_x init 0.5
+  nextmsg_shapestats:
+    kmess OSClisten gihandle, "shape_stats", "ffff", kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x
     kOSC_received += kmess
-    if kmess == 0 goto done_deletepeaks
-      ;Sdelete sprintfk "delete_peaks %i", kpeak_id
-      ;puts Sdelete, kpeak_id+1
-      k_active = kPeaks_active[kpeak_id]
-      if k_active > 0 then
-        kinstr = 4+(kpeak_id*0.001)
-        event "i", -kinstr, 0, .1 
-        kPeaks_active[kpeak_id] = 0
-      endif
-      kgoto nextmsg_deletepeaks
-  done_deletepeaks:
-  
-  ; housekeeping, all peaks off
-  kpeaks_off trigger kpeaks_on, 0.5, 1
-  if kpeaks_off > 0 then
-    kindex = 0
-    while kindex < lenarray(kPeaks_active) do
-      if kPeaks_active[kindex] == 1 then
-        kinstr = 4+(kindex*0.001)
-        event "i", -kinstr, 0, .1
-        kPeaks_active[kindex] = 0 
-      endif
-      kindex += 1
-    od
-  endif
+    if kmess == 0 goto done_shapestats
+    chnset kleft_lobe_x, "left_lobe_x"
+    chnset kright_lobe_x, "right_lobe_x"
+    chnset kmax_lobe_x, "max_lobe_x"
+    chnset kshape_centroid_x, "shape_centroid_x"
+    kgoto nextmsg_shapestats
+  done_shapestats:
  
   kxpos init 0
   kxpos_ndx init 0
+  gkXpos *= 0
   nextmsg_xpos:
     kmess OSClisten gihandle, "xpos", "ff", kxpos_ndx, kxpos
     kOSC_received += kmess
     if kmess == 0 goto done_xpos
-    if kxpos_ndx == 0 then
-      gkXpos *= 0 ; clear memory on new frame
-    endif
     gkXpos[kxpos_ndx] = kxpos
     kgoto nextmsg_xpos
   done_xpos:
 
   kxdistance init 0
   kxdistance_ndx init 0
+  gkXdistance *= 0
   nextmsg_xdistance:
     kmess OSClisten gihandle, "xdistance", "ff", kxdistance_ndx, kxdistance
     kOSC_received += kmess
     if kmess == 0 goto done_xdistance
-    if kxdistance_ndx == 0 then
-      gkXdistance *= 0 ; clear memory on new frame
-    endif
     gkXdistance[kxdistance_ndx] = kxdistance
     kgoto nextmsg_xdistance
   done_xdistance:
 
   kzerocross init 0
   kzerocross_ndx init 0
+  gkZerocross *= 0
   nextmsg_zerocross:
     kmess OSClisten gihandle, "zerocross", "ff", kzerocross_ndx, kzerocross
     kOSC_received += kmess
     if kmess == 0 goto done_zerocross
-    if kzerocross_ndx == 0 then
-      gkZerocross *= 0 ; clear memory on new frame
-    endif
     gkZerocross[kzerocross_ndx] = kzerocross
     kgoto nextmsg_zerocross
   done_zerocross:
 
   kzerocross_distance init 0
   kzerocross_distance_ndx init 0
+  gkZerocross_distance *= 0
   nextmsg_zerocross_distance:
     kmess OSClisten gihandle, "zerocross_distance", "ff", kzerocross_distance_ndx, kzerocross_distance
     kOSC_received += kmess
     if kmess == 0 goto done_zerocross_distance
-    if kzerocross_distance_ndx == 0 then
-      gkZerocross_distance *= 0 ; clear memory on new frame
-    endif
     gkZerocross_distance[kzerocross_distance_ndx] = kzerocross_distance
     kgoto nextmsg_zerocross_distance
   done_zerocross_distance:
 
   kfft_bin init 0
   kfft_bin_ndx init 0
+  gkFftbins *= 0
   nextmsg_fft:
     kmess OSClisten gihandle, "fft_bin", "ff", kfft_bin_ndx, kfft_bin
     kOSC_received += kmess
     if kmess == 0 goto done_fft
-    if kfft_bin_ndx == 0 then
-      gkFftbins *= 0 ; clear memory on new frame
-    endif
     gkFftbins[kfft_bin_ndx] = kfft_bin
     kgoto nextmsg_fft
   done_fft:
@@ -498,31 +430,6 @@ instr 3
   ;print table(512,giWaveFine)
   ;cabbageSet "wave_raw", "tableNumber", 1; update table display
   ;cabbageSet "wave_fine", "tableNumber", 2; update table display
-endin
-
-instr 4
-  ; peaks sine cluster
-  Samp sprintf "amp_%f", p1
-  kamp chnget Samp
-  Scps sprintf "cps_%f", p1
-  kcps chnget Scps
-  ;kcps tonek kcps, 10
-  Span sprintf "pan_%f", p1
-  kpan chnget Span
-  kpan tonek kpan, 10
-  
-  icps = (p4*300)+500
-  kcps1 = icps + (kcps*0.2)
-  ;puts Samp, 1
-  ;printk2 kamp, frac(p1)*2
-  ;printk2 kcps, frac(p1)*2
-  apan butterlp interp(kpan), 8
-  amp linsegr 0, 0.5, 1, 3, 0
-  ;amp transegr 0, 0.2, 2, 1, 1, 0, 1, 0.5, 2, 0
-  a1 poscil ampdbfs(kamp)*amp, kcps1, -1, -1
-  aL = a1*sqrt(1-apan)
-  aR = a1*sqrt(apan)
-  outs aL, aR
 endin
 
 instr 5
@@ -1116,31 +1023,27 @@ instr 18
 
   ksig = (kwa_diff < 0) && (kwave_activity < 0.1) && (kmax_activity > kactivity_thresh) ? 1 : 0
   ktrig trigger ksig, 0.5, 0
-  
-  kmax_x maxarray gkXpos
-  kmin_x MinArrayThresh gkXpos, 0
-  kmax_z maxarray gkZerocross
-  kmin_z MinArrayThresh gkZerocross, 0
-  kmaxpeak_x maxarray gkPeaks_x
-  kminpeak_x MinArrayThresh gkPeaks_x, 04
-  knumpeaks chnget "numpeaks"
-  kavg_xpos divz sumarray(gkXpos), knumpeaks, 0.2
+
+  kleft_lobe_x chnget "left_lobe_x"
+  kright_lobe_x chnget "right_lobe_x"
+  kmax_lobe_x chnget "max_lobe_x"
+  kshape_centroid_x chnget "shape_centroid_x"
 
   ; selec1 min or max
   kminmax chnget "stopchord_minmax"
   if kminmax > 0 then
-    kcps1 delayk kmax_x*0.8, 1
-    kcps2 delayk kmax_z*0.8, 1
-    kcps3 delayk kmaxpeak_x*0.8, 1
+    kcps1 delayk kright_lobe_x*0.8, 1
+    kcps2 delayk kshape_centroid_x*0.8, 1
+    kcps3 delayk kmax_lobe_x*0.8, 1
   else
-    kcps1 delayk kmin_x, 1
-    kcps2 delayk kmin_z, 1
-    kcps3 delayk kminpeak_x, 1
+    kcps1 delayk kleft_lobe_x, 1
+    kcps2 delayk kshape_centroid_x, 1
+    kcps3 delayk kmax_lobe_x, 1
   endif
   ; select scale or free
   kscalefree chnget "stopchord_scalefree"
   if ktrig > 0 then
-    event "i", 19, 0.2+kavg_xpos, 0.2+kmax_activity, kcps1, kcps2, kcps3, kscalefree
+    event "i", 19, 0.2+kshape_centroid_x, 0.2+kmax_activity, kcps1, kcps2, kcps3, kscalefree
     kmax_activity = 0
   endif 
 
@@ -1205,33 +1108,29 @@ instr 20
   ksymbol = knumpeaks%4
   chnset int(ksymbol), "root"
 
+  kleft_lobe_x chnget "left_lobe_x"
+  kright_lobe_x chnget "right_lobe_x"
+  kmax_lobe_x chnget "max_lobe_x"
+  kshape_centroid_x chnget "shape_centroid_x"
+
   kFaders[] tab2array giWaveRaw1
   kminfaders minarray kFaders
   kmaxfaders maxarray kFaders
-  kmax_x maxarray gkXpos
-  kmin_x minarray gkXpos
-  kmax_z maxarray gkZerocross
-  kmin_z minarray gkZerocross
-  kmaxpeak_x maxarray gkPeaks_x
-  kminpeak_x minarray gkPeaks_x
   kz0 = gkZerocross[0]
   kz0 delayk kz0, 1
-  kmax_x delayk kmax_x, 0.5
-  kmin_x delayk kmin_x, 0.5
-  kmax_z delayk kmax_z, 0.5
-  kmin_z delayk kmin_z, 0.5
-  kmaxpeak_x delayk kmaxpeak_x, 0.5
-  kminpeak_x delayk kminpeak_x, 0.5
+  kright_lobe_x delayk kright_lobe_x, 0.5
+  kshape_centroid_x delayk kshape_centroid_x, 0.5
+  kmax_lobe_x delayk kmax_lobe_x, 0.5
   kmaxfaders delayk kmaxfaders, 1
   ktempo1 = 90
   ktempo2 = 40
   if ktrig > 0 then
-    if kmax_x > 0.6 then
+    if kright_lobe_x > 0.6 then
       chnset ktempo1, "tempo"
     else
       chnset ktempo2, "tempo"
     endif
-    event "i", 102, 0, 1+(kmaxfaders*2), 48+int(kz0*24), 90
+    event "i", 102, 0, 1+(kmaxfaders*2), 48+int(((kshape_centroid_x+kz0)*0.5)*24), 90
     kmax_activity = 0
   endif 
 

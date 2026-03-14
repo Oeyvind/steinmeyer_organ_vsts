@@ -18,7 +18,7 @@ mask_lo_right = (0.95, 0.95)
 mask_lo_left  = (0.05, 0.95)
 displaysize = 1000
 
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(1)
 ret, current_frame = cap.read()
 previous_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY) 
 dimensions = current_frame.shape
@@ -58,21 +58,13 @@ mask_right = pts[1][0][0] # right top, as above
 print('mask LR', mask_left, mask_right)
 send_counter = 0
 max_numpeaks = 0
-
-empty_id = 9999
-max_n_peaks = 99
-peak_ids = np.zeros(max_n_peaks)
-peak_ids += empty_id
-peak_prev_ids = np.zeros(max_n_peaks)
-peak_prev_ids += empty_id
-current_peak_id = 0
-peak_max_change = dimensions[1]*0.3
 prev_wave_1D = np.zeros(dimensions[1])
 prev_binary_img = np.copy(previous_frame_gray)
 avg_x_distance = 0
 avg_x_movement = 0
-x_pos = [0]
-x_distances = [0]
+prev_shape_centroid_x = 0.5
+x_pos = np.zeros(0)
+x_distances = np.zeros(0)
 
 # BGR colors
 red = (0,0,255)
@@ -110,54 +102,6 @@ show_peaks = True
 show_stats = True
 show_faders = True
 show_fft = True
-
-def peak_id_following(peak_indices, peak_ids, peak_prev_ids, current_peak_id, peak_max_change, max_n_peaks, empty_id, mask_left, mask_right):
-    '''
-    For a collection of peak indices (x-positions),
-    give each peak an ID, and let that ID follow the peak when it moves (within a threshold).
-    New peaks get a new ID, and peaks that disappear are deleted.
-    Peaks outside the min max range are discarded.
-    Output a list of currently active (peak,ID), and a list of deleted peak IDs
-    '''    
-    remove_outside_range = []
-    for i in range(len(peak_indices)):
-        if peak_indices[i] > mask_right:
-            remove_outside_range.append(i)
-        if peak_indices[i] < mask_left:
-            remove_outside_range.append(i)
-    remove_outside_range.sort(reverse=True)
-    for i in remove_outside_range:
-        del peak_indices[i]
-
-    deleted_ids = []
-    new_ids = []
-    continued_ids = []
-    for p in peak_indices:
-        current_peak_id = current_peak_id % max_n_peaks
-        if np.min(peak_prev_ids) == empty_id: # if no previous ids, just write new ones
-            peak_ids[current_peak_id] = p
-            new_ids.append((current_peak_id,p))
-            current_peak_id += 1
-        else:
-            index = np.abs(peak_prev_ids - p).argmin() # find closest
-            if abs(peak_ids[index]-p) < peak_max_change:
-                peak_ids[index] = p # if within range, update the old one
-                continued_ids.append((int(index),p))
-            else:
-                peak_ids[current_peak_id] = p # otherwise, make a new id
-                new_ids.append((current_peak_id,p))
-                current_peak_id += 1
-    for i in range(len(peak_ids)):
-        peak_ndx = peak_ids[i]
-        if peak_ndx not in peak_indices: # when a peak disappears (or moves out of range), delete it
-            peak_ids[i] = empty_id
-            if peak_ndx < empty_id:
-                deleted_ids.append(i)
-    active_ids = new_ids
-    for item in continued_ids:
-        if item not in active_ids:
-            active_ids.append(item)
-    return current_peak_id, peak_ids, active_ids, deleted_ids
 
 def find_center_wave_regr(wave_1D, mask_left, mask_right):
     x = np.arange(0,len(wave_1D[mask_left:mask_right]),1)
@@ -231,7 +175,7 @@ def lowpass_1D(input_1D, output_img, show_lowpassfilter, lowpass_color):
             cv2.circle(output_img, (i,int(input_1D[i])), 4, lowpass_color, 1)
     return input_1D
 
-def find_peaks(input_1D, center_wave, left_limit, right_limit, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color):
+def find_peaks(input_1D, center_wave, left_limit, right_limit, output_img, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color):
     # check center value of wave_1D, let this be zero
     # for segment where wave_1d > 0, find index of max value
     # for segment where wave_1D < 0 find index of min value
@@ -242,9 +186,9 @@ def find_peaks(input_1D, center_wave, left_limit, right_limit, show_wavesign, wa
     for i in range(left_limit,right_limit):
         if show_wavesign:
             y = int((sign[i]*150)+center_wave[i])
-            cv2.circle(wave_img, (i,y), 2, wavesign_color, 1)# display sign
+            cv2.circle(output_img, (i,y), 2, wavesign_color, 1)# display sign
         if show_wavecenter:
-            cv2.circle(wave_img, (i,int(center_wave[i])), 1, wavecenter_color, 1)# display wave_center
+            cv2.circle(output_img, (i,int(center_wave[i])), 1, wavecenter_color, 1)# display wave_center
     sign_indices = []
     signum_old = 0
     for i in range(left_limit,right_limit):
@@ -264,28 +208,71 @@ def find_peaks(input_1D, center_wave, left_limit, right_limit, show_wavesign, wa
     for i in range(len(sign_indices)):
         if i < len(sign_indices)-1:
             if sign[sign_indices[i]] > 0:
-                peak = np.argmax(wave_1D[sign_indices[i]:sign_indices[i+1]-1]-center_wave[i])+sign_indices[i]
+                peak = np.argmax(input_1D[sign_indices[i]:sign_indices[i+1]-1]-center_wave[i])+sign_indices[i]
             else:
-                peak = np.argmin(wave_1D[sign_indices[i]:sign_indices[i+1]-1]-center_wave[i])+sign_indices[i]
+                peak = np.argmin(input_1D[sign_indices[i]:sign_indices[i+1]-1]-center_wave[i])+sign_indices[i]
         else:
             if sign[sign_indices[i]] > 0:
-                peak = np.argmax(wave_1D[sign_indices[i]:]-center_wave[i])+sign_indices[i]
+                peak = np.argmax(input_1D[sign_indices[i]:]-center_wave[i])+sign_indices[i]
             else:
-                peak = np.argmin(wave_1D[sign_indices[i]:]-center_wave[i])+sign_indices[i]
+                peak = np.argmin(input_1D[sign_indices[i]:]-center_wave[i])+sign_indices[i]
         peak_indices.append(int(peak))
     return peak_indices
 
-def display_peaks(active_ids, center_wave, input_1D, output_img, show_peaks, peakplus_color, peaknegative_color):
-    for p in active_ids:
-        peak_id, x = p
+def display_peaks(peak_indices, center_wave, input_1D, output_img, show_peaks, peakplus_color, peaknegative_color):
+    for x in peak_indices:
         y = int(input_1D[x])
         if show_peaks:
             if y > center_wave[x]:
                 cv2.circle(output_img, (x,y),10, peakplus_color, 4)
-                cv2.putText(output_img, f'{peak_id}', (x-20,y+45), cv2.FONT_HERSHEY_SIMPLEX, 1, peakplus_color, 2, cv2.LINE_AA)
             else:
                 cv2.circle(output_img, (x,y),10, peaknegative_color, 4)
-                cv2.putText(output_img, f'{peak_id}', (x-20,y-25), cv2.FONT_HERSHEY_SIMPLEX, 1, peaknegative_color, 2, cv2.LINE_AA) 
+ 
+def compute_peak_descriptors(peak_indices, wave_1D, center_wave, mask_left, mask_right, max_amp, prev_shape_centroid_x):
+    roi_width = max(mask_right-mask_left, 1)
+    peak_positions = [peak for peak in peak_indices if mask_left <= peak <= mask_right]
+    peak_positions = np.array(sorted(peak_positions), dtype=np.int32)
+    numpeaks = len(peak_positions)
+
+    if numpeaks > 1:
+        avg_x_distance = float((peak_positions[-1]-peak_positions[0]) / ((numpeaks-1) * roi_width))
+        x_distances = np.diff(peak_positions) / roi_width
+    else:
+        avg_x_distance = 0.0
+        x_distances = np.zeros(0)
+
+    if numpeaks > 0:
+        x_pos = (peak_positions-mask_left) / roi_width
+        peak_heights = np.abs((wave_1D[peak_positions]-center_wave[peak_positions]) / (max_amp*0.5))
+        left_lobe_x = float(x_pos[0])
+        right_lobe_x = float(x_pos[-1])
+        max_lobe_x = float(x_pos[np.argmax(peak_heights)])
+    else:
+        x_pos = np.zeros(0)
+        left_lobe_x = 0.0
+        right_lobe_x = 0.0
+        max_lobe_x = 0.0
+
+    shape_slice = np.abs(wave_1D[mask_left:mask_right] - center_wave[mask_left:mask_right])
+    if np.sum(shape_slice) > 0:
+        shape_x = np.arange(mask_right-mask_left) / roi_width
+        shape_centroid_x = float(np.sum(shape_x * shape_slice) / np.sum(shape_slice))
+    else:
+        shape_centroid_x = prev_shape_centroid_x
+
+    avg_x_movement = shape_centroid_x - prev_shape_centroid_x
+    descriptors = {
+        'numpeaks': numpeaks,
+        'avg_x_distance': avg_x_distance,
+        'avg_x_movement': float(avg_x_movement),
+        'x_pos': x_pos,
+        'x_distances': x_distances,
+        'left_lobe_x': left_lobe_x,
+        'right_lobe_x': right_lobe_x,
+        'max_lobe_x': max_lobe_x,
+        'shape_centroid_x': shape_centroid_x,
+    }
+    return descriptors
 
 def display_faders(faders, num_faders, fader_distance, fader_pad, mask_left, mask_center, max_amp, output_img, show_faders, fader_color):
     for i in range(num_faders):
@@ -349,12 +336,10 @@ try:
         center_wave = find_center_wave_regr(wave_1D, mask_left, mask_right)
         # find peaks and peak ids
         if noise_gate > 0:
-            peak_indices = find_peaks(wave_1D, center_wave, mask_left, mask_right, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color)
+            peak_indices = find_peaks(wave_1D, center_wave, mask_left, mask_right, wave_img, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color)
         else:
             peak_indices = []
-        current_peak_id, peak_ids, active_ids, deleted_ids = peak_id_following(peak_indices, peak_ids, peak_prev_ids, current_peak_id, peak_max_change, max_n_peaks, empty_id, mask_left, mask_right)
-        peak_prev_ids = np.copy(peak_ids)
-        display_peaks(active_ids, center_wave, wave_1D, wave_img, show_peaks, peakplus_color, peaknegative_color)
+        display_peaks(peak_indices, center_wave, wave_1D, wave_img, show_peaks, peakplus_color, peaknegative_color)
         time_peak_follow = time.time()
 
         # grid faders
@@ -366,50 +351,25 @@ try:
             faders[i] = wave_1D[i*fader_distance+fader_pad]#/max_amp
         display_faders(faders, num_faders, fader_distance, fader_pad, mask_left, mask_center, max_amp, wave_img, show_faders, fader_color)
         # peak parms and stats
-        active_ids_a = np.array(active_ids)
-        numpeaks = len(active_ids)
+        descriptors = compute_peak_descriptors(peak_indices, wave_1D, center_wave, mask_left, mask_right, max_amp, prev_shape_centroid_x)
+        prev_shape_centroid_x = descriptors['shape_centroid_x']
+        numpeaks = descriptors['numpeaks']
+        avg_x_distance = descriptors['avg_x_distance']
+        avg_x_movement = descriptors['avg_x_movement']
+        x_pos = descriptors['x_pos']
+        x_distances = descriptors['x_distances']
         if numpeaks > max_numpeaks:
             max_numpeaks = numpeaks
             print('new max numpeaks', max_numpeaks)
-        if numpeaks > 0 :
-            active_ids_sorted = active_ids_a[np.argsort(active_ids_a[:,1])] # sort by ascending x
-            if numpeaks > 1:
-                avg_x_distance = (active_ids_sorted[-1][1]-active_ids_sorted[0][1])/(numpeaks-1)
-            else: 
-                avg_x_distance = active_ids_sorted[0][1]
-            x_prev = 0
-            y_prev = 0 
-            avg_x_movement = 0
-            for p in active_ids_sorted:
-                peak_id, x = p
-                x_movement = x-x_prev
-                avg_x_movement += x_movement
-                x_prev = x
-                y = (wave_1D[x]-center_wave[x])/(max_amp*0.5)
-                peak_amp = abs(y-y_prev)
-                y_prev = y
-                # send peaks to Csound
-                x_movement /= (mask_right-mask_left)
-                osc_msg = float(peak_id), float(x), float(y), float(peak_amp), float(x_movement)
-                osc_io.sendOSC('active_peaks', osc_msg) # send OSC back to client
-            # send peaks summary to Csound
-            avg_x_movement /= numpeaks
-            # normalize
-            avg_x_movement /= (mask_right-mask_left)
-            avg_x_distance /= (mask_right-mask_left)
-            # send
-            osc_msg = numpeaks, avg_x_distance, float(avg_x_movement)
-            osc_io.sendOSC('peaks_stats', osc_msg) # send OSC back to client
-        for peak_id in deleted_ids:
-            osc_msg = float(peak_id)
-            osc_io.sendOSC('deleted_peaks', osc_msg) # send OSC back to client
+        osc_msg = numpeaks, avg_x_distance, float(avg_x_movement)
+        osc_io.sendOSC('peaks_stats', osc_msg) # send OSC back to client
+        osc_msg = descriptors['left_lobe_x'], descriptors['right_lobe_x'], descriptors['max_lobe_x'], descriptors['shape_centroid_x']
+        osc_io.sendOSC('shape_stats', osc_msg) # send OSC back to client
         # other stats
         if numpeaks > 0:
-            x_pos = active_ids_sorted[:,1]/(mask_right-mask_left)
             for i in range(np.min((len(x_pos),32))):
                 osc_msg = i, x_pos[i]
                 osc_io.sendOSC('xpos', osc_msg) # send OSC back to client
-            x_distances = np.diff(active_ids_sorted[:,1])/(mask_right-mask_left)
             for i in range(np.min((len(x_distances),32))):
                 osc_msg = i, x_distances[i]
                 osc_io.sendOSC('xdistance', osc_msg) # send OSC back to client
