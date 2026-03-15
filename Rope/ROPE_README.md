@@ -95,6 +95,12 @@ The tracker now includes additional robustness filters and layered stage renderi
 - `e` toggles screen-blend equalization on/off.
 - `k` toggles kinematic continuity constraints on/off (rejects implausible rope shape jumps before fill/interpolation).
 
+FFT analysis now uses selected spatial-cycle bins per image width:
+
+- `0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 20` cycles.
+- Existing OSC `fft_bin` output sends these 16 normalized values.
+- Additional OSC `fft_hf` sends the aggregated high-frequency content above `20` cycles (useful as tracking-noise indicator).
+
 Display layering is now ordered so earlier stages are drawn first and later stages are drawn on top.
 Binary is shown as a translucent cyan tint instead of opaque white, so it does not hide later traces.
 The final wave trace is drawn thicker than intermediate traces to improve visual distinction.

@@ -2,6 +2,7 @@ import cv2
 import numpy as np 
 from scipy.ndimage import median_filter
 from scipy.signal import butter, sosfiltfilt, lfilter
+from scipy.signal.windows import tukey as tukey_window
 import osc_io
 import time
 import json
@@ -37,6 +38,10 @@ max_temporal_deviation_px = 65
 kinematic_min_obs_pixels = 2
 kinematic_snap_to_obs_px = 22
 kinematic_edge_anchor_px = 24
+fft_display_cycles = np.array([0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 16.0, 20.0], dtype=np.float32)
+fft_highfreq_start_cycles = 20.0
+fft_display_height = 120
+fft_display_db_floor = -40.0  # dB floor for display; -40dB = amplitude 1/100 of full swing
 
 # optional ATEM calibration
 atem_enable_calibration = True
@@ -186,7 +191,7 @@ size = (displaysize,int(np.shape(current_frame)[0]*scale))
 # flip
 # lowpass filter preprocess
 nyquist = 0.5 * dimensions[0]
-normal_cutoff = 20 / nyquist
+normal_cutoff = 12 / nyquist  # 0.6x original cutoff: smoother spatial lowpass
 order = 1
 b, a = butter(order, normal_cutoff, btype='low', analog=False)
 
@@ -212,6 +217,8 @@ send_counter = 0
 max_numpeaks = 0
 prev_wave_1D = np.zeros(dimensions[1])
 prev_binary_img = np.copy(previous_frame_gray)
+spectral_centroid_cycles = 0.0
+spectral_centroid_norm = 0.0
 avg_x_distance = 0
 avg_x_movement = 0
 prev_shape_centroid_x = 0.5
@@ -649,7 +656,7 @@ try:
         wave_1D = np.zeros(dimensions[1])
         wave_1D = fill_in_missing_points(wavecenter_y_left, wavecenter_y_right, centroid_1D, wave_1D, wave_img, False, fill_blanks_color)
         # median filtering
-        filter_size1 = 29
+        filter_size1 = 43  # 1.5x original size for stronger smoothing
         wave_1D_filled = np.copy(wave_1D)
         wave_1D_filled = smooth_fill_to_mask_edges(
             wave_1D_filled,
@@ -662,7 +669,13 @@ try:
         # lowpass
         filter_size = 40
         wave_1D_lowpass = lfilter(b, a, wave_1D_median)
-        wave_1D_final = wave_1D_lowpass
+        # Use the most-processed active stage for analysis/FFT so filter toggles affect the FFT.
+        # Gap-fill is always the minimum (structural, not stylistic).
+        wave_1D_final = wave_1D_filled
+        if show_medianfilter:
+            wave_1D_final = wave_1D_median
+        if show_lowpassfilter:
+            wave_1D_final = wave_1D_lowpass
         prev_wave_1D = wave_1D
         # final 1D wave used for analysis
         wave_1D = wave_1D_final
@@ -718,11 +731,49 @@ try:
         for i in range(np.min((len(zc_diff),32))):
             osc_msg = i, zc_diff[i]
             osc_io.sendOSC('zerocross_distance', osc_msg) # send OSC back to client
-        fft = np.fft.rfft(wave_1D) 
-        fftr = np.nan_to_num(np.clip(np.abs((20*np.log(np.real(fft)))), 0, 280))
-        for i in range(16):
-            osc_msg = i, fftr[i]/280
+        fft_input = wave_1D - center_wave
+        # Tukey window (alpha=0.25): flat weight across central 75%, cosine taper only in outer 12.5%.
+        # Preserves edge-region rope waves unlike Blackman, while still suppressing leakage.
+        fft_window = tukey_window(len(fft_input), alpha=0.25)
+        # 16x zero-padding: finer sampling of the spectral envelope so peaks interpolate accurately
+        # to the nearest display-cycle bin. Does not change actual frequency resolution (set by rope width).
+        fft_n = len(fft_input) * 16
+        fft_complex = np.fft.rfft(fft_input * fft_window, n=fft_n)
+        fft_magnitude = np.abs(fft_complex)
+        cycles_per_bin = len(fft_input) / fft_n
+        fft_bin_indices = np.clip(np.round(fft_display_cycles / cycles_per_bin).astype(np.int32), 0, len(fft_magnitude) - 1)
+        fft_selected = fft_magnitude[fft_bin_indices]
+        hf_start_index = int(np.ceil(fft_highfreq_start_cycles / cycles_per_bin))
+        if hf_start_index < len(fft_magnitude):
+            fft_highfreq = np.mean(fft_magnitude[hf_start_index:])
+        else:
+            fft_highfreq = 0.0
+        # Fixed physical reference: FFT magnitude expected from a full-amplitude sine
+        # (amplitude = max_amp/2) with this window. Rope at rest -> bars near zero.
+        fft_ref = max(1e-9, (max_amp / 2.0) * np.sum(fft_window) / 2.0)
+        # Log (dB) scale for both display and OSC — Csound receives what you see.
+        fft_db = 20.0 * np.log10(np.maximum(fft_selected / fft_ref, 1e-9))
+        fft_display_values = np.clip((fft_db - fft_display_db_floor) / (-fft_display_db_floor), 0.0, 1.0)
+        hf_db = 20.0 * float(np.log10(max(fft_highfreq / fft_ref, 1e-9)))
+        fft_highfreq_norm = float(np.clip((hf_db - fft_display_db_floor) / (-fft_display_db_floor), 0.0, 1.0))
+        for i in range(len(fft_display_values)):
+            osc_msg = i, float(fft_display_values[i])
             osc_io.sendOSC('fft_bin', osc_msg) # send OSC back to client
+        osc_io.sendOSC('fft_hf', fft_highfreq_norm)
+        # Spectral centroid: amplitude-weighted mean cycle frequency using bins <= 10 cycles.
+        # Normalized 0-1 (0=DC, 1=10 cycles). Matches what is displayed in the stats panel.
+        lf_mask = fft_display_cycles <= 10.0
+        lf_cycles = fft_display_cycles[lf_mask]
+        lf_magnitudes = fft_selected[lf_mask]
+        lf_sum = float(np.sum(lf_magnitudes))
+        if lf_sum > 0.0:
+            spectral_centroid_cycles = float(np.sum(lf_cycles * lf_magnitudes) / lf_sum)
+        else:
+            spectral_centroid_cycles = 0.0
+        spectral_centroid_norm = float(np.clip(spectral_centroid_cycles / 10.0, 0.0, 1.0))
+        osc_io.sendOSC('spectral_centroid', spectral_centroid_norm)
+        # Dedicated shape centroid send (horizontal centre-of-mass of rope deviation, 0=left, 1=right).
+        osc_io.sendOSC('shape_centroid', float(descriptors['shape_centroid_x']))
         for i in range(len(faders)):
             val = (mask_center[i]-faders[i])/(max_amp*0.5)
             osc_msg = i, val, len(faders)
@@ -752,8 +803,26 @@ try:
         v_offset = 20
         legend_x = 15
         legend_y = 15
+        x_pos_disp = 'x_pos :' + ''.join([f'{x:.2f}, ' for x in x_pos])
+        x_dist_disp = 'x_dist :' + ''.join([f'{x:.2f}, ' for x in x_distances])
+        zc = ''.join([f'{z:.2f} ' for z in zero_crossings[0]])
+        zc_disp = 'zc_dist: ' + ''.join([f'{i:.2f}, ' for i in zc_diff])
+        stats_lines = [
+            f'numpeaks: {numpeaks}',
+            f'avg_x_dist: {avg_x_distance:.2f}, avg movement {avg_x_movement:.2f}',
+            x_pos_disp,
+            x_dist_disp,
+            f'zero_cross: {zc}',
+            zc_disp,
+            f'wave activity {wave_activity:.2f}',
+            f'shape centroid x: {prev_shape_centroid_x:.3f}  (0=left, 1=right)',
+            f'spectral centroid: {spectral_centroid_cycles:.2f} cyc  (norm {spectral_centroid_norm:.3f})',
+        ]
         if show_stats:
-            draw_transparent_rect(output, 8, 8, int(dimensions[1]*0.40), 280, alpha=0.45)
+            stats_step = v_offset * 2
+            stats_first_y = 25
+            stats_panel_height = int((stats_first_y - 8) + ((len(stats_lines) - 1) * stats_step) + 18)
+            draw_transparent_rect(output, 8, 8, int(dimensions[1]*0.40), stats_panel_height, alpha=0.45)
         option_rows = [
             ('b', 'binary', show_binary, binary_option_color),
             ('f', 'filled', show_fill_blanks, filled_option_color),
@@ -781,39 +850,36 @@ try:
                 cv2.putText(output, f'[{key_symbol}] {label}', (legend_x+12,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 1, cv2.LINE_AA)
                 legend_y += v_offset
         if show_fft:
-            for i in range(int(len(fftr)/8)):
-                if i < 11: fft_color = orange
-                elif i < 30: fft_color = green
-                else: fft_color = blue
-                cv2.circle(output, ((i*16), dimensions[0]-int(fftr[i])), 4, fft_color, 4)
+            fft_base_y = dimensions[0] - 30
+            fft_start_x = 14
+            fft_step_x = 44
+            fft_hf_x = fft_start_x + len(fft_display_values) * fft_step_x + 16
+            fft_panel_y = dimensions[0] - fft_display_height - 56
+            fft_panel_width = (fft_hf_x - 8) + 36
+            draw_transparent_rect(output, 8, fft_panel_y, fft_panel_width, fft_display_height + 52, alpha=0.35)
+            fft_label_indices = {0, 1, 5, 7, 10, 13, 15}  # 0.5, 1, 3, 5, 8, 12, 20
+            for i, fft_val in enumerate(fft_display_values):
+                cycle = fft_display_cycles[i]
+                if cycle <= 3.0:
+                    fft_color = orange
+                elif cycle <= 10.0:
+                    fft_color = green
+                else:
+                    fft_color = blue
+                bar_height = max(1, int(fft_val * fft_display_height))
+                x = fft_start_x + i * fft_step_x
+                cv2.line(output, (x, fft_base_y), (x, fft_base_y - bar_height), fft_color, 3)
+                if i in fft_label_indices:
+                    cv2.putText(output, f'{cycle:g}', (x - 10, fft_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, fft_color, 1, cv2.LINE_AA)
+            hf_height = max(1, int(fft_highfreq_norm * fft_display_height))
+            cv2.line(output, (fft_hf_x, fft_base_y), (fft_hf_x, fft_base_y - hf_height), red, 3)
+            cv2.putText(output, 'HF', (fft_hf_x - 14, fft_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, red, 1, cv2.LINE_AA)
         if show_stats:
             stats_x = 20
             stats_y = 25
-            cv2.putText(output, f'numpeaks: {numpeaks}', (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
-            stats_y += v_offset*2
-            cv2.putText(output, f'avg_x_dist: {avg_x_distance:.2f}, avg movement {avg_x_movement:.2f}', (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
-            stats_y += v_offset*2
-            x_pos_disp = 'x_pos :'
-            for x in x_pos:
-                x_pos_disp = x_pos_disp + f'{x:.2f}' + ', '
-            cv2.putText(output, x_pos_disp, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
-            stats_y += v_offset*2
-            x_dist_disp = 'x_dist :'
-            for x in x_distances:
-                x_dist_disp = x_dist_disp + f'{x:.2f}' + ', '
-            cv2.putText(output, x_dist_disp, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
-            stats_y += v_offset*2
-            zc = ''
-            for z in zero_crossings[0]:
-                zc = zc + f'{z:.2f} ' 
-            cv2.putText(output, f'zero_cross: {zc}', (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
-            stats_y += v_offset*2
-            zc_disp = 'zc_dist: '
-            for i in zc_diff:
-                zc_disp = zc_disp + f'{i:.2f}' + ', '
-            cv2.putText(output, zc_disp, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
-            stats_y += v_offset*2
-            cv2.putText(output, f'wave activity {wave_activity:.2f}', (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
+            for line in stats_lines:
+                cv2.putText(output, line, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
+                stats_y += v_offset*2
         time_labels = time.time()
         output = cv2.resize(output, size)
         cv2.imshow("Rope", output)

@@ -334,16 +334,22 @@ If you want the next pass to improve the system without expanding scope too much
 - If the stopchord and stop-LSYS mappings should retain their present dependence on leftmost/rightmost or extreme peak positions, then some position-distribution feature still needs to be preserved. That does not necessarily require stable peak IDs, but it does require some representation of where the strongest rope lobes are located in the current frame.
 - Zero-crossing extraction is not explicitly limited to the masked left-right region before normalization.
 - The lowpass legend can currently be shown even though the lowpass processing line is commented out.
+- Filtering and rope-tracking constraints are now significantly better, but still likely refinable; in particular, edge behavior, kinematic-vs-observation weighting, and residual dark-region artifacts should be treated as active tuning areas.
 - Several active Csound code paths assume channels exist that are not present in the GUI. Even if those instruments are not enabled now, this is a maintenance risk.
 
 ## 10. Next planned refinement steps
 
-1. Record a short test video (max 1 minute), and add a command-line argument to run `rope.py` with the recorded test video instead of live capture. This is useful for development when away from camera hardware.
-2. Implement the suggested FFT change noted around line 316 in this refinements file.
-3. Improve display readability by drawing a black semi-transparent overlay beneath on-screen parameter text.
-4. Add a display-frame-rate reduction option: render only every n-th frame while still running analysis and OSC output on every frame. Use keyboard keys `1`, `2`, `3`, `4` to set display rate, and show current display reduction in the upper-right corner.
-5. Identify additional filters/options that can be enabled/disabled in realtime via keyboard keys.
-6. Attempt a temporal lowpass for video processing so pixels that stop changing gradually fade (reference: water-wave tracking project example).
-7. Improve rope-tracking clarity and robustness; ask for additional targeted suggestions.
-  - try to guess the missing points?
-8. After these are completed, continue with refining Csound-side GUI and MIDI processing.
+1. ✅ Record a short test video (max 1 minute), and add a command-line argument to run `rope.py` with the recorded test video instead of live capture. This is useful for development when away from camera hardware.
+2. ✅ Implement the suggested FFT change noted around line 316 in this refinements file.
+3. ✅ Improve display readability by drawing a black semi-transparent overlay beneath on-screen parameter text.
+4. ✅ Add a display-frame-rate reduction option: render only every n-th frame while still running analysis and OSC output on every frame. Use keyboard keys `1`, `2`, `3`, `4` to set display rate, and show current display reduction in the upper-right corner.
+5. ✅ Identify additional filters/options that can be enabled/disabled in realtime via keyboard keys.
+6. ✅ Attempt a temporal lowpass for video processing so pixels that stop changing gradually fade (reference: water-wave tracking project example).
+7. ✅ Improve rope-tracking clarity and robustness; ask for additional targeted suggestions.
+  - ✅ try to guess the missing points?
+8. ⏳ After these are completed, continue with refining Csound-side GUI and MIDI processing. (remaining)
+
+## 11. End-of-day follow-up note
+
+- Consider making the median filter significantly larger (beyond the current increase) to evaluate whether it improves stability without over-smoothing rope detail.
+- Investigate spectral centroid calibration/interpretation: it appears higher than expected when the rope forms an approximate half-wave across the visible image.
