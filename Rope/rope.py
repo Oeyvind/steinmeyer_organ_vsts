@@ -6,6 +6,7 @@ import osc_io
 import time
 import json
 import argparse
+from pathlib import Path
 
 try:
     from atem_auto_calibrate import run_auto_calibration
@@ -13,6 +14,8 @@ except Exception:
     run_auto_calibration = None
 
 timethen = time.time()
+SCRIPT_DIR = Path(__file__).resolve().parent
+test_video_path = SCRIPT_DIR / 'test_video.avi'
 
 
 # config parms
@@ -26,6 +29,7 @@ mask_up_right = (0.95, 0.05)
 mask_lo_right = (0.95, 0.95)
 mask_lo_left  = (0.05, 0.95)
 displaysize = 1000
+record_max_seconds = 60.0
 
 # optional ATEM calibration
 atem_enable_calibration = True
@@ -40,7 +44,63 @@ atem_sample_seconds_motion = 1.8
 
 parser = argparse.ArgumentParser(description='Rope tracker with optional ATEM calibration')
 parser.add_argument('--skip-init-calibration', action='store_true', help='Skip startup ATEM calibration')
+parser.add_argument('--use-recorded-video', action='store_true', help='Use test_video.avi instead of live camera input and loop playback')
 args = parser.parse_args()
+
+
+def ensure_bgr_frame(frame):
+    if frame is None:
+        return None
+    if len(frame.shape) == 2:
+        return cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+    return frame
+
+
+def prepare_frame(frame):
+    frame = ensure_bgr_frame(frame)
+    if flip:
+        return cv2.flip(frame, -1)
+    return frame
+
+
+def read_source_frame(capture, loop_video=False):
+    ret, frame = capture.read()
+    if ret:
+        return True, ensure_bgr_frame(frame)
+    if loop_video:
+        capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        ret, frame = capture.read()
+        if ret:
+            print('Looping recorded test video.')
+            return True, ensure_bgr_frame(frame)
+    return False, None
+
+
+def create_video_writer(frame_width, frame_height):
+    fourcc_options = ('MJPG', 'XVID')
+    for fourcc_name in fourcc_options:
+        fourcc = cv2.VideoWriter_fourcc(*fourcc_name)
+        writer = cv2.VideoWriter(str(test_video_path), fourcc, fps, (frame_width, frame_height), isColor=False)
+        if writer.isOpened():
+            print(f'Recording to {test_video_path.name} using codec {fourcc_name}.')
+            return writer
+        writer.release()
+    return None
+
+
+def start_recording(raw_frame):
+    writer = create_video_writer(raw_frame.shape[1], raw_frame.shape[0])
+    if writer is None:
+        print('Could not open video writer for recording.')
+        return None, None
+    return writer, time.time()
+
+
+def stop_recording(record_writer, reason='stopped'):
+    if record_writer is not None:
+        record_writer.release()
+        print(f'Recording {reason}. Saved to {test_video_path.name}.')
+    return None, None
 
 
 def run_atem_calibration(mode='static'):
@@ -76,15 +136,24 @@ def run_atem_calibration(mode='static'):
     print('ATEM calibration complete:', json.dumps(summary))
 
 
-if atem_enable_calibration and (not args.skip_init_calibration):
+if args.use_recorded_video and (not test_video_path.exists()):
+    raise SystemExit(f'Recorded video not found: {test_video_path}')
+
+if args.use_recorded_video and (not args.skip_init_calibration):
+    print('Startup ATEM calibration skipped in recorded-video mode.')
+elif atem_enable_calibration and (not args.skip_init_calibration):
     print('Running startup ATEM calibration (static baseline)...')
     run_atem_calibration(mode='static')
 elif args.skip_init_calibration:
     print('Startup ATEM calibration skipped by command line argument.')
 
-cap = cv2.VideoCapture(video_device)
-ret, current_frame = cap.read()
-previous_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY) 
+capture_source = str(test_video_path) if args.use_recorded_video else video_device
+cap = cv2.VideoCapture(capture_source)
+ret, raw_current_frame = read_source_frame(cap, loop_video=args.use_recorded_video)
+if not ret:
+    raise SystemExit(f'Could not open video source: {capture_source}')
+current_frame = prepare_frame(raw_current_frame)
+previous_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
 dimensions = current_frame.shape
 print(dimensions)
 
@@ -93,9 +162,6 @@ scale = displaysize/np.shape(current_frame)[1] # data array shape is y,x
 size = (displaysize,int(np.shape(current_frame)[0]*scale))
 
 # flip
-if flip:
-    current_frame = cv2.flip(current_frame,-1)
-
 # lowpass filter preprocess
 nyquist = 0.5 * dimensions[0]
 normal_cutoff = 20 / nyquist
@@ -129,6 +195,9 @@ avg_x_movement = 0
 prev_shape_centroid_x = 0.5
 x_pos = np.zeros(0)
 x_distances = np.zeros(0)
+record_writer = None
+record_started_time = None
+record_overwrite_armed = False
 
 # BGR colors
 red = (0,0,255)
@@ -353,6 +422,11 @@ try:
     while True:
         frame_num += 1
         time_start = time.time()
+        if record_writer is not None:
+            record_frame = cv2.cvtColor(raw_current_frame, cv2.COLOR_BGR2GRAY)
+            record_writer.write(record_frame)
+            if (record_started_time is not None) and ((time.time() - record_started_time) >= record_max_seconds):
+                record_writer, record_started_time = stop_recording(record_writer, reason='auto-stopped after 60 seconds')
         current_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
         # diff and mask
         frame_diff = cv2.subtract(current_frame_gray,previous_frame_gray)
@@ -526,11 +600,10 @@ try:
         cv2.imshow("Rope", output)
         time_output = time.time()
         previous_frame_gray = current_frame_gray.copy()
-        ret, current_frame = cap.read() 
-        if flip:
-            current_frame = cv2.flip(current_frame,-1)
+        ret, raw_current_frame = read_source_frame(cap, loop_video=args.use_recorded_video)
         if not ret:
             break
+        current_frame = prepare_frame(raw_current_frame)
 
         # timing, frame rate
         time_now = time.time()
@@ -555,14 +628,39 @@ try:
 
         if key == ord('q'):
             break
+        if key == ord('r'):
+            if args.use_recorded_video:
+                print('Recording is disabled in recorded-video playback mode.')
+            elif record_writer is not None:
+                print('Recording already in progress. Press t to stop.')
+            elif test_video_path.exists() and (not record_overwrite_armed):
+                record_overwrite_armed = True
+                print(f'{test_video_path.name} already exists. Press r again to overwrite and start recording.')
+            else:
+                if record_overwrite_armed and test_video_path.exists():
+                    test_video_path.unlink()
+                    print(f'Overwriting existing {test_video_path.name}.')
+                record_writer, record_started_time = start_recording(raw_current_frame)
+                record_overwrite_armed = False
+        if key == ord('t'):
+            if record_writer is None:
+                print('No active recording to stop.')
+            else:
+                record_writer, record_started_time = stop_recording(record_writer)
         if key == ord('c'):
+            if args.use_recorded_video:
+                print('Skipping ATEM motion calibration in recorded-video mode.')
+                continue
             print('Running ATEM motion calibration... keep rope moving.')
+            if record_writer is not None:
+                record_writer, record_started_time = stop_recording(record_writer, reason='stopped before calibration')
             cap.release()
             run_atem_calibration(mode='motion')
             cap = cv2.VideoCapture(video_device)
-            ret, current_frame = cap.read()
+            ret, raw_current_frame = read_source_frame(cap, loop_video=False)
             if not ret:
                 break
+            current_frame = prepare_frame(raw_current_frame)
             previous_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
         if key == ord('p'):
             cv2.waitKey(-1) #wait until any key is pressed
@@ -570,4 +668,8 @@ try:
 except KeyboardInterrupt:
     #cap.release()
     cv2.destroyAllWindows()
+finally:
+    if record_writer is not None:
+        record_writer.release()
+    cap.release()
 print('Done.')

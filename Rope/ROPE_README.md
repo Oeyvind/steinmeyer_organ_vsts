@@ -56,6 +56,14 @@ python -B .\atem_auto_calibrate.py --ip 172.31.57.153 --camera 1 --video-device 
 python -B .\rope.py
 ```
 
+Run from the recorded test video instead of live camera input:
+
+```powershell
+python -B .\rope.py --use-recorded-video
+```
+
+In recorded-video mode, playback loops automatically.
+
 Skip startup calibration when you want instant launch:
 
 ```powershell
@@ -69,6 +77,15 @@ python -B .\rope.py --skip-init-calibration
 - Calibration now enforces shutter speed to `1/75` (when available) and triggers ATEM auto white balance before scoring.
 - While running, press `c` to run a `motion` recalibration pass (intended while you move the rope).
 - Press `q` to quit.
+
+### Test video recording controls
+
+- Press `r` to start recording raw camera input to `test_video.avi`.
+- Press `t` to stop recording.
+- Recording auto-stops after 60 seconds.
+- Recording is written before rope processing.
+- The saved file is grayscale to reduce disk usage.
+- If `test_video.avi` already exists, the first `r` press only arms overwrite; press `r` again to actually overwrite and start recording.
 
 ### Calibration progress output
 
