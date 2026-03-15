@@ -30,6 +30,13 @@ mask_lo_right = (0.95, 0.95)
 mask_lo_left  = (0.05, 0.95)
 displaysize = 1000
 record_max_seconds = 60.0
+bg_alpha = 0.05  # background model time constant: lower = slower adaptation
+dark_floor = 30   # pixels with bg average below this are treated as persistent dark regions and excluded
+max_spatial_jump_px = 18
+max_temporal_deviation_px = 65
+kinematic_min_obs_pixels = 2
+kinematic_snap_to_obs_px = 22
+kinematic_edge_anchor_px = 24
 
 # optional ATEM calibration
 atem_enable_calibration = True
@@ -103,6 +110,20 @@ def stop_recording(record_writer, reason='stopped'):
     return None, None
 
 
+def screen_blend_self(img):
+    """Screen-blend an image with itself to normalize brightness across regions."""
+    f = img.astype(np.float32) / 255.0
+    return ((1.0 - (1.0 - f) * (1.0 - f)) * 255.0).astype(np.uint8)
+
+
+def lowpass_over_time(current_gray, alpha, prev_float):
+    """Exponential moving-average background model.
+    Returns (background_uint8, updated_float_accumulator)."""
+    cur_f = current_gray.astype(np.float32)
+    new_f = alpha * cur_f + (1.0 - alpha) * prev_float
+    return new_f.astype(np.uint8), new_f
+
+
 def run_atem_calibration(mode='static'):
     if (not atem_enable_calibration) or (run_auto_calibration is None):
         print(f'ATEM calibration skipped: enabled={atem_enable_calibration}, available={run_auto_calibration is not None}')
@@ -154,6 +175,7 @@ if not ret:
     raise SystemExit(f'Could not open video source: {capture_source}')
 current_frame = prepare_frame(raw_current_frame)
 previous_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
+prev_frame_float = previous_frame_gray.astype(np.float32)
 dimensions = current_frame.shape
 print(dimensions)
 
@@ -226,15 +248,39 @@ fft_color = orange
 
 show_binary = True
 show_centroid = False
-show_fill_blanks = False#False
-show_lowpassfilter = True
+show_fill_blanks = True
+show_medianfilter = False
+show_lowpassfilter = False
 show_wavecenter = True
+show_finalwave = True
 show_wavesign = False
 show_mask = True
 show_peaks = True
 show_stats = True
 show_faders = True
 show_fft = True
+show_option_panel = True
+paused = False
+use_bg_model = True       # combine background-model diff with per-frame diff
+use_screen_blend = True   # screen-blend equalization before threshold
+use_kinematic_constraint = True
+rope_is_darker = True     # True: rope darker than background, False: rope lighter than background
+
+toggle_gray = (128,128,128)
+median_color = light_blue
+finalwave_color = pink
+
+binary_option_color = (255,255,255)
+filled_option_color = (0,255,255)
+median_option_color = (255,255,0)
+lowpass_option_color = (0,180,255)
+final_option_color = (255,0,255)
+center_option_color = (0,255,0)
+option_stats_color = (180,255,120)
+bg_model_option_color = (255,180,60)   # warm amber
+screen_blend_option_color = (180,120,255)  # soft purple
+kinematic_option_color = (120,220,255)
+polarity_option_color = (255,120,120)
 
 def find_center_wave_regr(wave_1D, mask_left, mask_right):
     x = np.arange(0,len(wave_1D[mask_left:mask_right]),1)
@@ -249,20 +295,77 @@ def find_center_wave_regr(wave_1D, mask_left, mask_right):
 def centroid_1D_from_img(input_img, output_img, show_centroid, centroid_color):
     # centroid
     centroid_1D = np.zeros(dimensions[1])
+    obs_count_1D = np.zeros(dimensions[1])
     for i in range(dimensions[1]):
         y_coords = np.nonzero(input_img[:,i])
-        if len(y_coords[0]) > 0:
+        count = len(y_coords[0])
+        if count > 0:
             y_centroid = np.mean(y_coords)
             y_centroid = int(np.round(y_centroid))
             centroid_1D[i] = y_centroid
+            obs_count_1D[i] = count
             if show_centroid:
                 cv2.circle(output_img, (i,y_centroid),5, centroid_color, 1)# display centroid
-    return centroid_1D
+    return centroid_1D, obs_count_1D
 
-def fill_in_missing_points(y_init, input_1D, output_1D, output_img, show_fill_blanks, fill_blanks_color):
+
+def constrain_centroid_by_rope_kinematics(centroid_1D, obs_count_1D, prev_wave_1D, left_limit, right_limit):
+    constrained = np.zeros_like(centroid_1D)
+    if right_limit <= left_limit:
+        return constrained
+
+    has_prev_wave = np.any(prev_wave_1D[left_limit:right_limit] > 0)
+
+    def pass_once(start_x, end_x, step):
+        out = np.zeros_like(centroid_1D)
+        last_good_x = None
+        last_good_y = 0.0
+        for x in range(start_x, end_x, step):
+            y = centroid_1D[x]
+            if y <= 0:
+                continue
+            if has_prev_wave and abs(y - prev_wave_1D[x]) > max_temporal_deviation_px:
+                continue
+            if last_good_x is not None:
+                dx = abs(x - last_good_x)
+                allowed_jump = max_spatial_jump_px + dx
+                if abs(y - last_good_y) > allowed_jump:
+                    continue
+            out[x] = y
+            last_good_x = x
+            last_good_y = y
+        return out
+
+    forward = pass_once(left_limit, right_limit, 1)
+    backward = pass_once(right_limit - 1, left_limit - 1, -1)
+    both_mask = (forward > 0) & (backward > 0)
+    constrained[both_mask] = 0.5 * (forward[both_mask] + backward[both_mask])
+    constrained[(forward > 0) & (backward == 0)] = forward[(forward > 0) & (backward == 0)]
+    constrained[(backward > 0) & (forward == 0)] = backward[(backward > 0) & (forward == 0)]
+
+    # Re-attach strong binary observations if kinematic pass drifts too far,
+    # with extra trust near left/right edges where extrapolation errors are most visible.
+    right_edge_start = right_limit - kinematic_edge_anchor_px
+    for x in range(left_limit, right_limit):
+        y_obs = centroid_1D[x]
+        if y_obs <= 0:
+            continue
+        obs_is_strong = obs_count_1D[x] >= kinematic_min_obs_pixels
+        in_edge_zone = (x - left_limit) < kinematic_edge_anchor_px or x >= right_edge_start
+        if in_edge_zone:
+            constrained[x] = y_obs
+            continue
+        if not obs_is_strong:
+            continue
+        y_cons = constrained[x]
+        if y_cons <= 0 or abs(y_cons - y_obs) > kinematic_snap_to_obs_px:
+            constrained[x] = y_obs
+    return constrained
+
+def fill_in_missing_points(y_init_left, y_init_right, input_1D, output_1D, output_img, show_fill_blanks, fill_blanks_color):
     # fill in missing points
     x_prev = 0
-    y_prev = y_init
+    y_prev = y_init_left
     savepoint = 0
     firstpoint = [] # for filling filter padding to the left
     create_line = 0
@@ -271,7 +374,7 @@ def fill_in_missing_points(y_init, input_1D, output_1D, output_img, show_fill_bl
         y_value = input_1D[i]
         if first_point == 0:
             if input_1D[i] == 0:
-                y_value = y_init
+                y_value = y_init_left
             else:
                 first_point = 1
         if y_value == 0:
@@ -294,8 +397,9 @@ def fill_in_missing_points(y_init, input_1D, output_1D, output_img, show_fill_bl
             savepoint = 0
     # fill any blank spaces at the end of the array with zeros
     line_len = dimensions[1]-x_prev
-    line = np.linspace(y_init, y_init, line_len)
+    line = np.linspace(y_init_right, y_init_right, line_len)
     output_1D[x_prev:dimensions[1]] = np.reshape(line, shape=(line_len,))
+    output_1D[dimensions[1]:] = y_init_right
     if show_fill_blanks:
         for i in range(mask_left,mask_right):
             cv2.circle(output_img, (i,int(output_1D[i])), 3, fill_blanks_color, 1)
@@ -307,6 +411,28 @@ def lowpass_1D(input_1D, output_img, show_lowpassfilter, lowpass_color):
         for i in range(mask_left,mask_right):
             cv2.circle(output_img, (i,int(input_1D[i])), 4, lowpass_color, 1)
     return input_1D
+
+
+def draw_transparent_rect(image, x, y, width, height, alpha=0.45):
+    x = max(0, int(x))
+    y = max(0, int(y))
+    width = max(1, int(width))
+    height = max(1, int(height))
+    x2 = min(image.shape[1], x + width)
+    y2 = min(image.shape[0], y + height)
+    if x2 <= x or y2 <= y:
+        return
+    overlay = image.copy()
+    cv2.rectangle(overlay, (x, y), (x2, y2), (0, 0, 0), -1)
+    cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
+
+
+def draw_wave_line(output_img, line_1d, color, thickness=2):
+    if line_1d is None or len(line_1d) < 2:
+        return
+    points = np.column_stack((np.arange(len(line_1d)), np.clip(line_1d, 0, dimensions[0]-1).astype(np.int32)))
+    points = points.reshape((-1, 1, 2))
+    cv2.polylines(output_img, [points], False, color, thickness)
 
 def find_peaks(input_1D, center_wave, left_limit, right_limit, output_img, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color):
     # check center value of wave_1D, let this be zero
@@ -416,6 +542,42 @@ def display_faders(faders, num_faders, fader_distance, fader_pad, mask_left, mas
             cv2.circle(output_img, (x,y), 15, fader_color, 8)
             cv2.putText(output_img, f'{y_val:.2f}', (x-20,y+45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, fader_color, 2, cv2.LINE_AA)
 
+
+def smooth_fill_to_mask_edges(wave_line, centroid_line, left_bound, right_bound, max_y):
+    filled = np.copy(wave_line)
+    if right_bound <= left_bound:
+        return filled
+
+    valid = np.where(centroid_line[left_bound:right_bound] > 0)[0] + left_bound
+    if len(valid) < 2:
+        return filled
+
+    left_first = int(valid[0])
+    right_last = int(valid[-1])
+    fit_count = int(min(12, len(valid)))
+
+    if left_first > left_bound:
+        left_fit_x = valid[:fit_count]
+        left_fit_y = filled[left_fit_x]
+        if len(left_fit_x) >= 2:
+            left_m, left_c = np.polyfit(left_fit_x, left_fit_y, 1)
+            x_ext = np.arange(left_bound, left_first)
+            y_ext = (left_m * x_ext) + left_c
+            filled[left_bound:left_first] = np.clip(y_ext, 0, max_y)
+
+    if right_last < (right_bound - 1):
+        right_fit_x = valid[-fit_count:]
+        right_fit_y = filled[right_fit_x]
+        if len(right_fit_x) >= 2:
+            right_m, right_c = np.polyfit(right_fit_x, right_fit_y, 1)
+            x_ext = np.arange(right_last + 1, right_bound)
+            y_ext = (right_m * x_ext) + right_c
+            filled[right_last + 1:right_bound] = np.clip(y_ext, 0, max_y)
+
+    filled[:left_bound] = filled[left_bound]
+    filled[right_bound:] = filled[right_bound - 1]
+    return filled
+
 try:
     print('Starting video. Press q to exit.')
     frame_num = 0
@@ -429,7 +591,31 @@ try:
                 record_writer, record_started_time = stop_recording(record_writer, reason='auto-stopped after 60 seconds')
         current_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
         # diff and mask
-        frame_diff = cv2.subtract(current_frame_gray,previous_frame_gray)
+        # Per-frame diff polarity: choose based on whether rope is darker or lighter than background.
+        if rope_is_darker:
+            frame_diff_prev = cv2.subtract(previous_frame_gray, current_frame_gray)
+        else:
+            frame_diff_prev = cv2.subtract(current_frame_gray, previous_frame_gray)
+        # Background model: freeze accumulator while paused so toggles compare the same source frame/state.
+        if paused:
+            bg_frame_uint8 = np.clip(prev_frame_float, 0, 255).astype(np.uint8)
+        else:
+            bg_frame_uint8, prev_frame_float = lowpass_over_time(current_frame_gray, bg_alpha, prev_frame_float)
+        if use_bg_model:
+            # Background diff catches rope positions regardless of motion speed.
+            if rope_is_darker:
+                frame_diff_bg = cv2.subtract(bg_frame_uint8, current_frame_gray)
+            else:
+                frame_diff_bg = cv2.subtract(current_frame_gray, bg_frame_uint8)
+            frame_diff = cv2.max(frame_diff_prev, frame_diff_bg)
+            # Suppress pixels whose long-term average is persistently dark:
+            # those are static dark objects, not rope, and their noise must not fire.
+            _, bg_bright_mask = cv2.threshold(bg_frame_uint8, dark_floor, 255, cv2.THRESH_BINARY)
+            frame_diff = cv2.bitwise_and(frame_diff, frame_diff, mask=bg_bright_mask)
+        else:
+            frame_diff = frame_diff_prev
+        if use_screen_blend:
+            frame_diff = screen_blend_self(frame_diff)
         frame_diff_masked = cv2.bitwise_and(frame_diff, frame_diff, mask=mask)
         frame_diff_masked = cv2.blur(frame_diff_masked, (blur_size,blur_size))
         # threshold the image to make hard black/white
@@ -448,25 +634,38 @@ try:
         wave_img = np.zeros((dimensions[0], dimensions[1],3), np.uint8)
         time_wave_img_init = time.time()
         # find centroid, disambiguation of rope trace
-        centroid_1D = centroid_1D_from_img(binary_img, wave_img, show_centroid, centroid_color)
+        centroid_1D_raw, centroid_obs_count = centroid_1D_from_img(binary_img, wave_img, show_centroid, centroid_color)
+        if use_kinematic_constraint:
+            centroid_1D = constrain_centroid_by_rope_kinematics(centroid_1D_raw, centroid_obs_count, prev_wave_1D, mask_left, mask_right)
+        else:
+            centroid_1D = centroid_1D_raw
         # fill in any blanks in the wave
-        filter_padding = 50
+        filter_padding = 0
         #if noise_gate == 0:
         #    wave_1D = prev_wave_1D
         #else:
         #    prev_binary_img = binary_img
         #    wave_1D = np.zeros(dimensions[1]+filter_padding*2)
-        wave_1D = np.zeros(dimensions[1]+filter_padding*2)
-        wave_1D = fill_in_missing_points(wavecenter_y_left, centroid_1D, wave_1D, wave_img, show_fill_blanks, fill_blanks_color)
+        wave_1D = np.zeros(dimensions[1])
+        wave_1D = fill_in_missing_points(wavecenter_y_left, wavecenter_y_right, centroid_1D, wave_1D, wave_img, False, fill_blanks_color)
         # median filtering
         filter_size1 = 29
-        #wave_1D = median_filter(wave_1D, size=filter_size1)
+        wave_1D_filled = np.copy(wave_1D)
+        wave_1D_filled = smooth_fill_to_mask_edges(
+            wave_1D_filled,
+            centroid_1D,
+            mask_left,
+            mask_right,
+            dimensions[0] - 1,
+        )
+        wave_1D_median = median_filter(wave_1D_filled, size=filter_size1)
         # lowpass
         filter_size = 40
-        #wave_1D = lowpass_1D(wave_1D, wave_img, show_lowpassfilter, lowpass_color)
+        wave_1D_lowpass = lfilter(b, a, wave_1D_median)
+        wave_1D_final = wave_1D_lowpass
         prev_wave_1D = wave_1D
-        # crop filter padding
-        wave_1D = wave_1D[filter_padding:-filter_padding]
+        # final 1D wave used for analysis
+        wave_1D = wave_1D_final
         time_filter = time.time()
         # amount of activity
         wave_activity = np.sum(binary_img)/(dimensions[0]*dimensions[1]*5)
@@ -532,34 +731,55 @@ try:
         osc_io.sendOSC('activity', osc_msg) # send OSC back to client
         time_stats = time.time()
 
-        # Display result
-        output = cv2.add(current_frame, wave_img)    
+        # Display result (draw in processing order so later stages remain visible on top)
+        output = cv2.add(current_frame, wave_img)
+        if show_binary:
+            binary_tint = np.zeros_like(output)
+            binary_tint[:, :, 0] = binary_img
+            binary_tint[:, :, 1] = binary_img
+            output = cv2.addWeighted(output, 1.0, binary_tint, 0.28, 0)
         if show_mask:
             polyg_show = cv2.polylines(output,pts=[pts],isClosed=True, color=(255,0,0),thickness=2)
+        if show_fill_blanks:
+            draw_wave_line(output, wave_1D_filled, fill_blanks_color, 4)
+        if show_medianfilter:
+            draw_wave_line(output, wave_1D_median, median_color, 3)
+        if show_lowpassfilter:
+            draw_wave_line(output, wave_1D_lowpass, lowpass_color, 2)
+        if show_finalwave:
+            draw_wave_line(output, wave_1D_final, finalwave_color, 2)
         # add labels
         v_offset = 20
         legend_x = 15
         legend_y = 15
-        if show_centroid:
-            cv2.circle(output, (legend_x,legend_y), 4, centroid_color, 4)
-            cv2.putText(output, 'centroid', (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, centroid_color, 1, cv2.LINE_AA)
-            legend_y += v_offset
-        if show_fill_blanks:
-            cv2.circle(output, (legend_x,legend_y), 4, fill_blanks_color, 4)
-            cv2.putText(output, 'fill', (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, fill_blanks_color, 1, cv2.LINE_AA)
-            legend_y += v_offset
-        if show_lowpassfilter:
-            cv2.circle(output, (legend_x,legend_y), 4, lowpass_color, 4)
-            cv2.putText(output, 'lowpass', (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, lowpass_color, 1, cv2.LINE_AA)
-            legend_y += v_offset
-        if show_wavecenter:
-            cv2.circle(output, (legend_x,legend_y), 4, wavecenter_color, 4)
-            cv2.putText(output, 'centerline', (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, wavecenter_color, 1, cv2.LINE_AA)
-            legend_y += v_offset
-        if show_wavesign:
-            cv2.circle(output, (legend_x,legend_y), 4, wavesign_color, 4)
-            cv2.putText(output, 'wavesign', (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, wavesign_color, 1, cv2.LINE_AA)
-            legend_y += v_offset
+        if show_stats:
+            draw_transparent_rect(output, 8, 8, int(dimensions[1]*0.40), 280, alpha=0.45)
+        option_rows = [
+            ('b', 'binary', show_binary, binary_option_color),
+            ('f', 'filled', show_fill_blanks, filled_option_color),
+            ('m', 'median', show_medianfilter, median_option_color),
+            ('l', 'lowpass', show_lowpassfilter, lowpass_option_color),
+            ('w', 'final', show_finalwave, final_option_color),
+            ('o', 'center', show_wavecenter, center_option_color),
+            ('g', 'bg model', use_bg_model, bg_model_option_color),
+            ('e', 'equalize', use_screen_blend, screen_blend_option_color),
+            ('k', 'kinematic', use_kinematic_constraint, kinematic_option_color),
+            ('d', f'polarity {"dark" if rope_is_darker else "light"}', True, polarity_option_color),
+            ('z', 'options', show_option_panel, option_stats_color),
+        ]
+        option_box_width = 320
+        option_box_height = 12 + len(option_rows)*v_offset
+        option_box_x = dimensions[1] - option_box_width - 10
+        option_box_y = 8
+        if show_option_panel:
+            draw_transparent_rect(output, option_box_x, option_box_y, option_box_width, option_box_height, alpha=0.45)
+            legend_x = option_box_x + 10
+            legend_y = option_box_y + 15
+            for key_symbol, label, enabled, stage_color in option_rows:
+                color = stage_color if enabled else toggle_gray
+                cv2.circle(output, (legend_x, legend_y), 4, color, 4)
+                cv2.putText(output, f'[{key_symbol}] {label}', (legend_x+12,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 1, cv2.LINE_AA)
+                legend_y += v_offset
         if show_fft:
             for i in range(int(len(fftr)/8)):
                 if i < 11: fft_color = orange
@@ -567,43 +787,37 @@ try:
                 else: fft_color = blue
                 cv2.circle(output, ((i*16), dimensions[0]-int(fftr[i])), 4, fft_color, 4)
         if show_stats:
-            cv2.putText(output, f'numpeaks: {numpeaks}', (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 1, stats_color, 1, cv2.LINE_AA)
-            legend_y += v_offset*2
-            cv2.putText(output, f'avg_x_dist: {avg_x_distance:.2f}, avg movement {avg_x_movement:.2f}', (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 1, stats_color, 1, cv2.LINE_AA)
-            legend_y += v_offset*2
+            stats_x = 20
+            stats_y = 25
+            cv2.putText(output, f'numpeaks: {numpeaks}', (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
+            stats_y += v_offset*2
+            cv2.putText(output, f'avg_x_dist: {avg_x_distance:.2f}, avg movement {avg_x_movement:.2f}', (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
+            stats_y += v_offset*2
             x_pos_disp = 'x_pos :'
             for x in x_pos:
                 x_pos_disp = x_pos_disp + f'{x:.2f}' + ', '
-            cv2.putText(output, x_pos_disp, (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 1, stats_color, 1, cv2.LINE_AA)
-            legend_y += v_offset*2
+            cv2.putText(output, x_pos_disp, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
+            stats_y += v_offset*2
             x_dist_disp = 'x_dist :'
             for x in x_distances:
                 x_dist_disp = x_dist_disp + f'{x:.2f}' + ', '
-            cv2.putText(output, x_dist_disp, (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 1, stats_color, 1, cv2.LINE_AA)
-            legend_y += v_offset*2
+            cv2.putText(output, x_dist_disp, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
+            stats_y += v_offset*2
             zc = ''
             for z in zero_crossings[0]:
                 zc = zc + f'{z:.2f} ' 
-            cv2.putText(output, f'zero_cross: {zc}', (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 1, stats_color, 1, cv2.LINE_AA)
-            legend_y += v_offset*2
+            cv2.putText(output, f'zero_cross: {zc}', (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
+            stats_y += v_offset*2
             zc_disp = 'zc_dist: '
             for i in zc_diff:
                 zc_disp = zc_disp + f'{i:.2f}' + ', '
-            cv2.putText(output, zc_disp, (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 1, stats_color, 1, cv2.LINE_AA)
-            legend_y += v_offset*2
-            cv2.putText(output, f'wave activity {wave_activity:.2f}', (legend_x+15,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 1, stats_color, 1, cv2.LINE_AA)
-        if show_binary:
-            binary_img_bgr = cv2.cvtColor(binary_img, cv2.COLOR_GRAY2BGR)
-            output = cv2.add(output, binary_img_bgr)    
+            cv2.putText(output, zc_disp, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
+            stats_y += v_offset*2
+            cv2.putText(output, f'wave activity {wave_activity:.2f}', (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
         time_labels = time.time()
         output = cv2.resize(output, size)
         cv2.imshow("Rope", output)
         time_output = time.time()
-        previous_frame_gray = current_frame_gray.copy()
-        ret, raw_current_frame = read_source_frame(cap, loop_video=args.use_recorded_video)
-        if not ret:
-            break
-        current_frame = prepare_frame(raw_current_frame)
 
         # timing, frame rate
         time_now = time.time()
@@ -624,10 +838,38 @@ try:
         if wait_time < 1: 
             print(f'wait time underflow {wait_time}')
             wait_time = 1
-        key = cv2.waitKey(wait_time)
+        key = cv2.waitKey(0 if paused else wait_time)
+        step_one_frame = False
 
         if key == ord('q'):
             break
+        if key == ord('p'):
+            paused = not paused
+            print(f"Paused: {paused}. Press 's' to step one frame while paused.")
+        if key == ord('b'):
+            show_binary = not show_binary
+        if key == ord('f'):
+            show_fill_blanks = not show_fill_blanks
+        if key == ord('m'):
+            show_medianfilter = not show_medianfilter
+        if key == ord('l'):
+            show_lowpassfilter = not show_lowpassfilter
+        if key == ord('w'):
+            show_finalwave = not show_finalwave
+        if key == ord('o'):
+            show_wavecenter = not show_wavecenter
+        if key == ord('g'):
+            use_bg_model = not use_bg_model
+        if key == ord('e'):
+            use_screen_blend = not use_screen_blend
+        if key == ord('k'):
+            use_kinematic_constraint = not use_kinematic_constraint
+        if key == ord('d'):
+            rope_is_darker = not rope_is_darker
+        if key == ord('z'):
+            show_option_panel = not show_option_panel
+        if key == ord('s') and paused:
+            step_one_frame = True
         if key == ord('r'):
             if args.use_recorded_video:
                 print('Recording is disabled in recorded-video playback mode.')
@@ -662,8 +904,16 @@ try:
                 break
             current_frame = prepare_frame(raw_current_frame)
             previous_frame_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
-        if key == ord('p'):
-            cv2.waitKey(-1) #wait until any key is pressed
+            prev_frame_float = previous_frame_gray.astype(np.float32)
+
+        if paused and (not step_one_frame):
+            continue
+
+        previous_frame_gray = current_frame_gray.copy()
+        ret, raw_current_frame = read_source_frame(cap, loop_video=args.use_recorded_video)
+        if not ret:
+            break
+        current_frame = prepare_frame(raw_current_frame)
 
 except KeyboardInterrupt:
     #cap.release()

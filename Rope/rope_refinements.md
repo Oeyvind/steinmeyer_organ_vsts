@@ -345,4 +345,5 @@ If you want the next pass to improve the system without expanding scope too much
 5. Identify additional filters/options that can be enabled/disabled in realtime via keyboard keys.
 6. Attempt a temporal lowpass for video processing so pixels that stop changing gradually fade (reference: water-wave tracking project example).
 7. Improve rope-tracking clarity and robustness; ask for additional targeted suggestions.
+  - try to guess the missing points?
 8. After these are completed, continue with refining Csound-side GUI and MIDI processing.

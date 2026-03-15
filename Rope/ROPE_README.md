@@ -87,6 +87,25 @@ python -B .\rope.py --skip-init-calibration
 - The saved file is grayscale to reduce disk usage.
 - If `test_video.avi` already exists, the first `r` press only arms overwrite; press `r` again to actually overwrite and start recording.
 
+### Tracking filter controls and stage readability
+
+The tracker now includes additional robustness filters and layered stage rendering:
+
+- `g` toggles background-model differencing (`lowpass_over_time`) on/off.
+- `e` toggles screen-blend equalization on/off.
+- `k` toggles kinematic continuity constraints on/off (rejects implausible rope shape jumps before fill/interpolation).
+
+Display layering is now ordered so earlier stages are drawn first and later stages are drawn on top.
+Binary is shown as a translucent cyan tint instead of opaque white, so it does not hide later traces.
+The final wave trace is drawn thicker than intermediate traces to improve visual distinction.
+
+Pause behavior (`p`) with filter toggles:
+
+- While paused, no new frames are captured.
+- Per-frame processing can still be re-evaluated for the frozen frame when toggling options.
+- The temporal background accumulator used by `lowpass_over_time` is frozen while paused, so background state does not drift during pause.
+- `s` still steps exactly one frame when paused.
+
 ### Calibration progress output
 
 Calibration now prints progress so it does not look frozen, for example:
