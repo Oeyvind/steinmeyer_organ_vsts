@@ -366,6 +366,7 @@ If you want the next pass to improve the system without expanding scope too much
 - better wave activity
   - now it shows relatively high activity even for small movements
   - and not very high for vigorous shaking
+- 
 - amp dependent on frequency
   - one cycle can span the whole vertical area
   - 6 cycles can not
@@ -388,6 +389,7 @@ If you want the next pass to improve the system without expanding scope too much
   - alternative where we have a fader per peak
   - if same note activated: sustain
   - if new note: stop old, start new
+- fft to midi, bit like fader bank but for fft bins
 - simple shape centroid to midi note
 - simple freq centroid to midi note
 - simple most prominent frequency to midi note
