@@ -1,7 +1,7 @@
 import cv2
 import numpy as np 
 from scipy.ndimage import median_filter
-from scipy.signal import butter, sosfiltfilt, lfilter
+from scipy.signal import butter, sosfiltfilt, lfilter, find_peaks as scipy_find_peaks
 from scipy.signal.windows import tukey as tukey_window
 import osc_io
 import time
@@ -38,6 +38,9 @@ max_temporal_deviation_px = 65
 kinematic_min_obs_pixels = 2
 kinematic_snap_to_obs_px = 22
 kinematic_edge_anchor_px = 24
+peak_min_amplitude_frac = 0.015
+peak_min_prominence_frac = 0.035
+peak_min_distance_frac = 0.07
 fft_display_cycles = np.array([0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 16.0, 20.0], dtype=np.float32)
 fft_highfreq_start_cycles = 20.0
 fft_display_height = 120
@@ -256,8 +259,8 @@ fft_color = orange
 show_binary = True
 show_centroid = False
 show_fill_blanks = True
-show_medianfilter = False
-show_lowpassfilter = False
+show_medianfilter = True
+show_lowpassfilter = True
 show_wavecenter = True
 show_finalwave = True
 show_wavesign = False
@@ -269,7 +272,7 @@ show_fft = True
 show_option_panel = True
 paused = False
 use_bg_model = True       # combine background-model diff with per-frame diff
-use_screen_blend = True   # screen-blend equalization before threshold
+use_screen_blend = False   # screen-blend equalization before threshold
 use_kinematic_constraint = True
 rope_is_darker = True     # True: rope darker than background, False: rope lighter than background
 
@@ -441,49 +444,82 @@ def draw_wave_line(output_img, line_1d, color, thickness=2):
     points = points.reshape((-1, 1, 2))
     cv2.polylines(output_img, [points], False, color, thickness)
 
-def find_peaks(input_1D, center_wave, left_limit, right_limit, output_img, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color):
-    # check center value of wave_1D, let this be zero
-    # for segment where wave_1d > 0, find index of max value
-    # for segment where wave_1D < 0 find index of min value
-    threshold = max_amp*0.02
-    arr = input_1D-center_wave
-    arr[np.abs(arr) < threshold] = 0
-    sign = np.sign(arr)
-    for i in range(left_limit,right_limit):
+def extract_wave_features(input_1D, center_wave, left_limit, right_limit, output_img, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color):
+    roi_width = max(right_limit-left_limit, 1)
+    residual = input_1D - center_wave
+    amplitude_threshold = max_amp * peak_min_amplitude_frac
+    prominence_threshold = max_amp * peak_min_prominence_frac
+    min_peak_distance = max(4, int(round(roi_width * peak_min_distance_frac)))
+
+    residual_roi = residual[left_limit:right_limit]
+    pos_peaks, _ = scipy_find_peaks(
+        residual_roi,
+        height=amplitude_threshold,
+        prominence=prominence_threshold,
+        distance=min_peak_distance,
+    )
+    neg_peaks, _ = scipy_find_peaks(
+        -residual_roi,
+        height=amplitude_threshold,
+        prominence=prominence_threshold,
+        distance=min_peak_distance,
+    )
+    peak_indices = np.array(sorted(np.concatenate((pos_peaks, neg_peaks)).astype(np.int32))) + left_limit
+
+    sign = np.zeros_like(residual)
+    sign[residual > amplitude_threshold] = 1
+    sign[residual < -amplitude_threshold] = -1
+    for i in range(left_limit, right_limit):
         if show_wavesign:
-            y = int((sign[i]*150)+center_wave[i])
-            cv2.circle(output_img, (i,y), 2, wavesign_color, 1)# display sign
+            y = int((sign[i] * 150) + center_wave[i])
+            cv2.circle(output_img, (i, y), 2, wavesign_color, 1)
         if show_wavecenter:
-            cv2.circle(output_img, (i,int(center_wave[i])), 1, wavecenter_color, 1)# display wave_center
-    sign_indices = []
-    signum_old = 0
-    for i in range(left_limit,right_limit):
-        signum = sign[i]
-        if (signum != signum_old) and (signum != 0):
-            sign_indices.append(i)
-        signum_old = signum
-    peak_indices = []
-    remove_one_apart = []
-    sign_old = 0
-    for s in sign_indices:
-        if s == sign_old+1:
-            remove_one_apart.append(s)
-        sign_old = s
-    for s in remove_one_apart:
-        sign_indices.remove(s)
-    for i in range(len(sign_indices)):
-        if i < len(sign_indices)-1:
-            if sign[sign_indices[i]] > 0:
-                peak = np.argmax(input_1D[sign_indices[i]:sign_indices[i+1]-1]-center_wave[i])+sign_indices[i]
-            else:
-                peak = np.argmin(input_1D[sign_indices[i]:sign_indices[i+1]-1]-center_wave[i])+sign_indices[i]
-        else:
-            if sign[sign_indices[i]] > 0:
-                peak = np.argmax(input_1D[sign_indices[i]:]-center_wave[i])+sign_indices[i]
-            else:
-                peak = np.argmin(input_1D[sign_indices[i]:]-center_wave[i])+sign_indices[i]
-        peak_indices.append(int(peak))
-    return peak_indices
+            cv2.circle(output_img, (i, int(center_wave[i])), 1, wavecenter_color, 1)
+
+    def interpolate_zero_crossing(x_start, x_end, search_from_right=False):
+        if x_end <= x_start:
+            return None
+        segment = residual[x_start:x_end + 1]
+        if len(segment) < 2:
+            return None
+        segment_sign = np.sign(segment)
+        crossing_candidates = np.where(segment_sign[:-1] * segment_sign[1:] <= 0)[0]
+        if len(crossing_candidates) == 0:
+            return None
+        cross_idx = int(crossing_candidates[-1] if search_from_right else crossing_candidates[0])
+        x0 = x_start + cross_idx
+        y0 = segment[cross_idx]
+        y1 = segment[cross_idx + 1]
+        if y1 != y0:
+            return x0 + float(-y0 / (y1 - y0))
+        return float(x0)
+
+    zero_crossings = []
+    if len(peak_indices) > 0:
+        left_edge_crossing = interpolate_zero_crossing(left_limit, int(peak_indices[0]), search_from_right=True)
+        if left_edge_crossing is not None:
+            zero_crossings.append((left_edge_crossing - left_limit) / roi_width)
+
+    for i in range(len(peak_indices) - 1):
+        left_peak = int(peak_indices[i])
+        right_peak = int(peak_indices[i + 1])
+        left_val = residual[left_peak]
+        right_val = residual[right_peak]
+        if left_val == 0 or right_val == 0 or np.sign(left_val) == np.sign(right_val):
+            continue
+        crossing_x = interpolate_zero_crossing(left_peak, right_peak)
+        if crossing_x is None:
+            segment = residual[left_peak:right_peak + 1]
+            crossing_x = float(left_peak + np.argmin(np.abs(segment)))
+        zero_crossings.append((crossing_x - left_limit) / roi_width)
+
+    if len(peak_indices) > 0:
+        right_edge_crossing = interpolate_zero_crossing(int(peak_indices[-1]), right_limit - 1, search_from_right=False)
+        if right_edge_crossing is not None:
+            zero_crossings.append((right_edge_crossing - left_limit) / roi_width)
+
+    zero_crossings = np.array(sorted(zero_crossings), dtype=np.float32)
+    return peak_indices.tolist(), zero_crossings
 
 def display_peaks(peak_indices, center_wave, input_1D, output_img, show_peaks, peakplus_color, peaknegative_color):
     for x in peak_indices:
@@ -684,11 +720,12 @@ try:
         wave_activity = np.sum(binary_img)/(dimensions[0]*dimensions[1]*5)
         # find center              
         center_wave = find_center_wave_regr(wave_1D, mask_left, mask_right)
-        # find peaks and peak ids
+        # Find only significant rope lobes using amplitude/prominence on the center-line residual.
         if noise_gate > 0:
-            peak_indices = find_peaks(wave_1D, center_wave, mask_left, mask_right, wave_img, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color)
+            peak_indices, zero_crossings = extract_wave_features(wave_1D, center_wave, mask_left, mask_right, wave_img, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color)
         else:
             peak_indices = []
+            zero_crossings = np.zeros(0, dtype=np.float32)
         display_peaks(peak_indices, center_wave, wave_1D, wave_img, show_peaks, peakplus_color, peaknegative_color)
         time_peak_follow = time.time()
 
@@ -711,25 +748,34 @@ try:
         if numpeaks > max_numpeaks:
             max_numpeaks = numpeaks
             print('new max numpeaks', max_numpeaks)
-        osc_msg = numpeaks, avg_x_distance, float(avg_x_movement)
-        osc_io.sendOSC('peaks_stats', osc_msg) # send OSC back to client
-        osc_msg = descriptors['left_lobe_x'], descriptors['right_lobe_x'], descriptors['max_lobe_x'], descriptors['shape_centroid_x']
-        osc_io.sendOSC('shape_stats', osc_msg) # send OSC back to client
+        # Consolidate all peak and shape metrics into single unified OSC message.
+        osc_msg = (
+            float(numpeaks),
+            float(avg_x_distance),
+            float(avg_x_movement),
+            descriptors['left_lobe_x'],
+            descriptors['right_lobe_x'],
+            descriptors['max_lobe_x'],
+            descriptors['shape_centroid_x'],
+            float(wave_activity),
+            spectral_centroid_norm,
+            descriptors['shape_centroid_x'],  # shape centroid repeated for OSC dual-channel compatibility
+        )
+        osc_io.sendOSC('rope_metrics', osc_msg) # send OSC back to client
         # other stats
         if numpeaks > 0:
             for i in range(np.min((len(x_pos),32))):
-                osc_msg = i, x_pos[i]
+                osc_msg = int(i), float(x_pos[i])
                 osc_io.sendOSC('xpos', osc_msg) # send OSC back to client
             for i in range(np.min((len(x_distances),32))):
-                osc_msg = i, x_distances[i]
+                osc_msg = int(i), float(x_distances[i])
                 osc_io.sendOSC('xdistance', osc_msg) # send OSC back to client
-        zero_crossings = np.where(np.abs((np.diff(np.sign(wave_1D-center_wave)))) > 0)/(mask_right-mask_left)
-        for i in range(np.min((len(zero_crossings[0]),32))):
-            osc_msg = i, (zero_crossings[0][i])
+        for i in range(np.min((len(zero_crossings),32))):
+            osc_msg = i, float(zero_crossings[i])
             osc_io.sendOSC('zerocross', osc_msg) # send OSC back to client
-        zc_diff = np.diff(zero_crossings[0])
+        zc_diff = np.diff(zero_crossings)
         for i in range(np.min((len(zc_diff),32))):
-            osc_msg = i, zc_diff[i]
+            osc_msg = int(i), float(zc_diff[i])
             osc_io.sendOSC('zerocross_distance', osc_msg) # send OSC back to client
         fft_input = wave_1D - center_wave
         # Tukey window (alpha=0.25): flat weight across central 75%, cosine taper only in outer 12.5%.
@@ -771,15 +817,13 @@ try:
         else:
             spectral_centroid_cycles = 0.0
         spectral_centroid_norm = float(np.clip(spectral_centroid_cycles / 10.0, 0.0, 1.0))
-        osc_io.sendOSC('spectral_centroid', spectral_centroid_norm)
-        # Dedicated shape centroid send (horizontal centre-of-mass of rope deviation, 0=left, 1=right).
-        osc_io.sendOSC('shape_centroid', float(descriptors['shape_centroid_x']))
+        # Bundle activity, spectral_centroid, shape_centroid into single metrics OSC message for efficiency.
+        osc_msg = float(wave_activity), spectral_centroid_norm, float(descriptors['shape_centroid_x'])
+        osc_io.sendOSC('metrics', osc_msg) # send OSC back to client
         for i in range(len(faders)):
             val = (mask_center[i]-faders[i])/(max_amp*0.5)
             osc_msg = i, val, len(faders)
             osc_io.sendOSC('faders', osc_msg) # send OSC back to client
-        osc_msg = float(wave_activity)
-        osc_io.sendOSC('activity', osc_msg) # send OSC back to client
         time_stats = time.time()
 
         # Display result (draw in processing order so later stages remain visible on top)
@@ -805,7 +849,7 @@ try:
         legend_y = 15
         x_pos_disp = 'x_pos :' + ''.join([f'{x:.2f}, ' for x in x_pos])
         x_dist_disp = 'x_dist :' + ''.join([f'{x:.2f}, ' for x in x_distances])
-        zc = ''.join([f'{z:.2f} ' for z in zero_crossings[0]])
+        zc = ''.join([f'{z:.2f} ' for z in zero_crossings])
         zc_disp = 'zc_dist: ' + ''.join([f'{i:.2f}, ' for i in zc_diff])
         stats_lines = [
             f'numpeaks: {numpeaks}',

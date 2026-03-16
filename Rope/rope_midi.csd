@@ -277,7 +277,6 @@ instr 1
   tablewkt kfader_val, kfader_ndx, ktab_raw
   if kfader_ndx == k_num_faders-1 then
     kswitch = kswitch == 0 ? 1 : 0
-    ;printk2 kswitch, 30
     ktime timeinsts
     kupdate_time limit ktime-ktimethen, 0, 5
     ktimethen = ktime
@@ -289,30 +288,29 @@ instr 1
   knumpeaks init 0
   kavg_x_distance init 0
   kavg_x_movement init 0
-  nextmsg_peakstats:
-    kmess OSClisten gihandle, "peaks_stats", "fff", knumpeaks, kavg_x_distance, kavg_x_movement
-    kOSC_received += kmess
-    if kmess == 0 goto done_peakstats
-    chnset knumpeaks, "numpeaks"
-    chnset kavg_x_distance, "avg_x_distance"
-    chnset kavg_x_movement, "avg_x_movement"
-    kgoto nextmsg_peakstats
-  done_peakstats:
-
   kleft_lobe_x init 0
   kright_lobe_x init 0
   kmax_lobe_x init 0
   kshape_centroid_x init 0.5
-  nextmsg_shapestats:
-    kmess OSClisten gihandle, "shape_stats", "ffff", kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x
+  kwave_activity init 0
+  kspectral_centroid init 0
+  kshape_centroid init 0.5
+  nextmsg_rope_metrics:
+    kmess OSClisten gihandle, "rope_metrics", "ffffffffff", knumpeaks, kavg_x_distance, kavg_x_movement, kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x, kwave_activity, kspectral_centroid, kshape_centroid
     kOSC_received += kmess
-    if kmess == 0 goto done_shapestats
+    if kmess == 0 goto done_rope_metrics
+    chnset knumpeaks, "numpeaks"
+    chnset kavg_x_distance, "avg_x_distance"
+    chnset kavg_x_movement, "avg_x_movement"
     chnset kleft_lobe_x, "left_lobe_x"
     chnset kright_lobe_x, "right_lobe_x"
     chnset kmax_lobe_x, "max_lobe_x"
     chnset kshape_centroid_x, "shape_centroid_x"
-    kgoto nextmsg_shapestats
-  done_shapestats:
+    chnset kwave_activity, "wave_activity"
+    chnset kspectral_centroid, "spectral_centroid"
+    chnset kshape_centroid, "shape_centroid"
+    kgoto nextmsg_rope_metrics
+  done_rope_metrics:
  
   kxpos init 0
   kxpos_ndx init 0
@@ -369,14 +367,6 @@ instr 1
     kgoto nextmsg_fft
   done_fft:
 
-  kwave_activity init 0
-  nextmsg_activity:
-    kmess OSClisten gihandle, "activity", "f", kwave_activity
-    kOSC_received += kmess
-    if kmess == 0 goto done_activity
-      chnset kwave_activity, "wave_activity"
-    kgoto nextmsg_activity
-  done_activity:
 
   Soscreceived = "OK OSC received"
   kOSC_received limit kOSC_received, 0, 1
