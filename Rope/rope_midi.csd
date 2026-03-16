@@ -386,10 +386,9 @@ endin
 
 
 instr 2
-  ;print p3
+  ;write the wave tables with data from the rope tracking (quantized "fader" positions on the rope)
   itab = p4
   inum_faders = p5
-  ;print p2, p3, p4
   if itab == giWaveRaw2 then
     kndx line 0, p3-1/kr, 1
   else 
@@ -423,17 +422,8 @@ instr 2
                                               ilaststep,  0
   ftmorf kndx, giWaveRaws, giWaveRaw
   ftmorf kndx, giWaveFines, giWaveFine
-  event_i "i", 3, p3, 1/kr, inum_faders
 endin
 
-instr 3
-  ;print table(512,giWaveFine)
-  ;cabbageSet "wave_raw", "tableNumber", 1; update table display
-  ;cabbageSet "wave_fine", "tableNumber", 2; update table display
-endin
-
-instr 5
-endin
 
 instr 8
   knumpeaks_basenote chnget "numpeaks_basenote"
@@ -494,11 +484,12 @@ instr 10
   ibasfreq = i(kfreq)
   a1L hsboscil kamp, 0.5, kbrite, ibasfreq, giSine, ioctfn
   a1R hsboscil kamp, ktone, kbrite, ibasfreq, giSine, ioctfn
+  ; waveshaping
   icenter = 10/16
   a2L tablei a1L*icenter, itab, 1, icenter, 0 ;
   a2R tablei a1R*icenter, itab, 1, icenter, 0 ;
-  a2L dcblock a2L ; prevent constant offset
-  a2R dcblock a2R ; prevent constant offset
+  a2L dcblock a2L 
+  a2R dcblock a2R 
   a2L *= kamp
   a2R *= kamp
   outch 1, a2L*0.3, 2, a2R*0.3
@@ -509,13 +500,9 @@ instr 11
   itab = p4
   print itab
   kfreq chnget "Freq_wavd"
-  ;kx_dist = gkZerocross_distance[0]
-  ;kfreq *= kx_dist
   kavg_x_movement chnget "avg_x_movement"
-  ;kfreq *= (1+kavg_x_movement)
   knumpeaks chnget "numpeaks"
   kdetune chnget "detune_wavd"
-  ;kdetune *= kavg_x_movement
   kfreq1 = kfreq+kfreq*(tonek(knumpeaks+1,2))*kdetune
   kfreq2 = kfreq-kfreq*(tonek(knumpeaks+1,0.7))*kdetune
   kamp_dB chnget "Amp_wavd"
@@ -535,9 +522,9 @@ instr 11
   a2 tablei a1*icenter, itab, 1, icenter, 0 ;
   a2L tablei a1L*icenter, itab, 1, icenter, 0 ;
   a2R tablei a1R*icenter, itab, 1, icenter, 0 ;
-  a2 dcblock a2 ; prevent constant offset
-  a2L dcblock a2L ; prevent constant offset
-  a2R dcblock a2R ; prevent constant offset
+  a2 dcblock a2  
+  a2L dcblock a2L 
+  a2R dcblock a2R
   aleft = a2*0.1+a2L*0.9
   aright = a2*0.1+a2R*0.9
   aleft lpf18 aleft, 100+(tonek(knumpeaks+1,2)*600), 0.3, 0.9
@@ -553,15 +540,8 @@ opcode DistanceGrains, a, k[]kkkkkkkkkiii
 
   ; grain rate
   kgrainrate tonek kgrainrate*(1+kDistance[ivoice]*kdist_rate), 1
+  agrainrate = kgrainrate
   async = 0
-
-; grain rate FM
-  kGrFmFratio = 1;    chnget "GrFmRatio"
-	kGrFmFreq	divz kgrainrate, kGrFmFratio, 1	        ; FM freq for modulating the grainrate 
-	kGrFmIndex = 0; chnget "GrFmIndx"      		        ; FM index for modulating the grainrate (normally kept in a 0.0 to 1.0 range)
-	iGrFmWave	= giSine				; FM waveform, for modulating the grainrate 
-	aGrFmSig	oscil kGrFmIndex, kGrFmFreq, iGrFmWave	; audio signal for frequency modulation of grain rate
-	agrainrate	= kgrainrate + (aGrFmSig*kgrainrate)	; add the modulator signal to the grain rate signal
 
 ; distribution 
 	kdistribution	= 0; chnget "Distribution"			; grain random distribution in time
@@ -573,7 +553,7 @@ opcode DistanceGrains, a, k[]kkkkkkkkkiii
 	ienv_attack	= giSigmoRise 			; grain attack shape (from table)
 	ienv_decay	= giSigmoFall 			; grain decay shape (from table)
 	ksustain_amount	= 0.0					  ; balance between enveloped time(attack+decay) and sustain level time, 0.0 = no time at sustain level
-	ka_d_ratio = 0.1;     chnget "Attack"					; balance between attack time and decay time, 0.0 = zero attack time and full decay time
+	ka_d_ratio = 0.1      					; balance between attack time and decay time, 0.0 = zero attack time and full decay time
 	kenv2amt = 0                    ; amount of secondary enveloping per grain (e.g. for fof synthesis)
 	ienv2tab	= giExpFall 				  ; secondary grain shape (from table), enveloping the whole grain if used
 
@@ -581,11 +561,10 @@ opcode DistanceGrains, a, k[]kkkkkkkkkiii
 	kwaveform	= giSine		; source audio waveform 
 
 ; original pitch for each waveform, use if they should be transposed individually
-; can also be used as a "cycles per second" parameter for single cycle waveforms (assuming that the kwavfreq parameter has a value of 1.0)
-	kwavekey1	= 1; chnget "Grainkey1"
-	kwavekey2	= 1;chnget "Grainkey2"
-	kwavekey3	= 1;chnget "Grainkey3"
-	kwavekey4	= 1;chnget "Grainkey4"
+	kwavekey1	= 1
+	kwavekey2	= 1
+	kwavekey3	= 1
+	kwavekey4	= 1
 	asamplepos	= 0				
 
 ; "master" grain pitch (transpose for all 4 source waveforms)
@@ -597,20 +576,13 @@ opcode DistanceGrains, a, k[]kkkkkkkkkiii
 	iwavfreqendtab		ftgentmp	0, 0, 16, -2, 0, 0,   1		; end freq scalers, per grain
 
 ; FM of grain pitch (playback speed)
-	kPtchFmFreq	= 1; chnget "FmFreq"						; FM freq, modulating waveform pitch
-	kPtchFmIndex = 0; chnget "FmIndx"						; FM index, modulating waveform pitch
-	iPtchFmWave	= giSine						; FM waveform, modulating waveform pitch
-	ifmamptab	ftgentmp	0, 0, 16, -2, 0, 0,   1			; FM index scalers, per grain
-	ifmenv = -1 					                ; FM index envelope, over each grain (from table)
-	kPtchFmIndex = kPtchFmIndex + (kPtchFmIndex*kPtchFmFreq*0.00001) 	; FM index scaling formula
-	awavfm oscil	kPtchFmIndex, kPtchFmFreq, iPtchFmWave		; Modulator signal for frequency modulation inside grain
+	awavfm = 0
 
-; trainlet parameters
-	icosine	= giCosine				; needs to be a cosine wave to create trainlets
-  kTrainCpsMult = 1;   chnget "TrCpsMult"                     ; multiplier for  trainlet cps relative to grain rate
-	kTrainCps	= kTrainCpsMult*kgrainrate		
-	knumpartials= 1;	chnget "TrainPart"					; number of partials in trainlet
-	kchroma = 1; chnget "TrainChroma"					; chroma, falloff of partial amplitude towards sr/2
+; trainlet parameters (not using trainlets)
+	icosine	= giCosine
+	kTrainCps	= 100		
+	knumpartials = 1	
+	kchroma = 1	
 
 	; gain masking table, amplitude for individual grains
 	igainmasks	ftgentmp	0, 0, 16, -2, 0, 0, 1
@@ -623,18 +595,10 @@ opcode DistanceGrains, a, k[]kkkkkkkkkiii
 
 	; wave mix masking. 
   iwaveamptab	ftgentmp 0, 0, 32, -2,   0, 0,  1,0,0,0,0
-	ktrainbal = 0; chnget "TrainBal"
-	ktrainvol = sqrt(ktrainbal)
-	ksinevol = sqrt(1-ktrainbal)*0.25
-  tablew ktrainvol, 6, iwaveamptab
-  tablew ksinevol, 5, iwaveamptab
-  tablew ksinevol, 4, iwaveamptab
-  tablew ksinevol, 3, iwaveamptab
-  tablew ksinevol, 2, iwaveamptab
+
 ; system parameter
 	imax_grains	= 100				; max number of grains per k-period
   iopcode_id += 1
-  print iopcode_id
         
 	a1,a2,a3,a4,a5,a6,a7,a8	partikkel \					; 					
 			agrainrate, \						; grains per second			
@@ -645,7 +609,7 @@ opcode DistanceGrains, a, k[]kkkkkkkkkiii
 			igainmasks, \						; gain masks (advanced)			
 			kwavfreq, \						; grain pitch (playback frequency)	
 			ksweepshape, iwavfreqstarttab, iwavfreqendtab, \	; grain pith sweeps (advanced)		
-			awavfm, ifmamptab, ifmenv, \				; grain pitch FM (advanced)		
+			awavfm, -1, -1, \				; grain pitch FM (advanced)		
 			icosine, kTrainCps, knumpartials, kchroma, \		; trainlets				
 			ichanmasks, \ 					        ; channel mask (advanced)
 			krandommask, \						; random masking of single grains	
@@ -660,8 +624,6 @@ opcode DistanceGrains, a, k[]kkkkkkkkkiii
   kSig[] init ksmps
   kSig shiftin apulse
   kpulse = sumarray(kSig) 
-  ;Sdebug sprintfk "partikkel %i amp %f pulse %f", iopcode_id, kamp, kpulse
-  ;puts Sdebug, kamp+kpulse+1
   kphase downsamp aphase
   if (kpulse > 0) && (kamp > kamp_thresh) then
     knote = (kwavfreq*12)+48
@@ -704,7 +666,6 @@ instr 12
   imaxvoice = 5
   iopcode_id1 = 1
   a1 DistanceGrains gkXdistance, kamp, kwavfreq, kgrainrate, kdist_rate, kvoice_spread, kgraindur, kmidi_amp_thresh, kmidi_transpose, kmidi_chan, 0, imaxvoice, iopcode_id1
-  ;a2 DistanceGrains gkZerocross_distance, kwavfreq, kgrainrate, kdist_rate, kvoice_spread, kgraindur, 0, imaxvoice, iopcode_id2
   outch 9, a1*3, 10, a1*3
 endin
 
@@ -713,15 +674,8 @@ opcode Graincloud, aa, kkkkkkkkiii
 
   ; grain rate
   kgrainrate = kgrainrate*(1+(rspline(-0.5, 1, 0.5, 2)*kratemod))
+  agrainrate	= kgrainrate 
   async = 0
-
-; grain rate FM
-  kGrFmFratio = 1;    chnget "GrFmRatio"
-	kGrFmFreq	divz kgrainrate, kGrFmFratio, 1	        ; FM freq for modulating the grainrate 
-	kGrFmIndex = 0; chnget "GrFmIndx"      		        ; FM index for modulating the grainrate (normally kept in a 0.0 to 1.0 range)
-	iGrFmWave	= giSine				; FM waveform, for modulating the grainrate 
-	aGrFmSig	oscil kGrFmIndex, kGrFmFreq, iGrFmWave	; audio signal for frequency modulation of grain rate
-	agrainrate	= kgrainrate + (aGrFmSig*kgrainrate)	; add the modulator signal to the grain rate signal
 
 ; distribution 
 	;kdistribution	= 0; chnget "Distribution"			; grain random distribution in time
@@ -733,7 +687,7 @@ opcode Graincloud, aa, kkkkkkkkiii
 	ienv_attack	= giSigmoRise 			; grain attack shape (from table)
 	ienv_decay	= giSigmoFall 			; grain decay shape (from table)
 	ksustain_amount	= 0.0					  ; balance between enveloped time(attack+decay) and sustain level time, 0.0 = no time at sustain level
-	ka_d_ratio = 0.1;     chnget "Attack"					; balance between attack time and decay time, 0.0 = zero attack time and full decay time
+	ka_d_ratio = 0.1      					; balance between attack time and decay time, 0.0 = zero attack time and full decay time
 	kenv2amt = 0                    ; amount of secondary enveloping per grain (e.g. for fof synthesis)
 	ienv2tab	= giExpFall 				  ; secondary grain shape (from table), enveloping the whole grain if used
 
@@ -742,10 +696,10 @@ opcode Graincloud, aa, kkkkkkkkiii
 
 ; original pitch for each waveform, use if they should be transposed individually
 ; can also be used as a "cycles per second" parameter for single cycle waveforms (assuming that the kwavfreq parameter has a value of 1.0)
-	kwavekey1	= 1; chnget "Grainkey1"
-	kwavekey2	= 1;chnget "Grainkey2"
-	kwavekey3	= 1;chnget "Grainkey3"
-	kwavekey4	= 1;chnget "Grainkey4"
+	kwavekey1	= 1
+	kwavekey2	= 1
+	kwavekey3	= 1
+	kwavekey4	= 1
 	asamplepos	= 0				
 
 ; "master" grain pitch (transpose for all 4 source waveforms)
@@ -757,20 +711,13 @@ opcode Graincloud, aa, kkkkkkkkiii
 	iwavfreqendtab		ftgentmp	0, 0, 16, -2, 0, 0,   1		; end freq scalers, per grain
 
 ; FM of grain pitch (playback speed)
-	kPtchFmFreq	= 1; chnget "FmFreq"						; FM freq, modulating waveform pitch
-	kPtchFmIndex = 0; chnget "FmIndx"						; FM index, modulating waveform pitch
-	iPtchFmWave	= giSine						; FM waveform, modulating waveform pitch
-	ifmamptab	ftgentmp	0, 0, 16, -2, 0, 0,   1			; FM index scalers, per grain
-	ifmenv = -1 					                ; FM index envelope, over each grain (from table)
-	kPtchFmIndex = kPtchFmIndex + (kPtchFmIndex*kPtchFmFreq*0.00001) 	; FM index scaling formula
-	awavfm oscil	kPtchFmIndex, kPtchFmFreq, iPtchFmWave		; Modulator signal for frequency modulation inside grain
+	awavfm = 0
 
-; trainlet parameters
-	icosine	= giCosine				; needs to be a cosine wave to create trainlets
-  kTrainCpsMult = 1;   chnget "TrCpsMult"                     ; multiplier for  trainlet cps relative to grain rate
-	kTrainCps	= kTrainCpsMult*kgrainrate		
-	knumpartials= 1;	chnget "TrainPart"					; number of partials in trainlet
-	kchroma = 1; chnget "TrainChroma"					; chroma, falloff of partial amplitude towards sr/2
+; trainlet parameters (not using trainlets)
+	icosine	= giCosine
+	kTrainCps	= 100		
+	knumpartials = 1	
+	kchroma = 1	
 
 	; gain masking table, amplitude for individual grains
 	igainmasks	ftgentmp	0, 0, 16, -2, 0, 0, 1
@@ -783,18 +730,10 @@ opcode Graincloud, aa, kkkkkkkkiii
 
 	; wave mix masking. 
   iwaveamptab	ftgentmp 0, 0, 32, -2,   0, 0,  1,0,0,0,0
-	ktrainbal = 0; chnget "TrainBal"
-	ktrainvol = sqrt(ktrainbal)
-	ksinevol = sqrt(1-ktrainbal)*0.25
-  tablew ktrainvol, 6, iwaveamptab
-  tablew ksinevol, 5, iwaveamptab
-  tablew ksinevol, 4, iwaveamptab
-  tablew ksinevol, 3, iwaveamptab
-  tablew ksinevol, 2, iwaveamptab
+
 ; system parameter
 	imax_grains	= 100				; max number of grains per k-period
   iopcode_id1 = iopcode_id+ivoice
-  print iopcode_id1
         
 	a1,a2	partikkel \					; 					
 			agrainrate, \						; grains per second			
@@ -805,7 +744,7 @@ opcode Graincloud, aa, kkkkkkkkiii
 			igainmasks, \						; gain masks (advanced)			
 			kwavfreq, \						; grain pitch (playback frequency)	
 			ksweepshape, iwavfreqstarttab, iwavfreqendtab, \	; grain pith sweeps (advanced)		
-			awavfm, ifmamptab, ifmenv, \				; grain pitch FM (advanced)		
+			awavfm, -1, -1, \				; grain pitch FM (advanced)		
 			icosine, kTrainCps, knumpartials, kchroma, \		; trainlets				
 			ichanmasks, \ 					        ; channel mask (advanced)
 			krandommask, \						; random masking of single grains	
@@ -820,8 +759,6 @@ opcode Graincloud, aa, kkkkkkkkiii
   kSig[] init ksmps
   kSig shiftin apulse
   kpulse = sumarray(kSig) 
-  ;Sdebug sprintfk "partikkel %i amp %f pulse %f", iopcode_id, kamp, kpulse
-  ;puts Sdebug, kamp+kpulse+1
   kphase downsamp aphase
   ; midi
   Samp_thresh sprintf "graincloud_ampthresh_%i", ivoice+1
@@ -831,7 +768,7 @@ opcode Graincloud, aa, kkkkkkkkiii
   ktranspose chnget Stranspose
   kmidi_chan chnget "graincloud_midichan"
   Schan sprintf "graincloud_midichan_%i", ivoice+1
-  puts Schan, 1
+  ;puts Schan, 1
   kmidi_chan chnget Schan
   if (kpulse > 0) && (kamp > kamp_thresh) && ivoice < 4 then
     knote = (kwavfreq*12)+48
@@ -901,7 +838,7 @@ opcode OscBank, aa, k[]i[]kkkii
   kmidi_transpose chnget "faderbank_transpose"
   knote	= round(12 * (log(kcps/220)/log(2)) + 57 + kmidi_transpose)
   kmidi_instr = 202+(knote*0.001)
-  printk2 kmidi_instr
+  ;printk2 kmidi_instr
   kmidi_on trigger kamp, kmidi_amp_thresh, 0
   kmidi_off trigger kamp, kmidi_amp_thresh, 1
   kmidi_chan chnget "faderbank_midichan"
@@ -971,7 +908,6 @@ instr 17
   endif
 
   kFaders[] tab2array giWaveRaw1
-  ;kFaders = kFaders-(sumarray(kFaders)/lenarray(kFaders)) ; center
   kFaders limit kFaders, 0.001, 1
   kFaders -= 0.001
   kFaders = (kFaders^2)*10
@@ -987,11 +923,6 @@ instr 17
   kFaders[7] EnvFollow kFaders[7], krise, kfall  
   kFaders[8] EnvFollow kFaders[8], krise, kfall  
   kFaders[9] EnvFollow kFaders[9], krise, kfall  
-  ;kFaders += 10 ; now it is unipolar
-  ;kmin1 minarray kFaders
-  ;kmax1 maxarray kFaders
-  ;kFaders = (kFaders-kmin1);*divz(1,(kmax1-kmin1),1)
-  ;kFaders = (kFaders^2);*kmax1
   
   kfreq chnget "Freq_fadr"
   kamp_dB chnget "Amp_fadr"
@@ -1136,40 +1067,6 @@ instr 20
 
 endin
 
-
-
-/*
-opcode DistanceOscil, a, k[]kkii
-  kDistance[], kbasefreq, kdetune, ivoice, imaxvoice xin
-  kamp = kDistance[ivoice] > 0 ? 1 : 0
-  kamp tonek kamp, 1  
-  kcps tonek kbasefreq*(1+kDistance[ivoice]*kdetune), 1
-  a1 poscil kamp, kcps
-  if (ivoice < imaxvoice-1) then
-    a1 += DistanceOscil(kDistance, kbasefreq, kdetune, ivoice+1, imaxvoice)
-  endif
-  iampscale = 1/imaxvoice
-  xout(a1*iampscale)
-endop
-
-
-instr 112
-  ; read sine oscil detuned by peak distances
-  itab = p4
-  print itab
-  kfreq chnget "Freq"
-  kamp_dB chnget "Amp"
-  kamp = ampdbfs(kamp_dB)
-  
-  knumpeaks chnget "numpeaks"
-  kdetune chnget "detune"
-  imaxvoice = 4
-  a1 DistanceOscil gkXdistance, kfreq, kdetune, 0, imaxvoice
-  a2 DistanceOscil gkZerocross_distance, kfreq, kdetune, 0, imaxvoice
-  outs a1,a2
-endin
-*/
-
 #include "lsys_cs_midi.inc"
 
 ;***************************************************
@@ -1187,7 +1084,6 @@ instr 202
     
 endin
 ;***************************************************
-
 
 </CsInstruments>  
 <CsScore>
