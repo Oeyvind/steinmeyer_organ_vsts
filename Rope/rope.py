@@ -2,7 +2,7 @@ import cv2
 import numpy as np 
 from scipy.ndimage import median_filter
 from scipy.signal import butter, sosfiltfilt, lfilter, find_peaks as scipy_find_peaks
-from scipy.signal.windows import tukey as tukey_window
+from scipy.fft import dct as scipy_dct
 import osc_io
 import time
 import json
@@ -41,10 +41,16 @@ kinematic_edge_anchor_px = 24
 peak_min_amplitude_frac = 0.015
 peak_min_prominence_frac = 0.035
 peak_min_distance_frac = 0.07
-fft_display_cycles = np.array([0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 16.0, 20.0], dtype=np.float32)
-fft_highfreq_start_cycles = 20.0
-fft_display_height = 120
-fft_display_db_floor = -40.0  # dB floor for display; -40dB = amplitude 1/100 of full swing
+dct_display_cycles = np.array([
+    0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75,   # orange: 0.25-step below 3
+    3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5,      # green: 0.5-step 3–10
+    9.0, 9.5, 10.0
+], dtype=np.float32)
+dct_highmode_start_cycles = 10.0
+dct_display_height = 120
+dct_display_db_floor = -40.0  # dB floor for display; -40dB = amplitude 1/100 of full swing
+dct_display_db_ceiling = 24.0  # positive headroom so strong modes do not saturate too early
+dct_boundary_mode = 'adaptive'  # 'adaptive' (auto-blend), 'mirror' (plain even extension), 'edge' (localized edge correction), or 'lifted' (full-span boundary detrend)
 
 # optional ATEM calibration
 atem_enable_calibration = True
@@ -222,6 +228,8 @@ prev_wave_1D = np.zeros(dimensions[1])
 prev_binary_img = np.copy(previous_frame_gray)
 spectral_centroid_cycles = 0.0
 spectral_centroid_norm = 0.0
+horizontal_cog_y = float(np.mean(mask_center[mask_left:mask_right]))
+horizontal_cog_norm = float(np.clip(horizontal_cog_y / max(dimensions[0] - 1, 1), 0.0, 1.0))
 avg_x_distance = 0
 avg_x_movement = 0
 prev_shape_centroid_x = 0.5
@@ -254,7 +262,7 @@ peaknegative_color = red
 peakplus_color = green
 stats_color = yellow
 fader_color = purple
-fft_color = orange
+dct_color = orange
 
 show_binary = True
 show_centroid = False
@@ -291,6 +299,7 @@ bg_model_option_color = (255,180,60)   # warm amber
 screen_blend_option_color = (180,120,255)  # soft purple
 kinematic_option_color = (120,220,255)
 polarity_option_color = (255,120,120)
+dct_boundary_option_color = (160,255,180)
 
 def find_center_wave_regr(wave_1D, mask_left, mask_right):
     x = np.arange(0,len(wave_1D[mask_left:mask_right]),1)
@@ -443,6 +452,83 @@ def draw_wave_line(output_img, line_1d, color, thickness=2):
     points = np.column_stack((np.arange(len(line_1d)), np.clip(line_1d, 0, dimensions[0]-1).astype(np.int32)))
     points = points.reshape((-1, 1, 2))
     cv2.polylines(output_img, [points], False, color, thickness)
+
+def draw_centered_signal_panel(output_img, signal_1d, x, y, width, height, center_color, signal_color):
+    if signal_1d is None or len(signal_1d) < 2:
+        return
+    center_y = y + int(height * 0.5)
+    cv2.line(output_img, (x, center_y), (x + width, center_y), center_color, 1)
+    zoom_y = 2.0
+    scale = zoom_y * (height * 0.45) / max(max_amp * 0.5, 1.0)
+    x_coords = np.linspace(x, x + width - 1, len(signal_1d)).astype(np.int32)
+    y_coords = np.clip(center_y + (signal_1d * scale), y, y + height - 1).astype(np.int32)
+    points = np.column_stack((x_coords, y_coords)).reshape((-1, 1, 2))
+    cv2.polylines(output_img, [points], False, signal_color, 2)
+
+def dct_seam_score(signal_1d):
+    """Sum of absolute boundary slopes driving DCT-I mirror-seam cusps."""
+    if len(signal_1d) < 4:
+        return 0.0
+    return float(abs(signal_1d[1] - signal_1d[0]) + abs(signal_1d[-1] - signal_1d[-2]))
+
+def build_dct_boundary_baseline(signal_1d):
+    if signal_1d is None or len(signal_1d) < 4:
+        return np.zeros_like(signal_1d)
+    num_points = len(signal_1d)
+    edge_len = max(4, min(24, num_points//8))
+
+    signal_f = signal_1d.astype(np.float32)
+
+    # Endpoint-value-preserving correction: enforce smoother mirrored seam by
+    # reducing endpoint slopes with a cubic Hermite term that is exactly zero at both ends.
+    left_x = np.arange(edge_len, dtype=np.float32)
+    right_x = np.arange(num_points - edge_len, num_points, dtype=np.float32)
+    left_slope = float(np.polyfit(left_x, signal_f[:edge_len], 1)[0])
+    right_slope = float(np.polyfit(right_x, signal_f[-edge_len:], 1)[0])
+
+    x = np.linspace(0.0, 1.0, num_points, dtype=np.float32)
+    slope_left_x = left_slope * (num_points - 1)
+    slope_right_x = right_slope * (num_points - 1)
+    slope_baseline = (
+        slope_left_x * (x**3 - 2.0*x**2 + x) +
+        slope_right_x * (x**3 - x**2)
+    ).astype(np.float32)
+
+    return slope_baseline
+
+def apply_dct_boundary_lifting(signal_1d):
+    if signal_1d is None or len(signal_1d) < 4:
+        return signal_1d, np.zeros_like(signal_1d)
+    baseline = build_dct_boundary_baseline(signal_1d)
+    lifted = signal_1d.astype(np.float32) - baseline
+    return lifted, baseline
+
+def apply_dct_edge_boundary_lifting(signal_1d):
+    if signal_1d is None or len(signal_1d) < 8:
+        return signal_1d, np.zeros_like(signal_1d)
+    num_points = len(signal_1d)
+
+    def build_left_slope_patch(sig, patch_len):
+        patch = np.zeros_like(sig, dtype=np.float32)
+        fit_len = max(4, min(16, patch_len))
+        x_fit = np.arange(fit_len, dtype=np.float32)
+        slope = float(np.polyfit(x_fit, sig[:fit_len], 1)[0])
+
+        t = np.linspace(0.0, 1.0, patch_len, dtype=np.float32)
+        m0 = slope * float(patch_len - 1)
+        local_patch = m0 * (t**3 - 2.0*t**2 + t)
+        patch[:patch_len] = local_patch
+        return patch
+
+    patch_len = max(8, min(64, num_points // 4))
+    signal_f = signal_1d.astype(np.float32)
+
+    left_patch = build_left_slope_patch(signal_f, patch_len)
+    right_patch = build_left_slope_patch(signal_f[::-1], patch_len)[::-1]
+
+    edge_patch = left_patch + right_patch
+    lifted = signal_f - edge_patch
+    return lifted, edge_patch
 
 def extract_wave_features(input_1D, center_wave, left_limit, right_limit, output_img, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color):
     roi_width = max(right_limit-left_limit, 1)
@@ -748,20 +834,6 @@ try:
         if numpeaks > max_numpeaks:
             max_numpeaks = numpeaks
             print('new max numpeaks', max_numpeaks)
-        # Consolidate all peak and shape metrics into single unified OSC message.
-        osc_msg = (
-            float(numpeaks),
-            float(avg_x_distance),
-            float(avg_x_movement),
-            descriptors['left_lobe_x'],
-            descriptors['right_lobe_x'],
-            descriptors['max_lobe_x'],
-            descriptors['shape_centroid_x'],
-            float(wave_activity),
-            spectral_centroid_norm,
-            descriptors['shape_centroid_x'],  # shape centroid repeated for OSC dual-channel compatibility
-        )
-        osc_io.sendOSC('rope_metrics', osc_msg) # send OSC back to client
         # other stats
         if numpeaks > 0:
             for i in range(np.min((len(x_pos),32))):
@@ -777,49 +849,85 @@ try:
         for i in range(np.min((len(zc_diff),32))):
             osc_msg = int(i), float(zc_diff[i])
             osc_io.sendOSC('zerocross_distance', osc_msg) # send OSC back to client
-        fft_input = wave_1D - center_wave
-        # Tukey window (alpha=0.25): flat weight across central 75%, cosine taper only in outer 12.5%.
-        # Preserves edge-region rope waves unlike Blackman, while still suppressing leakage.
-        fft_window = tukey_window(len(fft_input), alpha=0.25)
-        # 16x zero-padding: finer sampling of the spectral envelope so peaks interpolate accurately
-        # to the nearest display-cycle bin. Does not change actual frequency resolution (set by rope width).
-        fft_n = len(fft_input) * 16
-        fft_complex = np.fft.rfft(fft_input * fft_window, n=fft_n)
-        fft_magnitude = np.abs(fft_complex)
-        cycles_per_bin = len(fft_input) / fft_n
-        fft_bin_indices = np.clip(np.round(fft_display_cycles / cycles_per_bin).astype(np.int32), 0, len(fft_magnitude) - 1)
-        fft_selected = fft_magnitude[fft_bin_indices]
-        hf_start_index = int(np.ceil(fft_highfreq_start_cycles / cycles_per_bin))
-        if hf_start_index < len(fft_magnitude):
-            fft_highfreq = np.mean(fft_magnitude[hf_start_index:])
+        roi_wave = wave_1D[mask_left:mask_right]
+        if len(roi_wave) > 0:
+            horizontal_cog_y = float(np.mean(roi_wave))
         else:
-            fft_highfreq = 0.0
-        # Fixed physical reference: FFT magnitude expected from a full-amplitude sine
-        # (amplitude = max_amp/2) with this window. Rope at rest -> bars near zero.
-        fft_ref = max(1e-9, (max_amp / 2.0) * np.sum(fft_window) / 2.0)
+            horizontal_cog_y = float(np.mean(mask_center[mask_left:mask_right]))
+        horizontal_cog_norm = float(np.clip(horizontal_cog_y / max(dimensions[0] - 1, 1), 0.0, 1.0))
+        # DCT zero-reference: horizontal baseline at the rope's vertical center of gravity in the ROI.
+        dct_input_raw = roi_wave - horizontal_cog_y
+        if dct_boundary_mode == 'adaptive':
+            lifted_input, lifted_baseline = apply_dct_boundary_lifting(dct_input_raw)
+            score_mirror = dct_seam_score(dct_input_raw)
+            score_lifted = dct_seam_score(lifted_input)
+            dct_adaptive_w = float(np.clip(score_mirror / (score_mirror + score_lifted + 1e-6), 0.0, 1.0))
+            dct_input = ((1.0 - dct_adaptive_w) * dct_input_raw + dct_adaptive_w * lifted_input).astype(np.float32)
+            dct_boundary_baseline = (dct_adaptive_w * lifted_baseline).astype(np.float32)
+        elif dct_boundary_mode == 'edge':
+            dct_input, dct_boundary_baseline = apply_dct_edge_boundary_lifting(dct_input_raw)
+            dct_adaptive_w = 1.0
+        elif dct_boundary_mode == 'lifted':
+            dct_input, dct_boundary_baseline = apply_dct_boundary_lifting(dct_input_raw)
+            dct_adaptive_w = 1.0
+        else:
+            dct_input = dct_input_raw
+            dct_boundary_baseline = np.zeros_like(dct_input_raw)
+            dct_adaptive_w = 0.0
+        # For visualization: DCT-I corresponds to an even extension of the interval endpoints.
+        # Effective full wave: x[0..N-1] followed by x[N-2..1].
+        if len(dct_input) > 2:
+            dct_input_full = np.concatenate((dct_input, dct_input[-2:0:-1]))
+        else:
+            dct_input_full = dct_input
+        if len(dct_input) > 1:
+            dct_coefficients = np.abs(scipy_dct(dct_input, type=1, norm='ortho'))
+        else:
+            dct_coefficients = np.zeros(1, dtype=np.float32)
+        dct_bin_indices = np.clip(np.round(dct_display_cycles * 2.0).astype(np.int32), 0, len(dct_coefficients) - 1)
+        dct_selected = dct_coefficients[dct_bin_indices]
+        highmode_start_index = int(np.floor(dct_highmode_start_cycles * 2.0)) + 1
+        if highmode_start_index < len(dct_coefficients):
+            dct_highmode = float(np.mean(dct_coefficients[highmode_start_index:]))
+        else:
+            dct_highmode = 0.0
+        # With orthonormal DCT-I, a perfectly matched full-amplitude cosine mode has coefficient ~= amplitude.
+        dct_ref = max(1e-9, max_amp / 2.0)
         # Log (dB) scale for both display and OSC — Csound receives what you see.
-        fft_db = 20.0 * np.log10(np.maximum(fft_selected / fft_ref, 1e-9))
-        fft_display_values = np.clip((fft_db - fft_display_db_floor) / (-fft_display_db_floor), 0.0, 1.0)
-        hf_db = 20.0 * float(np.log10(max(fft_highfreq / fft_ref, 1e-9)))
-        fft_highfreq_norm = float(np.clip((hf_db - fft_display_db_floor) / (-fft_display_db_floor), 0.0, 1.0))
-        for i in range(len(fft_display_values)):
-            osc_msg = i, float(fft_display_values[i])
-            osc_io.sendOSC('fft_bin', osc_msg) # send OSC back to client
-        osc_io.sendOSC('fft_hf', fft_highfreq_norm)
-        # Spectral centroid: amplitude-weighted mean cycle frequency using bins <= 10 cycles.
+        dct_db = 20.0 * np.log10(np.maximum(dct_selected / dct_ref, 1e-9))
+        dct_display_values = np.clip((dct_db - dct_display_db_floor) / (dct_display_db_ceiling - dct_display_db_floor), 0.0, 1.0)
+        highmode_db = 20.0 * float(np.log10(max(dct_highmode / dct_ref, 1e-9)))
+        dct_highmode_norm = float(np.clip((highmode_db - dct_display_db_floor) / (dct_display_db_ceiling - dct_display_db_floor), 0.0, 1.0))
+        for i in range(len(dct_display_values)):
+            osc_msg = i, float(dct_display_values[i])
+            osc_io.sendOSC('dct_bin', osc_msg) # send OSC back to client
+        osc_io.sendOSC('dct_hf', dct_highmode_norm)
+        # Spectral centroid: amplitude-weighted mean cycle frequency using modes <= 10 cycles.
         # Normalized 0-1 (0=DC, 1=10 cycles). Matches what is displayed in the stats panel.
-        lf_mask = fft_display_cycles <= 10.0
-        lf_cycles = fft_display_cycles[lf_mask]
-        lf_magnitudes = fft_selected[lf_mask]
+        lf_mask = dct_display_cycles <= 10.0
+        lf_cycles = dct_display_cycles[lf_mask]
+        lf_magnitudes = dct_selected[lf_mask]
         lf_sum = float(np.sum(lf_magnitudes))
         if lf_sum > 0.0:
             spectral_centroid_cycles = float(np.sum(lf_cycles * lf_magnitudes) / lf_sum)
         else:
             spectral_centroid_cycles = 0.0
         spectral_centroid_norm = float(np.clip(spectral_centroid_cycles / 10.0, 0.0, 1.0))
-        # Bundle activity, spectral_centroid, shape_centroid into single metrics OSC message for efficiency.
-        osc_msg = float(wave_activity), spectral_centroid_norm, float(descriptors['shape_centroid_x'])
-        osc_io.sendOSC('metrics', osc_msg) # send OSC back to client
+        # Consolidate all peak/shape/activity/centroid metrics into one OSC message.
+        osc_msg = (
+            float(numpeaks),
+            float(avg_x_distance),
+            float(avg_x_movement),
+            float(descriptors['left_lobe_x']),
+            float(descriptors['right_lobe_x']),
+            float(descriptors['max_lobe_x']),
+            float(descriptors['shape_centroid_x']),
+            float(wave_activity),
+            float(spectral_centroid_norm),
+            float(descriptors['shape_centroid_x']),
+            float(horizontal_cog_norm),
+        )
+        osc_io.sendOSC('rope_metrics', osc_msg) # send OSC back to client
         for i in range(len(faders)):
             val = (mask_center[i]-faders[i])/(max_amp*0.5)
             osc_msg = i, val, len(faders)
@@ -861,6 +969,7 @@ try:
             f'wave activity {wave_activity:.2f}',
             f'shape centroid x: {prev_shape_centroid_x:.3f}  (0=left, 1=right)',
             f'spectral centroid: {spectral_centroid_cycles:.2f} cyc  (norm {spectral_centroid_norm:.3f})',
+            f'horizontal cog: y={horizontal_cog_y:.1f}px  (norm {horizontal_cog_norm:.3f})',
         ]
         if show_stats:
             stats_step = v_offset * 2
@@ -877,6 +986,7 @@ try:
             ('g', 'bg model', use_bg_model, bg_model_option_color),
             ('e', 'equalize', use_screen_blend, screen_blend_option_color),
             ('k', 'kinematic', use_kinematic_constraint, kinematic_option_color),
+            ('n', f'dct bc {dct_boundary_mode}', True, dct_boundary_option_color),
             ('d', f'polarity {"dark" if rope_is_darker else "light"}', True, polarity_option_color),
             ('z', 'options', show_option_panel, option_stats_color),
         ]
@@ -894,30 +1004,36 @@ try:
                 cv2.putText(output, f'[{key_symbol}] {label}', (legend_x+12,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 1, cv2.LINE_AA)
                 legend_y += v_offset
         if show_fft:
-            fft_base_y = dimensions[0] - 30
-            fft_start_x = 14
-            fft_step_x = 44
-            fft_hf_x = fft_start_x + len(fft_display_values) * fft_step_x + 16
-            fft_panel_y = dimensions[0] - fft_display_height - 56
-            fft_panel_width = (fft_hf_x - 8) + 36
-            draw_transparent_rect(output, 8, fft_panel_y, fft_panel_width, fft_display_height + 52, alpha=0.35)
-            fft_label_indices = {0, 1, 5, 7, 10, 13, 15}  # 0.5, 1, 3, 5, 8, 12, 20
-            for i, fft_val in enumerate(fft_display_values):
-                cycle = fft_display_cycles[i]
-                if cycle <= 3.0:
-                    fft_color = orange
-                elif cycle <= 10.0:
-                    fft_color = green
+            dct_start_x = 14
+            dct_step_x = 28
+            dct_hm_x = dct_start_x + len(dct_display_values) * dct_step_x + 20
+            dct_label_pad = 26
+            dct_plot_height = dct_display_height + dct_label_pad
+            dct_panel_y = dimensions[0] - dct_plot_height - 56
+            dct_base_y = dct_panel_y + dct_plot_height - 1
+            dct_panel_width = (dct_hm_x - 8) + 36
+            dct_signal_panel_y = dct_panel_y - dct_display_height - 10
+            dct_signal_panel_width = min(dimensions[1] - 16, (dct_panel_width * 2))
+            draw_transparent_rect(output, 8, dct_signal_panel_y, dct_signal_panel_width, dct_display_height, alpha=0.35)
+            bc_label = f'DCT input ({dct_boundary_mode}  w={dct_adaptive_w:.2f} + even ext.)' if dct_boundary_mode == 'adaptive' else f'DCT input ({dct_boundary_mode} + even extension)'
+            cv2.putText(output, bc_label, (16, dct_signal_panel_y + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.6, yellow, 1, cv2.LINE_AA)
+            draw_centered_signal_panel(output, dct_input_full, 12, dct_signal_panel_y + 24, dct_signal_panel_width - 10, dct_display_height - 30, dull_green, light_blue)
+            draw_transparent_rect(output, 8, dct_panel_y, dct_panel_width, dct_plot_height, alpha=0.35)
+            dct_label_indices = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25}  # 0.5,1,1.5,2,2.5,3,4,5,6,7,8,9,10
+            for i, dct_val in enumerate(dct_display_values):
+                cycle = dct_display_cycles[i]
+                if cycle < 3.0:
+                    dct_color = orange
                 else:
-                    fft_color = blue
-                bar_height = max(1, int(fft_val * fft_display_height))
-                x = fft_start_x + i * fft_step_x
-                cv2.line(output, (x, fft_base_y), (x, fft_base_y - bar_height), fft_color, 3)
-                if i in fft_label_indices:
-                    cv2.putText(output, f'{cycle:g}', (x - 10, fft_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, fft_color, 1, cv2.LINE_AA)
-            hf_height = max(1, int(fft_highfreq_norm * fft_display_height))
-            cv2.line(output, (fft_hf_x, fft_base_y), (fft_hf_x, fft_base_y - hf_height), red, 3)
-            cv2.putText(output, 'HF', (fft_hf_x - 14, fft_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, red, 1, cv2.LINE_AA)
+                    dct_color = green
+                bar_height = max(1, int(dct_val * dct_plot_height))
+                x = dct_start_x + i * dct_step_x
+                cv2.line(output, (x, dct_base_y), (x, dct_base_y - bar_height), dct_color, 2)
+                if i in dct_label_indices:
+                    cv2.putText(output, f'{cycle:g}', (x - 8, dct_base_y + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.7, dct_color, 1, cv2.LINE_AA)
+            hf_height = max(1, int(dct_highmode_norm * dct_plot_height))
+            cv2.line(output, (dct_hm_x, dct_base_y), (dct_hm_x, dct_base_y - hf_height), red, 3)
+            cv2.putText(output, 'HM', (dct_hm_x - 16, dct_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, red, 1, cv2.LINE_AA)
         if show_stats:
             stats_x = 20
             stats_y = 25
@@ -974,6 +1090,10 @@ try:
             use_screen_blend = not use_screen_blend
         if key == ord('k'):
             use_kinematic_constraint = not use_kinematic_constraint
+        if key == ord('n'):
+            cycle_modes = ['adaptive', 'mirror', 'edge', 'lifted']
+            dct_boundary_mode = cycle_modes[(cycle_modes.index(dct_boundary_mode) + 1) % len(cycle_modes)]
+            print(f'DCT boundary mode: {dct_boundary_mode}')
         if key == ord('d'):
             rope_is_darker = not rope_is_darker
         if key == ord('z'):

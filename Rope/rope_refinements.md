@@ -349,6 +349,7 @@ If you want the next pass to improve the system without expanding scope too much
 - Investigate spectral centroid calibration/interpretation: it appears higher than expected when the rope forms an approximate half-wave across the visible image.
 
 ## Manual edited todo, rope analysis
+- fft looks odd, shows significant energy in 2,3 Hz bands even when the rope shape is a half wave
 - Rope activity change to slider
 - other parms change from number to slider?
 - identify shape? 
@@ -365,8 +366,6 @@ If you want the next pass to improve the system without expanding scope too much
   - one cycle can span the whole vertical area
   - 6 cycles can not
   - new measure: effective amp
-- limit the number of zerocrossings and x_pos-es
-  - require a minimum excursion (small) to count as a real wave
 - allow rope coil where we have back-and forth, several vertical traces overlay
   - then try to extract continuous shape of rope
   - frequency or number of swings
@@ -387,3 +386,10 @@ If you want the next pass to improve the system without expanding scope too much
 - simple shape centroid to midi note
 - simple freq centroid to midi note
 - simple most prominent frequency to midi note
+** Rearrange python gui
+  - horiz cog display as line on top of ROI (keep number too)
+  - vertical cog display as line on top of ROI
+  - use midpoint mark for both of them
+  - move wave activity to top, and add slider for it
+  - move shape and spectral centroids to middle panel (new)
+  - slim upper right box as it does not need to be so wide

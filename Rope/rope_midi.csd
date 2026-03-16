@@ -169,7 +169,7 @@ pgmassign -1, -1
   gkXdistance[] init 32
   gkZerocross[] init 32
   gkZerocross_distance[] init 32
-  gkFftbins[] init 32
+  gkDctbins[] init 32
 
   gihandle OSCinit 9899 ; set the network port number where we will receive OSC data from Python
 
@@ -245,8 +245,8 @@ instr 1
   kgrain2_on chnget "Grain2"
   ButtonEvent kgrain2_on, 13
 
-  kfft_bank_on chnget "Fft_bank"
-  ButtonEvent kfft_bank_on, 16, giWaveRaw
+  kdct_bank_on chnget "Dct_bank"
+  ButtonEvent kdct_bank_on, 16, giWaveRaw
 
   kfader_bank_on chnget "Fader_bank"
   ButtonEvent kfader_bank_on, 17, giWaveRaw
@@ -295,8 +295,9 @@ instr 1
   kwave_activity init 0
   kspectral_centroid init 0
   kshape_centroid init 0.5
+  khorizontal_cog_norm init 0.5
   nextmsg_rope_metrics:
-    kmess OSClisten gihandle, "rope_metrics", "ffffffffff", knumpeaks, kavg_x_distance, kavg_x_movement, kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x, kwave_activity, kspectral_centroid, kshape_centroid
+    kmess OSClisten gihandle, "rope_metrics", "fffffffffff", knumpeaks, kavg_x_distance, kavg_x_movement, kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x, kwave_activity, kspectral_centroid, kshape_centroid, khorizontal_cog_norm
     kOSC_received += kmess
     if kmess == 0 goto done_rope_metrics
     chnset knumpeaks, "numpeaks"
@@ -309,6 +310,7 @@ instr 1
     chnset kwave_activity, "wave_activity"
     chnset kspectral_centroid, "spectral_centroid"
     chnset kshape_centroid, "shape_centroid"
+    chnset khorizontal_cog_norm, "horizontal_cog_norm"
     kgoto nextmsg_rope_metrics
   done_rope_metrics:
  
@@ -356,16 +358,16 @@ instr 1
     kgoto nextmsg_zerocross_distance
   done_zerocross_distance:
 
-  kfft_bin init 0
-  kfft_bin_ndx init 0
-  gkFftbins *= 0
-  nextmsg_fft:
-    kmess OSClisten gihandle, "fft_bin", "ff", kfft_bin_ndx, kfft_bin
+  kdct_bin init 0
+  kdct_bin_ndx init 0
+  gkDctbins *= 0
+  nextmsg_dct:
+    kmess OSClisten gihandle, "dct_bin", "ff", kdct_bin_ndx, kdct_bin
     kOSC_received += kmess
-    if kmess == 0 goto done_fft
-    gkFftbins[kfft_bin_ndx] = kfft_bin
-    kgoto nextmsg_fft
-  done_fft:
+    if kmess == 0 goto done_dct
+    gkDctbins[kdct_bin_ndx] = kdct_bin
+    kgoto nextmsg_dct
+  done_dct:
 
 
   Soscreceived = "OK OSC received"
@@ -850,17 +852,17 @@ opcode OscBank, aa, k[]i[]kkkii
 endop
 
 instr 16
-  ; oscillator bank, tuned to (penta)scale, mix by 8 first fft bins
+  ; oscillator bank, tuned to (penta)scale, mixed by the first 8 DCT shape modes
   itab = p4
   iPitches[] fillarray 0, 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24
-  kfreq chnget "Freq_fft"
-  kamp_dB chnget "Amp_fft"
+  kfreq chnget "Freq_dct"
+  kamp_dB chnget "Amp_dct"
   kamp = ampdbfs(kamp_dB)
-  kchroma chnget "chroma_fft"
-  kdetune chnget "detune_fft"
-  kdist chnget "dist_fft"
+  kchroma chnget "chroma_dct"
+  kdetune chnget "detune_dct"
+  kdist chnget "dist_dct"
   imaxvoice = 8
-  aL,aR OscBank gkFftbins, iPitches, kfreq, kchroma, kdetune, 1, imaxvoice; start at 1, skipping the DC fft bin
+  aL,aR OscBank gkDctbins, iPitches, kfreq, kchroma, kdetune, 0, imaxvoice
   ;a1 = (tanh(a1)/imaxvoice)*kamp
   aL = aL/imaxvoice
   aR = aR/imaxvoice
