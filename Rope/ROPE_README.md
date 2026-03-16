@@ -1,11 +1,11 @@
 # Rope + ATEM setup guide
 
 This project now uses one Python virtual environment for:
-- camera controls probe (`atem_camera_probe.py`)
+- camera control probe (`atem_camera_probe.py`)
 - auto-calibration (`atem_auto_calibrate.py`)
 - rope tracking (`rope.py`)
 
-## 1) Create the virtualenv (one-time)
+## 1) Create the virtual environment (one-time)
 
 From PowerShell:
 
@@ -94,16 +94,19 @@ The tracker now includes additional robustness filters and layered stage renderi
 - `g` toggles background-model differencing (`lowpass_over_time`) on/off.
 - `e` toggles screen-blend equalization on/off.
 - `k` toggles kinematic continuity constraints on/off (rejects implausible rope shape jumps before fill/interpolation).
+- Default startup state is now: median ON, lowpass ON, equalization OFF.
+- Peak/zero-cross analysis now uses center-line residual gating (minimum amplitude, prominence, and spacing) to suppress wiggle/noise detections.
 
 FFT analysis now uses selected spatial-cycle bins per image width:
 
 - `0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 20` cycles.
 - Existing OSC `fft_bin` output sends these 16 normalized values.
 - Additional OSC `fft_hf` sends the aggregated high-frequency content above `20` cycles (useful as tracking-noise indicator).
+- Scalar rope metrics are bundled in `rope_metrics` (peak stats, lobe stats, activity, spectral centroid, shape centroid).
 
 Display layering is now ordered so earlier stages are drawn first and later stages are drawn on top.
 Binary is shown as a translucent cyan tint instead of opaque white, so it does not hide later traces.
-The final wave trace is drawn thicker than intermediate traces to improve visual distinction.
+Wave traces use staged line widths to maintain visual distinction across fill/median/lowpass/final layers.
 
 Pause behavior (`p`) with filter toggles:
 

@@ -23,10 +23,10 @@ $py310 = "C:\Users\obran\AppData\Local\Programs\Python\Python310\python.exe"
 & $py310 -B "c:\Cabbage_VST\CabbageEfx\midiplugs\domen_ai\Rope\atem_camera_probe.py" --ip 172.31.57.153 --camera 1 --write-test
 ```
 
-Install calibration dependency once for Python 3.10:
+Install project dependencies once for Python 3.10:
 
 ```powershell
-& $py310 -m pip install numpy opencv-python
+& $py310 -m pip install -r "c:\Cabbage_VST\CabbageEfx\midiplugs\domen_ai\Rope\requirements-rope.txt"
 ```
 
 ## CLI options

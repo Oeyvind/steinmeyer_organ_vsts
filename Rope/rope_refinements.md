@@ -1,22 +1,22 @@
 # Rope refinements
 
-Initial pass only. No code changes were made in this pass.
+This document started as an initial analysis pass and has since been updated to reflect implemented changes.
 
 ## 1. Current functionality summary
 
 ### Python analysis in rope.py
 
-- Video is captured from camera index 2 and converted to grayscale.
+- Video is captured from camera index 1 (`video_device = 1`) and converted to grayscale.
 - Motion is extracted by subtracting the previous grayscale frame from the current frame.
 - Analysis is limited to a polygon mask, so the rope is expected to stay inside a manually defined quadrilateral region.
 - The masked motion image is blurred and hard-thresholded to create a binary motion silhouette.
 - For each image column, the script finds the mean y position of active pixels. This becomes a 1D rope trace.
 - Missing points in the 1D trace are filled by linear interpolation so the rope curve becomes continuous enough for later analysis.
 - A center line is estimated by linear regression across the rope trace inside the masked region.
-- Peaks are found by measuring where the rope trace crosses above and below the center line, then selecting local maxima and minima within each signed segment.
-- Peak identities are tracked frame to frame by nearest-x matching, so peaks can persist as moving objects.
+- Peaks are extracted from the residual (`wave_1D - center_wave`) using amplitude + prominence + minimum-distance gating (noise-robust lobe detection).
+- Zero crossings are derived from significant-lobe structure, including edge crossings between ROI borders and first/last significant peaks when the residual crosses the center line.
 - Additional derived measures are extracted:
-  - number of active peaks
+  - number of significant peaks
   - average horizontal distance between peaks
   - average horizontal movement across sorted peaks
   - normalized x positions of peaks
@@ -29,16 +29,14 @@ Initial pass only. No code changes were made in this pass.
 
 ### OSC data sent from Python to Csound
 
-- `active_peaks`: per-peak ID, x position, signed amplitude relative to center, amplitude change, horizontal movement.
-- `deleted_peaks`: peak IDs that disappeared.
-- `peaks_stats`: number of peaks, average x distance, average x movement.
+- `rope_metrics`: bundled scalar metrics in one message (peak stats + shape stats + activity + spectral centroid + shape centroid).
 - `xpos`: normalized peak x positions.
 - `xdistance`: normalized spacing between adjacent peaks.
 - `zerocross`: zero crossing positions.
 - `zerocross_distance`: spacing between zero crossings.
 - `fft_bin`: the first 16 FFT bins of the rope curve.
+- `fft_hf`: aggregated high-frequency FFT energy above the configured cycle threshold.
 - `faders`: 10 sampled rope values.
-- `activity`: scalar wave activity.
 
 ### Csound mapping in rope_midi.csd
 
@@ -53,7 +51,7 @@ The Csound side receives OSC into global arrays and channels, then uses several 
 - Zero crossings to MIDI:
   - `Wave_zerocross` triggers a MIDI note whenever the zero-crossing count changes.
   - Note number = base note + zero-crossing count.
-- Distance grain module:
+- Distance-grain module:
   - `Distance_grain` uses peak spacing data to drive a granular audio texture.
   - Grain sync pulses are converted to MIDI notes through `partikkelsync`.
   - MIDI note output depends on grain playback frequency, threshold, transpose, and channel settings.
@@ -83,10 +81,7 @@ The Csound side receives OSC into global arrays and channels, then uses several 
 - The FFT should remain a per-frame calculation if it is being used as an instantaneous descriptor of the rope's current spatial shape. The optimization question is therefore not mainly update rate, but whether the current FFT implementation and downstream OSC packaging are as efficient as they could be. A lower FFT update rate only makes sense if a specific downstream mapping or display can tolerate temporally decimated spatial-shape data.
 - The center-line estimate should also remain a per-frame calculation, because the rope's global tilt and offset change with the shape. The useful optimization question here is whether `np.polyfit` is the cheapest correct estimator for the needed center line, not whether the center line should be updated less often.
 - The code allocates several arrays every frame, including `wave_img`, `wave_1D`, `faders`, string-built display lines, and FFT-derived arrays. Reusing buffers would reduce allocation churn.
-- Several imported or prepared filters are not actually used in the current frame loop:
-  - `median_filter` is imported but not used.
-  - `sosfiltfilt` is imported but not used.
-  - Butterworth filter coefficients are computed, but the lowpass stage is commented out.
+- `median_filter` and Butterworth lowpass are now active in the frame loop; `sosfiltfilt` remains imported but unused and can still be removed.
 - The `noise_gate` and `diff_thresh` logic is currently disabled scaffolding. It adds complexity without changing behavior.
 - The code reads the camera before checking whether `ret` is valid. That is a robustness issue more than a CPU issue, but it should be fixed before more optimization work.
 - The main frame-difference method only measures one subtraction direction. That may be intentional, but if not, an absolute difference could be more stable. It may slightly increase cost, so this should be treated as a tradeoff.
@@ -124,7 +119,7 @@ The current overlay is information-rich but hard to scan in realtime.
 
 - Too many overlays are drawn directly on top of the video image.
 - The stats text lines become very long and can be hard to read while the image updates.
-- `show_lowpassfilter` is enabled in the legend, but the actual lowpass stage is commented out, so the display can imply processing that is not happening.
+- Long `x_pos`, `x_dist`, and zero-crossing text lines can still crowd the panel even with the transparent background.
 - FFT dots, stats text, fader labels, and peak IDs compete for the same visual space.
 - Zero-crossing and x-distance lists are printed as long strings, which are difficult to parse in motion.
 
@@ -312,7 +307,7 @@ If you want the next pass to improve the system without expanding scope too much
 
 ## 9. Notes on correctness and possible issues worth checking before implementation
 
-- The Python `find_peaks` function uses global `wave_1D` and `wave_img` instead of only using its arguments. That works, but it makes the code harder to reason about and optimize.
+- Peak extraction has been refactored to residual-based gated detection (`extract_wave_features`), but threshold tuning (amplitude/prominence/distance) remains an active tradeoff between sensitivity and noise rejection.
 - The FFT calculation uses the real part of each FFT bin before taking the log, rather than using FFT magnitude. If the goal is to measure how much of each spatial frequency is present regardless of phase, magnitude is the standard descriptor. The current approach is more phase-sensitive than it first appears, because the real part of a bin can shrink or change sign purely because of phase rotation even when the spatial component is still strong.
 - FFT phase may still be useful as a separate feature if the project wants a cheaper global estimate of wave travel direction. That would be a different use of the FFT from the current per-bin amplitude measure, and it should be treated as a possible complement to or simplification of the current peak-ID tracking rather than a direct drop-in replacement.
 - The current Csound patch makes a strong distinction between peak identities and peak-derived summary data:
@@ -332,8 +327,7 @@ If you want the next pass to improve the system without expanding scope too much
   - wavelength or spacing estimation from FFT magnitude, zero crossings, or autocorrelation
   - a simple event detector based on changes in peak count, curvature energy, or thresholded wave activity
 - If the stopchord and stop-LSYS mappings should retain their present dependence on leftmost/rightmost or extreme peak positions, then some position-distribution feature still needs to be preserved. That does not necessarily require stable peak IDs, but it does require some representation of where the strongest rope lobes are located in the current frame.
-- Zero-crossing extraction is not explicitly limited to the masked left-right region before normalization.
-- The lowpass legend can currently be shown even though the lowpass processing line is commented out.
+- Zero-crossing extraction is now tied to significant-lobe structure and ROI bounds; further temporal hysteresis could still reduce one-frame flicker.
 - Filtering and rope-tracking constraints are now significantly better, but still likely refinable; in particular, edge behavior, kinematic-vs-observation weighting, and residual dark-region artifacts should be treated as active tuning areas.
 - Several active Csound code paths assume channels exist that are not present in the GUI. Even if those instruments are not enabled now, this is a maintenance risk.
 
