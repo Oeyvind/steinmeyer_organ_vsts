@@ -342,7 +342,7 @@ If you want the next pass to improve the system without expanding scope too much
 1. ✅ Record a short test video (max 1 minute), and add a command-line argument to run `rope.py` with the recorded test video instead of live capture. This is useful for development when away from camera hardware.
 2. ✅ Implement the suggested FFT change noted around line 316 in this refinements file.
 3. ✅ Improve display readability by drawing a black semi-transparent overlay beneath on-screen parameter text.
-4. ✅ Add a display-frame-rate reduction option: render only every n-th frame while still running analysis and OSC output on every frame. Use keyboard keys `1`, `2`, `3`, `4` to set display rate, and show current display reduction in the upper-right corner.
+4. Add a display-frame-rate reduction option: render only every n-th frame while still running analysis and OSC output on every frame. Use keyboard keys `1`, `2`, `3`, `4` to set display rate, and show current display reduction in the upper-right corner.
 5. ✅ Identify additional filters/options that can be enabled/disabled in realtime via keyboard keys.
 6. ✅ Attempt a temporal lowpass for video processing so pixels that stop changing gradually fade (reference: water-wave tracking project example).
 7. ✅ Improve rope-tracking clarity and robustness; ask for additional targeted suggestions.
@@ -353,3 +353,41 @@ If you want the next pass to improve the system without expanding scope too much
 
 - Consider making the median filter significantly larger (beyond the current increase) to evaluate whether it improves stability without over-smoothing rope detail.
 - Investigate spectral centroid calibration/interpretation: it appears higher than expected when the rope forms an approximate half-wave across the visible image.
+
+## Manual edited todo, rope analysis
+- Rope activity change to slider
+- other parms change from number to slider?
+- identify shape? 
+  - one long slope plus a bump
+  - regularly spaced sine cycles
+  - coiling (loose end), or through-shape
+  - tilt (center line tendency)
+  - wave direction
+- better wave activity
+  - now it shows relatively high activity even for small movements
+  - and not very high for vigorous shaking
+- amp dependent on frequency
+  - one cycle can span the whole vertical area
+  - 6 cycles can not
+  - new measure: effective amp
+- limit the number of zerocrossings and x_pos-es
+  - require a minimum excursion (small) to count as a real wave
+- allow rope coil where we have back-and forth, several vertical traces overlay
+  - then try to extract continuous shape of rope
+  - frequency or number of swings
+
+## Manual edited todo, midification
+- fader bank midifications
+  - currently high threshold, not responsive enough
+  - note mapping for fader bank
+    - positive only
+    - negative and positive (abs)
+    - negative produce other notes than positive
+      - negative one octave down?
+- for all fader bank midifications:
+  - alternative where we have a fader per peak
+  - if same note activated: sustain
+  - if new note: stop old, start new
+- simple shape centroid to midi note
+- simple freq centroid to midi note
+- simple most prominent frequency to midi note
