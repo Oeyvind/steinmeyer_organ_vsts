@@ -51,7 +51,7 @@ dct_display_height = 120
 dct_display_db_floor = -40.0  # dB floor for display; -40dB = amplitude 1/100 of full swing
 dct_display_db_ceiling = 32.0  # positive headroom so strong modes do not saturate too early
 dct_display_shape_gamma = 1.8  # emphasize high-end differences in normalized DCT display values
-dct_boundary_mode = 'adaptive'  # 'adaptive' (auto-blend), 'mirror' (plain even extension), 'edge' (localized edge correction), or 'lifted' (full-span boundary detrend)
+dct_boundary_mode = 'lifted'  # 'adaptive' (auto-blend), 'mirror' (plain even extension), 'edge' (localized edge correction), or 'lifted' (full-span boundary detrend)
 wave_motion_display_max = 5.0
 wave_motion_slider_max = 2.5
 wave_motion_max_lag_px = 48
@@ -276,7 +276,7 @@ perf_proc_ms_total = 0.0
 perf_display_proc_ms_total = 0.0
 perf_skip_proc_ms_total = 0.0
 perf_window_start = 0.0
-show_dct_signal = True
+show_dct_signal = False
 
 # BGR colors
 red = (0,0,255)
@@ -651,9 +651,9 @@ def display_peaks(peak_indices, center_wave, input_1D, output_img, show_peaks, p
         y = int(input_1D[x])
         if show_peaks:
             if y > center_wave[x]:
-                cv2.circle(output_img, (x,y),10, peakplus_color, 4)
+                cv2.circle(output_img, (x,y), 14, peakplus_color, 8)
             else:
-                cv2.circle(output_img, (x,y),10, peaknegative_color, 4)
+                cv2.circle(output_img, (x,y), 14, peaknegative_color, 8)
  
 def compute_peak_descriptors(peak_indices, wave_1D, center_wave, mask_left, mask_right, max_amp, prev_shape_centroid_x):
     roi_width = max(mask_right-mask_left, 1)
@@ -933,13 +933,15 @@ def classify_rope_shape(roi_wave, center_roi_wave, peak_indices, zero_crossings,
 
     return best_idx, shape_state_labels[best_idx], float(np.clip(best_score, 0.0, 1.0)), smoothed_scores.astype(np.float32)
 
-def display_faders(faders, num_faders, fader_distance, fader_pad, mask_left, mask_center, max_amp, output_img, show_faders, fader_color):
-    for i in range(num_faders):
+def display_faders(faders, fader_x_positions, mask_center, max_amp, output_img, show_faders, fader_color):
+    fader_rect_w = 12
+    fader_rect_h = 30
+    for i in range(len(faders)):
         y = int(faders[i])
-        y_val = (mask_center[i]-y)/(max_amp*0.5)
-        x = (i*fader_distance)+mask_left+fader_pad
+        x = int(fader_x_positions[i])
+        y_val = (mask_center[x]-y)/(max_amp*0.5)
         if show_faders:
-            cv2.circle(output_img, (x,y), 15, fader_color, 8)
+            cv2.rectangle(output_img, (x - fader_rect_w//2, y - fader_rect_h//2), (x + fader_rect_w//2, y + fader_rect_h//2), fader_color, -1)
             cv2.putText(output_img, f'{y_val:.2f}', (x-20,y+45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, fader_color, 2, cv2.LINE_AA)
 
 
@@ -1098,12 +1100,11 @@ try:
 
         # grid faders
         num_faders = 10
-        faders = np.zeros(num_faders)
-        fader_pad = int((dimensions[1]/(num_faders))*0.2)
-        fader_distance = int((dimensions[1]-fader_pad*2)/num_faders)
-        for i in range(num_faders):
-            faders[i] = wave_1D[i*fader_distance+fader_pad]#/max_amp
-        display_faders(faders, num_faders, fader_distance, fader_pad, mask_left, mask_center, max_amp, wave_img, show_faders, fader_color)
+        fader_left_x = int(np.clip(mask_left, 0, dimensions[1]-1))
+        fader_right_x = int(np.clip(mask_right, 0, dimensions[1]-1))
+        fader_x_positions = np.rint(np.linspace(fader_left_x, fader_right_x, num_faders)).astype(np.int32)
+        faders = wave_1D[fader_x_positions]
+        display_faders(faders, fader_x_positions, mask_center, max_amp, wave_img, show_faders, fader_color)
         # peak parms and stats
         descriptors = compute_peak_descriptors(peak_indices, wave_1D, center_wave, mask_left, mask_right, max_amp, prev_shape_centroid_x)
         prev_shape_centroid_x = descriptors['shape_centroid_x']
@@ -1231,7 +1232,8 @@ try:
         )
         osc_io.sendOSC('rope_metrics', osc_msg) # send OSC back to client
         for i in range(len(faders)):
-            val = (mask_center[i]-faders[i])/(max_amp*0.5)
+            x = int(fader_x_positions[i])
+            val = (mask_center[x]-faders[i])/(max_amp*0.5)
             osc_msg = i, val, len(faders)
             osc_io.sendOSC('faders', osc_msg) # send OSC back to client
         time_stats = time.time()
@@ -1261,8 +1263,8 @@ try:
             roi_width_px = max(mask_right - mask_left, 1)
             shape_centroid_x_px = int(np.clip(mask_left + descriptors['shape_centroid_x'] * (roi_width_px - 1), mask_left, mask_right - 1))
             horizontal_cog_y_px = int(np.clip(horizontal_cog_y, roi_top_y, roi_bottom_y))
-            cv2.line(output, (mask_left, horizontal_cog_y_px), (mask_right, horizontal_cog_y_px), red, 2)
-            cv2.line(output, (shape_centroid_x_px, roi_top_y), (shape_centroid_x_px, roi_bottom_y), red, 2)
+            cv2.line(output, (mask_left, horizontal_cog_y_px), (mask_right, horizontal_cog_y_px), red, 1)
+            cv2.line(output, (shape_centroid_x_px, roi_top_y), (shape_centroid_x_px, roi_bottom_y), red, 1)
 
             cog_label_font_scale = 0.825
             cog_label_thickness = 2

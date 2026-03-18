@@ -333,23 +333,9 @@ If you want the next pass to improve the system without expanding scope too much
 
 ## 10. Next planned refinement steps
 
-1. ✅ Record a short test video (max 1 minute), and add a command-line argument to run `rope.py` with the recorded test video instead of live capture. This is useful for development when away from camera hardware.
-2. ✅ Implement the suggested FFT change noted around line 316 in this refinements file.
-3. ✅ Improve display readability by drawing a black semi-transparent overlay beneath on-screen parameter text.
-4. ✅Add a display-frame-rate reduction option: render only every n-th frame while still running analysis and OSC output on every frame. Use keyboard keys `1`, `2`, `3`, `4` to set display rate, and show current display reduction in the upper-right corner.
-5. ✅ Identify additional filters/options that can be enabled/disabled in realtime via keyboard keys.
-6. ✅ Attempt a temporal lowpass for video processing so pixels that stop changing gradually fade (reference: water-wave tracking project example).
-7. ✅ Improve rope-tracking clarity and robustness; ask for additional targeted suggestions.
-  - ✅ try to guess the missing points?
-8. ⏳ After these are completed, continue with refining Csound-side GUI and MIDI processing. (remaining)
 
 
 ## Manual edited todo, rope analysis
-- ✅fft looks odd, shows significant energy in 2,3 Hz bands even when the rope shape is a half wave
-- ✅Rope activity change to slider
-- ✅other parms change from number to slider?
-- ✅refine the wave activity measure  
-- ✅amp from regress line
 - amp dependent on frequency?
   - one cycle can span the whole vertical area
   - 6 cycles can not
@@ -374,11 +360,3 @@ If you want the next pass to improve the system without expanding scope too much
 - simple shape centroid to midi note
 - simple freq centroid to midi note
 - simple most prominent frequency to midi note
-** ✅ Rearrange python gui
-  - horiz cog display as line on top of ROI (keep number too)
-  - vertical cog display as line on top of ROI
-  - use midpoint mark for both of them
-  - move wave activity to top, and add slider for it
-  - new: wave direction and speed
-  - move shape and spectral centroids to middle panel (new)
-  - slim upper right box as it does not need to be so wide
