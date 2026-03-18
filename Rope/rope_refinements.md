@@ -25,7 +25,7 @@ This document started as an initial analysis pass and has since been updated to 
   - distances between zero crossings
   - FFT bins of the 1D rope curve
   - 10 fixed-position fader samples taken from the rope curve
-  - overall motion activity from the binary image
+  - perceptual wave activity from the extracted rope profile, weighted toward recent profile motion and secondarily toward current rope excursion
 
 ### OSC data sent from Python to Csound
 
@@ -336,39 +336,27 @@ If you want the next pass to improve the system without expanding scope too much
 1. ✅ Record a short test video (max 1 minute), and add a command-line argument to run `rope.py` with the recorded test video instead of live capture. This is useful for development when away from camera hardware.
 2. ✅ Implement the suggested FFT change noted around line 316 in this refinements file.
 3. ✅ Improve display readability by drawing a black semi-transparent overlay beneath on-screen parameter text.
-4. Add a display-frame-rate reduction option: render only every n-th frame while still running analysis and OSC output on every frame. Use keyboard keys `1`, `2`, `3`, `4` to set display rate, and show current display reduction in the upper-right corner.
+4. ✅Add a display-frame-rate reduction option: render only every n-th frame while still running analysis and OSC output on every frame. Use keyboard keys `1`, `2`, `3`, `4` to set display rate, and show current display reduction in the upper-right corner.
 5. ✅ Identify additional filters/options that can be enabled/disabled in realtime via keyboard keys.
 6. ✅ Attempt a temporal lowpass for video processing so pixels that stop changing gradually fade (reference: water-wave tracking project example).
 7. ✅ Improve rope-tracking clarity and robustness; ask for additional targeted suggestions.
   - ✅ try to guess the missing points?
 8. ⏳ After these are completed, continue with refining Csound-side GUI and MIDI processing. (remaining)
 
-## 11. End-of-day follow-up note
-
-- Consider making the median filter significantly larger (beyond the current increase) to evaluate whether it improves stability without over-smoothing rope detail.
-- Investigate spectral centroid calibration/interpretation: it appears higher than expected when the rope forms an approximate half-wave across the visible image.
 
 ## Manual edited todo, rope analysis
-- fft looks odd, shows significant energy in 2,3 Hz bands even when the rope shape is a half wave
-- Rope activity change to slider
-- other parms change from number to slider?
-- identify shape? 
-  - one long slope plus a bump
-  - regularly spaced sine cycles
-  - coiling (loose end), or through-shape
-  - tilt (center line tendency)
-  - wave direction
-- better wave activity
-  - now it shows relatively high activity even for small movements
-  - and not very high for vigorous shaking
-- 
-- amp dependent on frequency
+- ✅fft looks odd, shows significant energy in 2,3 Hz bands even when the rope shape is a half wave
+- ✅Rope activity change to slider
+- ✅other parms change from number to slider?
+- ✅refine the wave activity measure  
+- ✅amp from regress line
+- amp dependent on frequency?
   - one cycle can span the whole vertical area
   - 6 cycles can not
   - new measure: effective amp
-- allow rope coil where we have back-and forth, several vertical traces overlay
-  - then try to extract continuous shape of rope
-  - frequency or number of swings
+- review motion descriptors after adding cross-correlation wave movement meter
+  - decide whether `avg_x_movement` is still useful or redundant
+- review, calibrate and test the shape identification (straight, bump, waves) 
 
 ## Manual edited todo, midification
 - fader bank midifications
@@ -386,10 +374,11 @@ If you want the next pass to improve the system without expanding scope too much
 - simple shape centroid to midi note
 - simple freq centroid to midi note
 - simple most prominent frequency to midi note
-** Rearrange python gui
+** ✅ Rearrange python gui
   - horiz cog display as line on top of ROI (keep number too)
   - vertical cog display as line on top of ROI
   - use midpoint mark for both of them
   - move wave activity to top, and add slider for it
+  - new: wave direction and speed
   - move shape and spectral centroids to middle panel (new)
   - slim upper right box as it does not need to be so wide

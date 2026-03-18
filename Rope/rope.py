@@ -49,8 +49,21 @@ dct_display_cycles = np.array([
 dct_highmode_start_cycles = 10.0
 dct_display_height = 120
 dct_display_db_floor = -40.0  # dB floor for display; -40dB = amplitude 1/100 of full swing
-dct_display_db_ceiling = 24.0  # positive headroom so strong modes do not saturate too early
+dct_display_db_ceiling = 32.0  # positive headroom so strong modes do not saturate too early
+dct_display_shape_gamma = 1.8  # emphasize high-end differences in normalized DCT display values
 dct_boundary_mode = 'adaptive'  # 'adaptive' (auto-blend), 'mirror' (plain even extension), 'edge' (localized edge correction), or 'lifted' (full-span boundary detrend)
+wave_motion_display_max = 5.0
+wave_motion_slider_max = 2.5
+wave_motion_max_lag_px = 48
+wave_motion_smooth_alpha = 0.25
+wave_motion_activity_gate = 0.05
+wave_activity_attack_alpha = 0.38
+wave_activity_release_alpha = 0.12
+wave_activity_curve_gamma = 1.5
+shape_state_labels = ['straight', 'one-bump', 'arc', 'periodic', 'endpoint-lost', 'mixed']
+shape_state_smooth_alpha = 0.22
+shape_state_switch_margin = 0.08
+shape_state_min_score = 0.38
 
 # optional ATEM calibration
 atem_enable_calibration = True
@@ -221,23 +234,49 @@ print('wavecenter', wavecenter_y_left, wavecenter_y_right)
 mask_center = np.linspace(wavecenter_y_left, wavecenter_y_right, dimensions[1])
 mask_left = pts[0][0][0] # left top, assumes vertical left edge
 mask_right = pts[1][0][0] # right top, as above
+roi_top_y = int(min(pts[0][0][1], pts[1][0][1]))
+roi_bottom_y = int(max(pts[2][0][1], pts[3][0][1]))
 print('mask LR', mask_left, mask_right)
 send_counter = 0
 max_numpeaks = 0
 prev_wave_1D = np.zeros(dimensions[1])
+prev_roi_wave_motion = None
 prev_binary_img = np.copy(previous_frame_gray)
 spectral_centroid_cycles = 0.0
 spectral_centroid_norm = 0.0
 horizontal_cog_y = float(np.mean(mask_center[mask_left:mask_right]))
 horizontal_cog_norm = float(np.clip(horizontal_cog_y / max(dimensions[0] - 1, 1), 0.0, 1.0))
+wave_activity = 0.0
+wave_amp = 0.0
+wave_motion_value = 0.0
 avg_x_distance = 0
 avg_x_movement = 0
 prev_shape_centroid_x = 0.5
+shape_state_id = len(shape_state_labels) - 1
+shape_state_label = shape_state_labels[shape_state_id]
+shape_state_confidence = 0.0
+shape_state_scores = np.zeros(len(shape_state_labels), dtype=np.float32)
+shape_state_scores[shape_state_id] = 1.0
 x_pos = np.zeros(0)
 x_distances = np.zeros(0)
 record_writer = None
 record_started_time = None
 record_overwrite_armed = False
+display_update_stride = 1
+display_frame_counter = 0
+underflow_event_count = 0
+underflow_deficit_ms_total = 0.0
+underflow_avg_ms_per_sec = 0.0
+underflow_event_rate_per_sec = 0.0
+underflow_window_start = 0.0
+perf_frame_count = 0
+perf_display_frame_count = 0
+perf_skip_frame_count = 0
+perf_proc_ms_total = 0.0
+perf_display_proc_ms_total = 0.0
+perf_skip_proc_ms_total = 0.0
+perf_window_start = 0.0
+show_dct_signal = True
 
 # BGR colors
 red = (0,0,255)
@@ -298,7 +337,7 @@ option_stats_color = (180,255,120)
 bg_model_option_color = (255,180,60)   # warm amber
 screen_blend_option_color = (180,120,255)  # soft purple
 kinematic_option_color = (120,220,255)
-polarity_option_color = (255,120,120)
+polarity_option_color = (255,210,180)
 dct_boundary_option_color = (160,255,180)
 
 def find_center_wave_regr(wave_1D, mask_left, mask_right):
@@ -662,6 +701,238 @@ def compute_peak_descriptors(peak_indices, wave_1D, center_wave, mask_left, mask
     }
     return descriptors
 
+
+def estimate_wave_activity(prev_roi_wave, curr_roi_wave, center_roi_wave, max_amp, prev_activity_value):
+    if curr_roi_wave is None or center_roi_wave is None or len(curr_roi_wave) < 8:
+        return float(prev_activity_value * 0.9)
+
+    curr = curr_roi_wave.astype(np.float32)
+    center = center_roi_wave.astype(np.float32)
+    if len(center) != len(curr):
+        return float(prev_activity_value * 0.9)
+
+    residual = curr - center
+    abs_residual = np.abs(residual)
+
+    motion_mean = 0.0
+    motion_peak = 0.0
+    if prev_roi_wave is not None and len(prev_roi_wave) == len(curr):
+        frame_delta = np.abs(curr - prev_roi_wave.astype(np.float32))
+        motion_mean = float(np.mean(frame_delta))
+        motion_peak = float(np.percentile(frame_delta, 90))
+
+    excursion_mean = float(np.mean(abs_residual))
+    excursion_peak = float(np.percentile(abs_residual, 90))
+
+    motion_mean_scale = max(1.0, float(max_amp) * 0.020)
+    motion_peak_scale = max(1.0, float(max_amp) * 0.045)
+    excursion_mean_scale = max(1.0, float(max_amp) * 0.040)
+    excursion_peak_scale = max(1.0, float(max_amp) * 0.090)
+
+    motion_component = 0.45 * (1.0 - np.exp(-motion_mean / motion_mean_scale))
+    motion_component += 0.55 * (1.0 - np.exp(-motion_peak / motion_peak_scale))
+
+    excursion_component = 0.40 * (1.0 - np.exp(-excursion_mean / excursion_mean_scale))
+    excursion_component += 0.60 * (1.0 - np.exp(-excursion_peak / excursion_peak_scale))
+
+    raw_activity = (0.72 * motion_component) + (0.28 * excursion_component)
+    raw_activity = float(np.clip(raw_activity, 0.0, 1.0))
+    raw_activity = float(raw_activity ** wave_activity_curve_gamma)
+    alpha = wave_activity_attack_alpha if raw_activity >= prev_activity_value else wave_activity_release_alpha
+    activity = ((1.0 - alpha) * prev_activity_value) + (alpha * raw_activity)
+    if activity < 0.01:
+        activity = 0.0
+    return float(np.clip(activity, 0.0, 1.0))
+
+def estimate_wave_motion(prev_roi_wave, curr_roi_wave, wave_activity, prev_motion_value):
+    if curr_roi_wave is None or len(curr_roi_wave) < 8:
+        return prev_motion_value * 0.8, prev_roi_wave
+
+    curr = curr_roi_wave.astype(np.float32)
+    if prev_roi_wave is None or len(prev_roi_wave) != len(curr):
+        return prev_motion_value * 0.8, np.copy(curr)
+
+    prev = prev_roi_wave.astype(np.float32)
+    curr -= np.mean(curr)
+    prev -= np.mean(prev)
+
+    curr_std = float(np.std(curr))
+    prev_std = float(np.std(prev))
+    if curr_std < 1e-4 or prev_std < 1e-4:
+        return prev_motion_value * 0.8, np.copy(curr_roi_wave.astype(np.float32))
+
+    n = len(curr)
+    max_lag = int(min(wave_motion_max_lag_px, max(2, n // 6)))
+    corr = np.correlate(curr, prev, mode='full').astype(np.float32)
+    lags = np.arange(-n + 1, n, dtype=np.int32)
+    valid = (lags >= -max_lag) & (lags <= max_lag)
+    corr_win = corr[valid]
+    lags_win = lags[valid].astype(np.float32)
+
+    if len(corr_win) < 3:
+        return prev_motion_value * 0.8, np.copy(curr_roi_wave.astype(np.float32))
+
+    peak_idx = int(np.argmax(corr_win))
+    peak_lag = float(lags_win[peak_idx])
+    if 0 < peak_idx < (len(corr_win) - 1):
+        y0 = float(corr_win[peak_idx - 1])
+        y1 = float(corr_win[peak_idx])
+        y2 = float(corr_win[peak_idx + 1])
+        denom = (y0 - 2.0 * y1 + y2)
+        if abs(denom) > 1e-8:
+            peak_lag += 0.5 * (y0 - y2) / denom
+
+    peak_val = float(corr_win[peak_idx])
+    corr_mean = float(np.mean(corr_win))
+    corr_std = float(np.std(corr_win) + 1e-8)
+    peak_z = (peak_val - corr_mean) / corr_std
+    corr_confidence = float(np.clip((peak_z - 1.0) / 4.0, 0.0, 1.0))
+    activity_confidence = float(np.clip(wave_activity / wave_motion_activity_gate, 0.0, 1.0))
+    confidence = corr_confidence * activity_confidence
+
+    raw_motion = float(np.clip((peak_lag / max(max_lag, 1)) * wave_motion_display_max, -wave_motion_display_max, wave_motion_display_max))
+    target_motion = raw_motion * confidence
+    motion = ((1.0 - wave_motion_smooth_alpha) * prev_motion_value) + (wave_motion_smooth_alpha * target_motion)
+    if abs(motion) < (0.03 * wave_motion_display_max):
+        motion = 0.0
+    return float(np.clip(motion, -wave_motion_display_max, wave_motion_display_max)), np.copy(curr_roi_wave.astype(np.float32))
+
+
+def classify_rope_shape(roi_wave, center_roi_wave, peak_indices, zero_crossings, x_distances, dct_selected, dct_cycles, wave_amp, obs_count_roi, max_amp, prev_scores):
+    num_states = len(shape_state_labels)
+
+    def rising_score(value, low, high):
+        if high <= low:
+            return 1.0 if value >= high else 0.0
+        return float(np.clip((value - low) / (high - low), 0.0, 1.0))
+
+    def falling_score(value, low, high):
+        return float(1.0 - rising_score(value, low, high))
+
+    def target_score(value, center, half_width):
+        return float(np.clip(1.0 - (abs(value - center) / max(half_width, 1e-6)), 0.0, 1.0))
+
+    if roi_wave is None or center_roi_wave is None or len(roi_wave) < 8:
+        scores = np.zeros(num_states, dtype=np.float32)
+        scores[-1] = 1.0
+        return len(shape_state_labels) - 1, shape_state_labels[-1], 1.0, scores
+
+    residual = roi_wave.astype(np.float32) - center_roi_wave.astype(np.float32)
+    abs_residual = np.abs(residual)
+    peak_count = len(peak_indices)
+    zero_cross_count = len(zero_crossings)
+
+    if len(x_distances) > 1 and float(np.mean(x_distances)) > 1e-6:
+        spacing_cv = float(np.std(x_distances) / (np.mean(x_distances) + 1e-6))
+    else:
+        spacing_cv = 1.0
+
+    if len(dct_selected) > 1:
+        non_dc = dct_selected[1:]
+        non_dc_cycles = dct_cycles[1:len(dct_selected)]
+    else:
+        non_dc = np.zeros(0, dtype=np.float32)
+        non_dc_cycles = np.zeros(0, dtype=np.float32)
+
+    non_dc_sum = float(np.sum(non_dc))
+    if non_dc_sum > 1e-8:
+        dom_idx = int(np.argmax(non_dc))
+        dominant_cycle = float(non_dc_cycles[dom_idx])
+        dominant_ratio = float(non_dc[dom_idx] / non_dc_sum)
+        low_freq_ratio = float(np.sum(non_dc[non_dc_cycles <= 1.25]) / non_dc_sum)
+        periodic_ratio = float(np.sum(non_dc[(non_dc_cycles >= 1.5) & (non_dc_cycles <= 5.0)]) / non_dc_sum)
+    else:
+        dominant_cycle = 0.0
+        dominant_ratio = 0.0
+        low_freq_ratio = 0.0
+        periodic_ratio = 0.0
+
+    if len(residual) >= 3:
+        curvature_rms_px = float(np.sqrt(np.mean(np.square(np.diff(residual, n=2)))))
+    else:
+        curvature_rms_px = 0.0
+    curvature_norm = float(np.clip(curvature_rms_px / max(float(max_amp) * 0.025, 1.0), 0.0, 1.0))
+
+    peak_abs = float(np.max(abs_residual)) if len(abs_residual) > 0 else 0.0
+    if peak_abs > 1e-6:
+        broad_fraction = float(np.mean(abs_residual > (peak_abs * 0.35)))
+    else:
+        broad_fraction = 0.0
+
+    sign_balance = float(abs(np.mean(residual)) / (np.mean(abs_residual) + 1e-6)) if len(residual) > 0 else 0.0
+
+    if obs_count_roi is not None and len(obs_count_roi) == len(roi_wave):
+        edge_width = max(4, int(len(obs_count_roi) * 0.12))
+        left_edge_coverage = float(np.mean(obs_count_roi[:edge_width] > 0))
+        right_edge_coverage = float(np.mean(obs_count_roi[-edge_width:] > 0))
+    else:
+        left_edge_coverage = 1.0
+        right_edge_coverage = 1.0
+    one_edge_missing = (left_edge_coverage < 0.20) != (right_edge_coverage < 0.20)
+
+    raw_scores = np.zeros(num_states, dtype=np.float32)
+
+    raw_scores[0] = (
+        0.40 * falling_score(wave_amp, 0.04, 0.11)
+        + 0.25 * falling_score(curvature_norm, 0.10, 0.42)
+        + 0.20 * falling_score(float(peak_count), 0.5, 2.0)
+        + 0.15 * falling_score(float(zero_cross_count), 0.5, 3.0)
+    )
+
+    raw_scores[1] = (
+        0.22 * rising_score(wave_amp, 0.05, 0.20)
+        + 0.22 * target_score(float(peak_count), 1.0, 1.0)
+        + 0.18 * target_score(dominant_cycle, 1.4, 0.9)
+        + 0.18 * target_score(broad_fraction, 0.32, 0.18)
+        + 0.10 * falling_score(float(zero_cross_count), 1.5, 4.0)
+        + 0.10 * target_score(sign_balance, 0.45, 0.35)
+    )
+
+    raw_scores[2] = (
+        0.22 * rising_score(wave_amp, 0.05, 0.18)
+        + 0.22 * rising_score(low_freq_ratio, 0.35, 0.75)
+        + 0.18 * rising_score(sign_balance, 0.55, 0.90)
+        + 0.18 * rising_score(broad_fraction, 0.45, 0.78)
+        + 0.10 * falling_score(float(peak_count), 0.8, 2.5)
+        + 0.10 * falling_score(curvature_norm, 0.25, 0.70)
+    )
+
+    raw_scores[3] = (
+        0.22 * rising_score(wave_amp, 0.06, 0.22)
+        + 0.20 * rising_score(float(peak_count), 1.5, 4.5)
+        + 0.18 * rising_score(float(zero_cross_count), 2.0, 6.0)
+        + 0.18 * falling_score(spacing_cv, 0.18, 0.55)
+        + 0.12 * rising_score(periodic_ratio, 0.40, 0.78)
+        + 0.10 * target_score(dominant_cycle, 2.7, 1.8)
+    )
+
+    raw_scores[4] = (
+        0.30 * (1.0 if one_edge_missing else 0.0)
+        + 0.20 * rising_score(wave_amp, 0.08, 0.24)
+        + 0.18 * rising_score(curvature_norm, 0.28, 0.78)
+        + 0.16 * target_score(broad_fraction, 0.28, 0.20)
+        + 0.08 * falling_score(min(left_edge_coverage, right_edge_coverage), 0.15, 0.55)
+        + 0.08 * falling_score(sign_balance, 0.55, 0.95)
+    )
+
+    raw_scores[5] = 0.24
+
+    if prev_scores is None or len(prev_scores) != num_states:
+        smoothed_scores = raw_scores
+    else:
+        smoothed_scores = ((1.0 - shape_state_smooth_alpha) * prev_scores) + (shape_state_smooth_alpha * raw_scores)
+
+    best_idx = int(np.argmax(smoothed_scores))
+    best_score = float(smoothed_scores[best_idx])
+    sorted_scores = np.sort(smoothed_scores)
+    second_best = float(sorted_scores[-2]) if len(sorted_scores) > 1 else 0.0
+    if best_idx != (num_states - 1):
+        if best_score < shape_state_min_score or (best_score - second_best) < shape_state_switch_margin:
+            best_idx = num_states - 1
+            best_score = float(smoothed_scores[best_idx])
+
+    return best_idx, shape_state_labels[best_idx], float(np.clip(best_score, 0.0, 1.0)), smoothed_scores.astype(np.float32)
+
 def display_faders(faders, num_faders, fader_distance, fader_pad, mask_left, mask_center, max_amp, output_img, show_faders, fader_color):
     for i in range(num_faders):
         y = int(faders[i])
@@ -710,6 +981,8 @@ def smooth_fill_to_mask_edges(wave_line, centroid_line, left_bound, right_bound,
 try:
     print('Starting video. Press q to exit.')
     frame_num = 0
+    underflow_window_start = time.time()
+    perf_window_start = underflow_window_start
     while True:
         frame_num += 1
         time_start = time.time()
@@ -802,10 +1075,18 @@ try:
         # final 1D wave used for analysis
         wave_1D = wave_1D_final
         time_filter = time.time()
-        # amount of activity
-        wave_activity = np.sum(binary_img)/(dimensions[0]*dimensions[1]*5)
-        # find center              
+        # find center and derive activity from the rope trace rather than binary silhouette area
         center_wave = find_center_wave_regr(wave_1D, mask_left, mask_right)
+        center_roi_wave = center_wave[mask_left:mask_right]
+        roi_wave_for_motion = wave_1D[mask_left:mask_right]
+        if len(roi_wave_for_motion) > 0:
+            roi_residual = roi_wave_for_motion.astype(np.float32) - center_roi_wave.astype(np.float32)
+            wave_amp_rms_px = float(np.sqrt(np.mean(np.square(roi_residual))))
+        else:
+            wave_amp_rms_px = 0.0
+        wave_amp = float(np.clip(wave_amp_rms_px / max((max_amp * 0.5), 1.0), 0.0, 1.0))
+        wave_activity = estimate_wave_activity(prev_roi_wave_motion, roi_wave_for_motion, center_roi_wave, max_amp, wave_activity)
+        wave_motion_value, prev_roi_wave_motion = estimate_wave_motion(prev_roi_wave_motion, roi_wave_for_motion, wave_activity, wave_motion_value)
         # Find only significant rope lobes using amplitude/prominence on the center-line residual.
         if noise_gate > 0:
             peak_indices, zero_crossings = extract_wave_features(wave_1D, center_wave, mask_left, mask_right, wave_img, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color)
@@ -833,7 +1114,6 @@ try:
         x_distances = descriptors['x_distances']
         if numpeaks > max_numpeaks:
             max_numpeaks = numpeaks
-            print('new max numpeaks', max_numpeaks)
         # other stats
         if numpeaks > 0:
             for i in range(np.min((len(x_pos),32))):
@@ -857,23 +1137,28 @@ try:
         horizontal_cog_norm = float(np.clip(horizontal_cog_y / max(dimensions[0] - 1, 1), 0.0, 1.0))
         # DCT zero-reference: horizontal baseline at the rope's vertical center of gravity in the ROI.
         dct_input_raw = roi_wave - horizontal_cog_y
+        dct_adaptive_choice = dct_boundary_mode
         if dct_boundary_mode == 'adaptive':
+            edge_input, edge_baseline = apply_dct_edge_boundary_lifting(dct_input_raw)
             lifted_input, lifted_baseline = apply_dct_boundary_lifting(dct_input_raw)
-            score_mirror = dct_seam_score(dct_input_raw)
-            score_lifted = dct_seam_score(lifted_input)
-            dct_adaptive_w = float(np.clip(score_mirror / (score_mirror + score_lifted + 1e-6), 0.0, 1.0))
-            dct_input = ((1.0 - dct_adaptive_w) * dct_input_raw + dct_adaptive_w * lifted_input).astype(np.float32)
-            dct_boundary_baseline = (dct_adaptive_w * lifted_baseline).astype(np.float32)
+            dct_candidates = {
+                'mirror': (dct_input_raw.astype(np.float32), np.zeros_like(dct_input_raw, dtype=np.float32)),
+                'edge': (edge_input, edge_baseline),
+                'lifted': (lifted_input, lifted_baseline),
+            }
+            dct_candidate_scores = {
+                mode_name: dct_seam_score(candidate_input)
+                for mode_name, (candidate_input, _) in dct_candidates.items()
+            }
+            dct_adaptive_choice = min(dct_candidate_scores, key=dct_candidate_scores.get)
+            dct_input, dct_boundary_baseline = dct_candidates[dct_adaptive_choice]
         elif dct_boundary_mode == 'edge':
             dct_input, dct_boundary_baseline = apply_dct_edge_boundary_lifting(dct_input_raw)
-            dct_adaptive_w = 1.0
         elif dct_boundary_mode == 'lifted':
             dct_input, dct_boundary_baseline = apply_dct_boundary_lifting(dct_input_raw)
-            dct_adaptive_w = 1.0
         else:
             dct_input = dct_input_raw
             dct_boundary_baseline = np.zeros_like(dct_input_raw)
-            dct_adaptive_w = 0.0
         # For visualization: DCT-I corresponds to an even extension of the interval endpoints.
         # Effective full wave: x[0..N-1] followed by x[N-2..1].
         if len(dct_input) > 2:
@@ -896,8 +1181,10 @@ try:
         # Log (dB) scale for both display and OSC — Csound receives what you see.
         dct_db = 20.0 * np.log10(np.maximum(dct_selected / dct_ref, 1e-9))
         dct_display_values = np.clip((dct_db - dct_display_db_floor) / (dct_display_db_ceiling - dct_display_db_floor), 0.0, 1.0)
+        dct_display_values = np.power(dct_display_values, dct_display_shape_gamma)
         highmode_db = 20.0 * float(np.log10(max(dct_highmode / dct_ref, 1e-9)))
         dct_highmode_norm = float(np.clip((highmode_db - dct_display_db_floor) / (dct_display_db_ceiling - dct_display_db_floor), 0.0, 1.0))
+        dct_highmode_norm = float(dct_highmode_norm ** dct_display_shape_gamma)
         for i in range(len(dct_display_values)):
             osc_msg = i, float(dct_display_values[i])
             osc_io.sendOSC('dct_bin', osc_msg) # send OSC back to client
@@ -913,6 +1200,20 @@ try:
         else:
             spectral_centroid_cycles = 0.0
         spectral_centroid_norm = float(np.clip(spectral_centroid_cycles / 10.0, 0.0, 1.0))
+        shape_state_id, shape_state_label, shape_state_confidence, shape_state_scores = classify_rope_shape(
+            roi_wave,
+            center_roi_wave,
+            peak_indices,
+            zero_crossings,
+            x_distances,
+            dct_selected,
+            dct_display_cycles,
+            wave_amp,
+            centroid_obs_count[mask_left:mask_right],
+            max_amp,
+            shape_state_scores,
+        )
+        osc_io.sendOSC('shape_state', (float(shape_state_id), float(shape_state_confidence)))
         # Consolidate all peak/shape/activity/centroid metrics into one OSC message.
         osc_msg = (
             float(numpeaks),
@@ -923,6 +1224,7 @@ try:
             float(descriptors['max_lobe_x']),
             float(descriptors['shape_centroid_x']),
             float(wave_activity),
+            float(wave_amp),
             float(spectral_centroid_norm),
             float(descriptors['shape_centroid_x']),
             float(horizontal_cog_norm),
@@ -934,123 +1236,249 @@ try:
             osc_io.sendOSC('faders', osc_msg) # send OSC back to client
         time_stats = time.time()
 
+        display_frame_counter += 1
+        update_display_this_frame = paused or (display_frame_counter % display_update_stride == 0)
+
         # Display result (draw in processing order so later stages remain visible on top)
-        output = cv2.add(current_frame, wave_img)
-        if show_binary:
-            binary_tint = np.zeros_like(output)
-            binary_tint[:, :, 0] = binary_img
-            binary_tint[:, :, 1] = binary_img
-            output = cv2.addWeighted(output, 1.0, binary_tint, 0.28, 0)
-        if show_mask:
-            polyg_show = cv2.polylines(output,pts=[pts],isClosed=True, color=(255,0,0),thickness=2)
-        if show_fill_blanks:
-            draw_wave_line(output, wave_1D_filled, fill_blanks_color, 4)
-        if show_medianfilter:
-            draw_wave_line(output, wave_1D_median, median_color, 3)
-        if show_lowpassfilter:
-            draw_wave_line(output, wave_1D_lowpass, lowpass_color, 2)
-        if show_finalwave:
-            draw_wave_line(output, wave_1D_final, finalwave_color, 2)
-        # add labels
-        v_offset = 20
-        legend_x = 15
-        legend_y = 15
-        x_pos_disp = 'x_pos :' + ''.join([f'{x:.2f}, ' for x in x_pos])
-        x_dist_disp = 'x_dist :' + ''.join([f'{x:.2f}, ' for x in x_distances])
-        zc = ''.join([f'{z:.2f} ' for z in zero_crossings])
-        zc_disp = 'zc_dist: ' + ''.join([f'{i:.2f}, ' for i in zc_diff])
-        stats_lines = [
-            f'numpeaks: {numpeaks}',
-            f'avg_x_dist: {avg_x_distance:.2f}, avg movement {avg_x_movement:.2f}',
-            x_pos_disp,
-            x_dist_disp,
-            f'zero_cross: {zc}',
-            zc_disp,
-            f'wave activity {wave_activity:.2f}',
-            f'shape centroid x: {prev_shape_centroid_x:.3f}  (0=left, 1=right)',
-            f'spectral centroid: {spectral_centroid_cycles:.2f} cyc  (norm {spectral_centroid_norm:.3f})',
-            f'horizontal cog: y={horizontal_cog_y:.1f}px  (norm {horizontal_cog_norm:.3f})',
-        ]
-        if show_stats:
-            stats_step = v_offset * 2
-            stats_first_y = 25
-            stats_panel_height = int((stats_first_y - 8) + ((len(stats_lines) - 1) * stats_step) + 18)
-            draw_transparent_rect(output, 8, 8, int(dimensions[1]*0.40), stats_panel_height, alpha=0.45)
-        option_rows = [
-            ('b', 'binary', show_binary, binary_option_color),
-            ('f', 'filled', show_fill_blanks, filled_option_color),
-            ('m', 'median', show_medianfilter, median_option_color),
-            ('l', 'lowpass', show_lowpassfilter, lowpass_option_color),
-            ('w', 'final', show_finalwave, final_option_color),
-            ('o', 'center', show_wavecenter, center_option_color),
-            ('g', 'bg model', use_bg_model, bg_model_option_color),
-            ('e', 'equalize', use_screen_blend, screen_blend_option_color),
-            ('k', 'kinematic', use_kinematic_constraint, kinematic_option_color),
-            ('n', f'dct bc {dct_boundary_mode}', True, dct_boundary_option_color),
-            ('d', f'polarity {"dark" if rope_is_darker else "light"}', True, polarity_option_color),
-            ('z', 'options', show_option_panel, option_stats_color),
-        ]
-        option_box_width = 320
-        option_box_height = 12 + len(option_rows)*v_offset
-        option_box_x = dimensions[1] - option_box_width - 10
-        option_box_y = 8
-        if show_option_panel:
-            draw_transparent_rect(output, option_box_x, option_box_y, option_box_width, option_box_height, alpha=0.45)
-            legend_x = option_box_x + 10
-            legend_y = option_box_y + 15
-            for key_symbol, label, enabled, stage_color in option_rows:
-                color = stage_color if enabled else toggle_gray
-                cv2.circle(output, (legend_x, legend_y), 4, color, 4)
-                cv2.putText(output, f'[{key_symbol}] {label}', (legend_x+12,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 1, cv2.LINE_AA)
-                legend_y += v_offset
-        if show_fft:
-            dct_start_x = 14
-            dct_step_x = 28
-            dct_hm_x = dct_start_x + len(dct_display_values) * dct_step_x + 20
-            dct_label_pad = 26
-            dct_plot_height = dct_display_height + dct_label_pad
-            dct_panel_y = dimensions[0] - dct_plot_height - 56
-            dct_base_y = dct_panel_y + dct_plot_height - 1
-            dct_panel_width = (dct_hm_x - 8) + 36
-            dct_signal_panel_y = dct_panel_y - dct_display_height - 10
-            dct_signal_panel_width = min(dimensions[1] - 16, (dct_panel_width * 2))
-            draw_transparent_rect(output, 8, dct_signal_panel_y, dct_signal_panel_width, dct_display_height, alpha=0.35)
-            bc_label = f'DCT input ({dct_boundary_mode}  w={dct_adaptive_w:.2f} + even ext.)' if dct_boundary_mode == 'adaptive' else f'DCT input ({dct_boundary_mode} + even extension)'
-            cv2.putText(output, bc_label, (16, dct_signal_panel_y + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.6, yellow, 1, cv2.LINE_AA)
-            draw_centered_signal_panel(output, dct_input_full, 12, dct_signal_panel_y + 24, dct_signal_panel_width - 10, dct_display_height - 30, dull_green, light_blue)
-            draw_transparent_rect(output, 8, dct_panel_y, dct_panel_width, dct_plot_height, alpha=0.35)
-            dct_label_indices = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25}  # 0.5,1,1.5,2,2.5,3,4,5,6,7,8,9,10
-            for i, dct_val in enumerate(dct_display_values):
-                cycle = dct_display_cycles[i]
-                if cycle < 3.0:
-                    dct_color = orange
-                else:
-                    dct_color = green
-                bar_height = max(1, int(dct_val * dct_plot_height))
-                x = dct_start_x + i * dct_step_x
-                cv2.line(output, (x, dct_base_y), (x, dct_base_y - bar_height), dct_color, 2)
-                if i in dct_label_indices:
-                    cv2.putText(output, f'{cycle:g}', (x - 8, dct_base_y + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.7, dct_color, 1, cv2.LINE_AA)
-            hf_height = max(1, int(dct_highmode_norm * dct_plot_height))
-            cv2.line(output, (dct_hm_x, dct_base_y), (dct_hm_x, dct_base_y - hf_height), red, 3)
-            cv2.putText(output, 'HM', (dct_hm_x - 16, dct_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, red, 1, cv2.LINE_AA)
-        if show_stats:
-            stats_x = 20
-            stats_y = 25
-            for line in stats_lines:
-                cv2.putText(output, line, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, stats_color, 1, cv2.LINE_AA)
+        if update_display_this_frame:
+            output = cv2.add(current_frame, wave_img)
+            if show_binary:
+                binary_tint = np.zeros_like(output)
+                binary_tint[:, :, 0] = binary_img
+                binary_tint[:, :, 1] = binary_img
+                output = cv2.addWeighted(output, 1.0, binary_tint, 0.28, 0)
+            if show_mask:
+                polyg_show = cv2.polylines(output,pts=[pts],isClosed=True, color=(255,0,0),thickness=2)
+            if show_fill_blanks:
+                draw_wave_line(output, wave_1D_filled, fill_blanks_color, 4)
+            if show_medianfilter:
+                draw_wave_line(output, wave_1D_median, median_color, 3)
+            if show_lowpassfilter:
+                draw_wave_line(output, wave_1D_lowpass, lowpass_color, 2)
+            if show_finalwave:
+                draw_wave_line(output, wave_1D_final, finalwave_color, 2)
+            # ROI guide lines: horizontal COG and vertical shape centroid.
+            roi_width_px = max(mask_right - mask_left, 1)
+            shape_centroid_x_px = int(np.clip(mask_left + descriptors['shape_centroid_x'] * (roi_width_px - 1), mask_left, mask_right - 1))
+            horizontal_cog_y_px = int(np.clip(horizontal_cog_y, roi_top_y, roi_bottom_y))
+            cv2.line(output, (mask_left, horizontal_cog_y_px), (mask_right, horizontal_cog_y_px), red, 2)
+            cv2.line(output, (shape_centroid_x_px, roi_top_y), (shape_centroid_x_px, roi_bottom_y), red, 2)
+
+            cog_label_font_scale = 0.825
+            cog_label_thickness = 2
+            cog_label_x = int(mask_right + 4)
+            cog_label_text_y = int(np.clip(horizontal_cog_y_px - 4, 20, dimensions[0] - 30))
+            cog_label_value_y = int(np.clip(cog_label_text_y + 28, 32, dimensions[0] - 6))
+            cv2.putText(output, 'cog', (cog_label_x, cog_label_text_y), cv2.FONT_HERSHEY_SIMPLEX, cog_label_font_scale, red, cog_label_thickness, cv2.LINE_AA)
+            cv2.putText(output, f'{horizontal_cog_norm:.2f}', (cog_label_x, cog_label_value_y), cv2.FONT_HERSHEY_SIMPLEX, cog_label_font_scale, red, cog_label_thickness, cv2.LINE_AA)
+
+            centroid_label = f'cent {descriptors["shape_centroid_x"]:.2f}'
+            centroid_font_scale = 0.825
+            centroid_thickness = 2
+            (centroid_text_w, _), _ = cv2.getTextSize(centroid_label, cv2.FONT_HERSHEY_SIMPLEX, centroid_font_scale, centroid_thickness)
+            centroid_label_x = int(np.clip(shape_centroid_x_px - centroid_text_w // 2, 4, dimensions[1] - centroid_text_w - 4))
+            centroid_label_y = max(30, roi_top_y - 8)
+            cv2.putText(output, centroid_label, (centroid_label_x, centroid_label_y), cv2.FONT_HERSHEY_SIMPLEX, centroid_font_scale, red, centroid_thickness, cv2.LINE_AA)
+
+            # add labels
+            v_offset = 24
+            legend_x = 15
+            legend_y = 15
+            x_pos_disp = 'x_pos :' + ''.join([f'{x:.2f}, ' for x in x_pos])
+            x_dist_disp = 'x_dist :' + ''.join([f'{x:.2f}, ' for x in x_distances])
+            zc = ''.join([f'{z:.2f} ' for z in zero_crossings])
+            zc_disp = 'zc_dist: ' + ''.join([f'{i:.2f}, ' for i in zc_diff])
+            stats_lines = [
+                f'numpeaks: {numpeaks}  max: {max_numpeaks}',
+                f'avg_x_dist: {avg_x_distance:.2f}, avg movement {avg_x_movement:.2f}',
+                x_pos_disp,
+                x_dist_disp,
+                f'zero_cross: {zc}',
+                zc_disp,
+            ]
+            wave_activity_text = f'wave activity {wave_activity:.2f}'
+            wave_movement_text = f'wave movement {wave_motion_value:+.2f}'
+            wave_amp_text = f'wave amp rms {wave_amp:.2f}'
+            wave_shape_text = f'shape {shape_state_label} ({shape_state_confidence:.2f})'
+            wave_activity_slider_width = 300
+            (wave_activity_text_w, _), _ = cv2.getTextSize(wave_activity_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+            (wave_movement_text_w, _), _ = cv2.getTextSize(wave_movement_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+            (wave_amp_text_w, _), _ = cv2.getTextSize(wave_amp_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+            (wave_shape_text_w, _), _ = cv2.getTextSize(wave_shape_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+            stats_panel_label_w = max(wave_activity_text_w, wave_movement_text_w, wave_amp_text_w, wave_shape_text_w)
+            stats_panel_min_width = 20 + stats_panel_label_w + 14 + wave_activity_slider_width + 20
+            if show_stats:
+                stats_step = v_offset * 2
+                stats_first_y = 25
+                total_rows = len(stats_lines) + 4
+                stats_panel_height = int((stats_first_y - 8) + ((total_rows - 1) * stats_step) + 18)
+                stats_panel_width = max(int(dimensions[1]*0.40), stats_panel_min_width)
+                draw_transparent_rect(output, 8, 8, stats_panel_width, stats_panel_height, alpha=0.45)
+            option_rows = [
+                ('b', 'binary', show_binary, binary_option_color),
+                ('f', 'filled', show_fill_blanks, filled_option_color),
+                ('m', 'median', show_medianfilter, median_option_color),
+                ('l', 'lowpass', show_lowpassfilter, lowpass_option_color),
+                ('w', 'final', show_finalwave, final_option_color),
+                ('o', 'center', show_wavecenter, center_option_color),
+                ('g', 'bg model', use_bg_model, bg_model_option_color),
+                ('e', 'equalize', use_screen_blend, screen_blend_option_color),
+                ('k', 'kinematic', use_kinematic_constraint, kinematic_option_color),
+                ('n', f'dct bc {dct_boundary_mode}', True, dct_boundary_option_color),
+                ('d', f'polarity {"dark" if rope_is_darker else "light"}', True, polarity_option_color),
+                ('i', 'dct input', show_dct_signal, dct_boundary_option_color),
+                ('1-4', f'display every {display_update_stride}', True, option_stats_color),
+                ('z', 'options', show_option_panel, option_stats_color),
+            ]
+            option_box_width = 380
+            option_box_height = 12 + len(option_rows)*v_offset
+            option_box_x = dimensions[1] - option_box_width - 10
+            option_box_y = 8
+            if show_option_panel:
+                draw_transparent_rect(output, option_box_x, option_box_y, option_box_width, option_box_height, alpha=0.45)
+                legend_x = option_box_x + 10
+                legend_y = option_box_y + 15
+                for key_symbol, label, enabled, stage_color in option_rows:
+                    color = stage_color if enabled else toggle_gray
+                    cv2.circle(output, (legend_x, legend_y), 4, color, 4)
+                    cv2.putText(output, f'[{key_symbol}] {label}', (legend_x+12,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.96, color, 1, cv2.LINE_AA)
+                    legend_y += v_offset
+            if show_fft:
+                dct_start_x = 14
+                dct_step_x = 28
+                dct_hm_x = dct_start_x + len(dct_display_values) * dct_step_x + 20
+                dct_label_pad = 26
+                dct_plot_height = dct_display_height + dct_label_pad
+                dct_panel_y = dimensions[0] - dct_plot_height - 56
+                dct_base_y = dct_panel_y + dct_plot_height - 1
+                dct_panel_width = (dct_hm_x - 8) + 36
+                dct_signal_panel_y = dct_panel_y - dct_display_height - 10
+                dct_signal_panel_width = min(dimensions[1] - 16, (dct_panel_width * 2))
+                if show_dct_signal:
+                    draw_transparent_rect(output, 8, dct_signal_panel_y, dct_signal_panel_width, dct_display_height, alpha=0.35)
+                    bc_label = f'DCT input (adaptive->{dct_adaptive_choice} + even ext.)' if dct_boundary_mode == 'adaptive' else f'DCT input ({dct_boundary_mode} + even extension)'
+                    cv2.putText(output, bc_label, (16, dct_signal_panel_y + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.6, yellow, 1, cv2.LINE_AA)
+                    draw_centered_signal_panel(output, dct_input_full, 12, dct_signal_panel_y + 24, dct_signal_panel_width - 10, dct_display_height - 30, dull_green, light_blue)
+                draw_transparent_rect(output, 8, dct_panel_y, dct_panel_width, dct_plot_height, alpha=0.35)
+                dct_label_indices = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25}
+                dct_x_positions = dct_start_x + np.arange(len(dct_display_values)) * dct_step_x
+                for i, dct_val in enumerate(dct_display_values):
+                    cycle = dct_display_cycles[i]
+                    if cycle < 3.0:
+                        dct_color = orange
+                    else:
+                        dct_color = green
+                    bar_height = max(1, int(dct_val * dct_plot_height))
+                    x = int(dct_x_positions[i])
+                    cv2.line(output, (x, dct_base_y), (x, dct_base_y - bar_height), dct_color, 2)
+                    if i in dct_label_indices:
+                        cv2.putText(output, f'{cycle:g}', (x - 8, dct_base_y + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.7, dct_color, 1, cv2.LINE_AA)
+
+                spectral_centroid_cycle_clip = float(np.clip(spectral_centroid_cycles, float(dct_display_cycles[0]), float(dct_display_cycles[-1])))
+                spectral_centroid_x = int(np.interp(spectral_centroid_cycle_clip, dct_display_cycles, dct_x_positions))
+                cv2.line(output, (spectral_centroid_x, dct_base_y), (spectral_centroid_x, dct_base_y - dct_plot_height), red, 2)
+                cv2.putText(output, 'cent', (spectral_centroid_x - 14, dct_base_y - dct_plot_height - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.55, red, 1, cv2.LINE_AA)
+
+                hf_height = max(1, int(dct_highmode_norm * dct_plot_height))
+                cv2.line(output, (dct_hm_x, dct_base_y), (dct_hm_x, dct_base_y - hf_height), red, 3)
+                cv2.putText(output, 'HM', (dct_hm_x - 16, dct_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, red, 1, cv2.LINE_AA)
+            if show_stats:
+                stats_x = 20
+                stats_y = 25
+                cv2.putText(output, wave_activity_text, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, stats_color, 1, cv2.LINE_AA)
+                slider_x = stats_x + stats_panel_label_w + 14
+                slider_h = 14
+                slider_y = stats_y - 13
+                wave_activity_norm = float(np.clip(wave_activity, 0.0, 1.0))
+                slider_fill_w = int(round(wave_activity_norm * wave_activity_slider_width))
+                cv2.rectangle(output, (slider_x, slider_y), (slider_x + wave_activity_slider_width, slider_y + slider_h), stats_color, 1)
+                if slider_fill_w > 0:
+                    cv2.rectangle(output, (slider_x, slider_y), (slider_x + slider_fill_w, slider_y + slider_h), stats_color, -1)
                 stats_y += v_offset*2
-        time_labels = time.time()
-        output = cv2.resize(output, size)
-        cv2.imshow("Rope", output)
-        time_output = time.time()
+
+                if wave_motion_value < 0.0:
+                    move_color = green
+                elif wave_motion_value > 0.0:
+                    move_color = red
+                else:
+                    move_color = stats_color
+                cv2.putText(output, wave_movement_text, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, move_color, 1, cv2.LINE_AA)
+                move_slider_y = stats_y - 13
+                move_center_x = slider_x + (wave_activity_slider_width // 2)
+                move_norm = float(np.clip(wave_motion_value / wave_motion_slider_max, -1.0, 1.0))
+                move_fill_half = int(round(abs(move_norm) * (wave_activity_slider_width // 2)))
+                cv2.rectangle(output, (slider_x, move_slider_y), (slider_x + wave_activity_slider_width, move_slider_y + slider_h), stats_color, 1)
+                cv2.line(output, (move_center_x, move_slider_y), (move_center_x, move_slider_y + slider_h), stats_color, 1)
+                if move_fill_half > 0:
+                    if move_norm >= 0.0:
+                        cv2.rectangle(output, (move_center_x, move_slider_y), (move_center_x + move_fill_half, move_slider_y + slider_h), move_color, -1)
+                    else:
+                        cv2.rectangle(output, (move_center_x - move_fill_half, move_slider_y), (move_center_x, move_slider_y + slider_h), move_color, -1)
+                stats_y += v_offset*2
+
+                cv2.putText(output, wave_amp_text, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, stats_color, 1, cv2.LINE_AA)
+                amp_slider_y = stats_y - 13
+                wave_amp_norm = float(np.clip(wave_amp, 0.0, 1.0))
+                amp_fill_w = int(round(wave_amp_norm * wave_activity_slider_width))
+                cv2.rectangle(output, (slider_x, amp_slider_y), (slider_x + wave_activity_slider_width, amp_slider_y + slider_h), stats_color, 1)
+                if amp_fill_w > 0:
+                    cv2.rectangle(output, (slider_x, amp_slider_y), (slider_x + amp_fill_w, amp_slider_y + slider_h), stats_color, -1)
+                stats_y += v_offset*2
+
+                if shape_state_label == 'periodic':
+                    shape_color = green
+                elif shape_state_label == 'endpoint-lost':
+                    shape_color = red
+                elif shape_state_label == 'arc':
+                    shape_color = orange
+                elif shape_state_label == 'straight':
+                    shape_color = light_blue
+                elif shape_state_label == 'one-bump':
+                    shape_color = yellow
+                else:
+                    shape_color = stats_color
+                cv2.putText(output, wave_shape_text, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, shape_color, 1, cv2.LINE_AA)
+                stats_y += v_offset*2
+
+                for line in stats_lines:
+                    cv2.putText(output, line, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, stats_color, 1, cv2.LINE_AA)
+                    stats_y += v_offset*2
+
+            uf_line_color = (140, 140, 255) if underflow_avg_ms_per_sec >= 6.0 else (120, 200, 255) if underflow_avg_ms_per_sec > 0.0 else (210, 210, 210)
+            underflow_panel_text = f'underflow {underflow_avg_ms_per_sec:.2f} ms/s   events {underflow_event_rate_per_sec:.2f}/s'
+            uf_font_scale = 0.78
+            (uf_text_w, uf_text_h), _ = cv2.getTextSize(underflow_panel_text, cv2.FONT_HERSHEY_SIMPLEX, uf_font_scale, 1)
+            uf_pad = 14
+            underflow_panel_height = uf_text_h + uf_pad * 2
+            underflow_panel_width = uf_text_w + uf_pad * 2
+            underflow_panel_x = dimensions[1] - underflow_panel_width - 10
+            underflow_panel_y = int(np.clip(max(roi_bottom_y + 10, dimensions[0] - underflow_panel_height - 10), 8, dimensions[0] - underflow_panel_height - 8))
+            draw_transparent_rect(output, underflow_panel_x, underflow_panel_y, underflow_panel_width, underflow_panel_height, alpha=0.62)
+            cv2.putText(output, underflow_panel_text, (underflow_panel_x + uf_pad, underflow_panel_y + uf_pad + uf_text_h), cv2.FONT_HERSHEY_SIMPLEX, uf_font_scale, uf_line_color, 1, cv2.LINE_AA)
+            time_labels = time.time()
+            output = cv2.resize(output, size)
+            cv2.imshow("Rope", output)
+            time_output = time.time()
+        else:
+            time_labels = time_stats
+            time_output = time_stats
 
         # timing, frame rate
         time_now = time.time()
         processing_time = (time_now - time_start)*1000
         
         frame_time = 1000/fps
-        wait_time = int(frame_time - processing_time)
+        raw_wait_time = frame_time - processing_time
+        wait_time = int(raw_wait_time)
+
+        perf_frame_count += 1
+        perf_proc_ms_total += processing_time
+        if update_display_this_frame:
+            perf_display_frame_count += 1
+            perf_display_proc_ms_total += processing_time
+        else:
+            perf_skip_frame_count += 1
+            perf_skip_proc_ms_total += processing_time
         
         # profiling
         # make array of all times, subtract time_start
@@ -1061,8 +1489,37 @@ try:
         #    print(f'times \n {times} \n {np.diff(times)}')
         #    print('total time', time_now - time_start)
 
-        if wait_time < 1: 
-            print(f'wait time underflow {wait_time}')
+        if raw_wait_time < 0.0:
+            underflow_event_count += 1
+            underflow_deficit_ms_total += -raw_wait_time
+
+        elapsed_uf = time_now - underflow_window_start
+        if elapsed_uf >= 5.0:
+            underflow_avg_ms_per_sec = underflow_deficit_ms_total / elapsed_uf
+            underflow_event_rate_per_sec = underflow_event_count / elapsed_uf
+            underflow_event_count = 0
+            underflow_deficit_ms_total = 0.0
+            underflow_window_start = time_now
+
+        elapsed_perf = time_now - perf_window_start
+        if elapsed_perf >= 5.0 and perf_frame_count > 0:
+            avg_proc_all = perf_proc_ms_total / perf_frame_count
+            avg_proc_disp = (perf_display_proc_ms_total / perf_display_frame_count) if perf_display_frame_count > 0 else 0.0
+            avg_proc_skip = (perf_skip_proc_ms_total / perf_skip_frame_count) if perf_skip_frame_count > 0 else 0.0
+            # print(
+            #     f'perf {elapsed_perf:.1f}s | stride {display_update_stride} | avg proc {avg_proc_all:.2f}ms '
+            #     f'| disp {avg_proc_disp:.2f}ms ({perf_display_frame_count}) '
+            #     f'| skip {avg_proc_skip:.2f}ms ({perf_skip_frame_count})'
+            # )
+            perf_frame_count = 0
+            perf_display_frame_count = 0
+            perf_skip_frame_count = 0
+            perf_proc_ms_total = 0.0
+            perf_display_proc_ms_total = 0.0
+            perf_skip_proc_ms_total = 0.0
+            perf_window_start = time_now
+
+        if wait_time < 1:
             wait_time = 1
         key = cv2.waitKey(0 if paused else wait_time)
         step_one_frame = False
@@ -1094,8 +1551,14 @@ try:
             cycle_modes = ['adaptive', 'mirror', 'edge', 'lifted']
             dct_boundary_mode = cycle_modes[(cycle_modes.index(dct_boundary_mode) + 1) % len(cycle_modes)]
             print(f'DCT boundary mode: {dct_boundary_mode}')
+        if key == ord('i'):
+            show_dct_signal = not show_dct_signal
         if key == ord('d'):
             rope_is_darker = not rope_is_darker
+        if key in (ord('1'), ord('2'), ord('3'), ord('4')):
+            display_update_stride = int(chr(key))
+            display_frame_counter = 0
+            print(f'Display updates every {display_update_stride} frame(s).')
         if key == ord('z'):
             show_option_panel = not show_option_panel
         if key == ord('s') and paused:

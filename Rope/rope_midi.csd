@@ -293,11 +293,12 @@ instr 1
   kmax_lobe_x init 0
   kshape_centroid_x init 0.5
   kwave_activity init 0
+  kwave_amp init 0
   kspectral_centroid init 0
   kshape_centroid init 0.5
   khorizontal_cog_norm init 0.5
   nextmsg_rope_metrics:
-    kmess OSClisten gihandle, "rope_metrics", "fffffffffff", knumpeaks, kavg_x_distance, kavg_x_movement, kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x, kwave_activity, kspectral_centroid, kshape_centroid, khorizontal_cog_norm
+    kmess OSClisten gihandle, "rope_metrics", "ffffffffffff", knumpeaks, kavg_x_distance, kavg_x_movement, kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x, kwave_activity, kwave_amp, kspectral_centroid, kshape_centroid, khorizontal_cog_norm
     kOSC_received += kmess
     if kmess == 0 goto done_rope_metrics
     chnset knumpeaks, "numpeaks"
@@ -308,6 +309,7 @@ instr 1
     chnset kmax_lobe_x, "max_lobe_x"
     chnset kshape_centroid_x, "shape_centroid_x"
     chnset kwave_activity, "wave_activity"
+    chnset kwave_amp, "wave_amp"
     chnset kspectral_centroid, "spectral_centroid"
     chnset kshape_centroid, "shape_centroid"
     chnset khorizontal_cog_norm, "horizontal_cog_norm"
