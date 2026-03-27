@@ -333,13 +333,20 @@ If you want the next pass to improve the system without expanding scope too much
 
 ## 10. Next planned refinement steps
 
-
+- cs gui
+  - remove fader bank audio parms
+  - collapse lsys parms
+  - reorganize dist grain and grain2 gui
+- clean up and modularize python code?
+  
 
 ## Manual edited todo, rope analysis
 - amp dependent on frequency?
   - one cycle can span the whole vertical area
   - 6 cycles can not
   - new measure: effective amp
+- is this also related to lobe shape/width/area?
+-?? possibly remove xpos, zc_pos and friends
 - review motion descriptors after adding cross-correlation wave movement meter
   - decide whether `avg_x_movement` is still useful or redundant
 - review, calibrate and test the shape identification (straight, bump, waves) 
@@ -360,3 +367,10 @@ If you want the next pass to improve the system without expanding scope too much
 - simple shape centroid to midi note
 - simple freq centroid to midi note
 - simple most prominent frequency to midi note
+- isomorphic keyboard (Wicki-Hayden, Harmonic tablenote layout and/or Euler Tonnetz)
+  - trigger a midi note when rope enters a hex area, 
+  - send midi via osc, enable in Csound, with base note and channel selector
+
+* add harmonic keyboard triggers
+* fix Distance grains: more sound, and check if several channels are being triggered
+* make anti-derivatives of the analyzed features, controlling "critters" moving on the display surface

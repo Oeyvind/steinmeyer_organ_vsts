@@ -1,81 +1,140 @@
 <Cabbage>
-form size(900, 510), caption("Stats rope"), pluginId("rom1"), guiMode("queue"), colour(30,30,30)
-rslider channel("Freq_wav"),          bounds(10,  10, 60, 60), text("Freq"), range(20, 300, 100, 0.35)
-rslider channel("Amp_wav"),           bounds(70,  10, 60, 60), text("Amp"), range(-50, 6, 0, 3)
-rslider channel("detune_wav"),        bounds(130, 10, 60, 60), text("Detune"), range(0, 1, 0.1, 0.35)
-button channel("Wave_raw_on"),        bounds(190, 10, 68, 30), text("Wraw_On"), colour:0("black"), colour:1("green")
-button channel("Wave_fine_on"),       bounds(260, 10, 70, 30), text("Wfine_On"), colour:0("black"), colour:1("green")
+form size(1065, 711), caption("Rope MIDI"), pluginId("rom1"), guiMode("queue"), colour(30,30,30)
+; ── Row 1: event-to-MIDI triggers ─────────────────────────────────────────────
+groupbox bounds(5, 5, 205, 72), colour(60,78,90), lineThickness(0){
+label   bounds(5, 5, 90, 12), text("Numpeaks"), fontSize(10), align("left")
+button  channel("Wave_numpeaks"),      bounds(8, 18, 72, 28), text("On"), colour:0("black"), colour:1("green")
+label   bounds(90, 17, 42, 14), text("base"), fontSize(11)
+nslider channel("numpeaks_basenote"),  bounds(90, 33, 50, 22), range(1, 127, 60, 1, 1)
+label   bounds(148, 17, 42, 14), text("chan"), fontSize(11)
+nslider channel("numpeaks_midichan"),  bounds(148, 33, 50, 22), range(1, 16, 1, 1, 1)
+}
 
-button channel("Wave_numpeaks"),      bounds(10, 95, 70, 30), text("Numpeaks"), colour:0("black"), colour:1("green")
-nslider channel("numpeaks_basenote"), bounds(90, 80, 50, 30), text("M.base"), range(1, 127, 60, 1, 1)
-nslider channel("numpeaks_midichan"), bounds(90, 110, 50, 30), text("M.chan"), range(1, 16, 1, 1, 1)
+groupbox bounds(211, 5, 205, 72), colour(60,78,90), lineThickness(0){
+label   bounds(5, 5, 90, 12), text("ZeroCross"), fontSize(10), align("left")
+button  channel("Wave_zerocross"),     bounds(8, 18, 72, 28), text("On"), colour:0("black"), colour:1("green")
+label   bounds(90, 17, 42, 14), text("base"), fontSize(11)
+nslider channel("zerocross_basenote"), bounds(90, 33, 50, 22), range(1, 127, 60, 1, 1)
+label   bounds(148, 17, 42, 14), text("chan"), fontSize(11)
+nslider channel("zerocross_midichan"), bounds(148, 33, 50, 22), range(1, 16, 1, 1, 1)
+}
 
-button channel("Wave_zerocross"),     bounds(170, 95, 70, 30), text("NumZeros"), colour:0("black"), colour:1("green")
-nslider channel("zerocross_basenote"),bounds(250, 80, 50, 30), text("M.base"), range(1, 127, 60, 1, 1)
-nslider channel("zerocross_midichan"),bounds(250, 110, 50, 30), text("M.chan"), range(1, 16, 1, 1, 1)
+groupbox bounds(417, 5, 270, 82), colour(60,78,90), lineThickness(0){
+label bounds(5, 5, 90, 12), text("Wave Osc"), fontSize(10), align("left")
+rslider channel("Freq_wav"),     bounds(8,  14, 58, 62), text("Freq"),   range(20, 300, 100, 0.35)
+rslider channel("Amp_wav"),      bounds(70, 14, 58, 62), text("Amp"),    range(-50, 6, 0, 3)
+rslider channel("detune_wav"),   bounds(132,14, 58, 62), text("Detune"), range(0, 1, 0.1, 0.35)
+button  channel("Wave_raw_on"),  bounds(200,14, 60, 26), text("raw"),    colour:0("black"), colour:1("green")
+button  channel("Wave_fine_on"), bounds(200,46, 60, 26), text("fine"),   colour:0("black"), colour:1("green")
+}
 
-rslider channel("Freq_fadr"),         bounds(10,  150, 60, 60), text("Freq"), range(60, 1000, 100, 0.35)
-rslider channel("Amp_fadr"),          bounds(70,  150, 60, 60), text("Amp"), range(-50, 6, 0, 3)
-rslider channel("detune_fadr"),       bounds(130, 150, 60, 60), text("Detune"), range(0, 1, 0.1, 0.35)
-rslider channel("chroma_fadr"),       bounds(190, 150, 60, 60), text("Chroma"), range(-1, 1, 0.1)
-rslider channel("dist_fadr"),         bounds(250, 150, 60, 60), text("Dist"), range(0, 1, 0.1, 0.35)
-button channel("Fader_bank"),         bounds(320, 150, 70, 30), text("Fader bank"), colour:0("black"), colour:1("green")
-combobox channel("Fader_bank_scale"), bounds(320, 185, 100, 20), items("semitone", "wholetone", "major", "minor", "penta1", "penta2"), value(1)
+groupbox bounds(5, 634, 300, 72), colour(60,78,90), lineThickness(0){
+label   bounds(5, 5, 90, 12), text("Stopchord"), fontSize(10), align("left")
+label   bounds(8, 17, 52, 14),  text("thresh"), fontSize(11)
+nslider channel("stop_activity_thresh"), bounds(8, 32, 50, 22), range(0.01, 1, 0.3)
+button  channel("Stopchord"),            bounds(66, 24, 75, 28), text("On"), colour:0("black"), colour:1("green")
+label   bounds(153, 17, 40, 14), text("det"), fontSize(11)
+nslider channel("detune_stopchord"),     bounds(153, 32, 45, 22), range(0, 1, 0.1)
+label   bounds(205, 17, 38, 14), text("amp"), fontSize(11)
+nslider channel("amp_stopchord"),        bounds(205, 32, 50, 22), range(-96, -10, -30)
+button  channel("stopchord_scalefree"),  bounds(258, 14, 38, 24), text("scale"), colour:0("black"), colour:1("green")
+button  channel("stopchord_minmax"),     bounds(258, 42, 38, 24), text("minmax"), colour:0("black"), colour:1("green")
+}
 
-image bounds(5,230,5,130), colour(100,100,100)
-rslider channel("distgrains_ampthresh"), bounds(10, 230, 60, 60), text("M.a_thresh"), range(-90, 0, -5)
-nslider channel("distgrains_transpose"), bounds(70, 230, 50, 30), text("M.transp"), range(-24, 24, 0, 1, 1)
-nslider channel("distgrains_midichan"),  bounds(70, 260, 50, 30), text("M.chan"), range(1, 16, 1, 1, 1)
-label text("(+1)"), bounds(112, 277, 50, 12)
+groupbox bounds(306, 634, 114, 72), colour(60,78,90), lineThickness(0){
+label bounds(5, 5, 90, 12), text("Stop LSYS"), fontSize(10), align("left")
+button channel("Stop_LSYS"), bounds(20, 24, 75, 28), text("On"), colour:0("black"), colour:1("green")
+}
 
-image bounds(305,150,5,140), colour(100,100,100)
-rslider channel("faderbank_ampthresh"), bounds(190, 230, 60, 60), text("M.a_thresh"), range(-90, 0, -5)
-nslider channel("faderbank_transpose"), bounds(250, 230, 50, 30), text("M.transp"), range(-24, 24, 0, 1, 1)
-nslider channel("faderbank_midichan"),  bounds(250, 260, 50, 30), text("M.chan"), range(1, 16, 1, 1, 1)
+; ── Row 2: Fader Bank + DCT Bank ────────────────────────────────────────────────
+groupbox bounds(5, 85, 380, 116), colour(60,78,90), lineThickness(0){
+label    bounds(5, 5, 90, 12), text("Fader Bank"), fontSize(10), align("left")
+button   channel("Fader_bank"),          bounds(8, 16, 76, 23), text("On"), colour:0("black"), colour:1("green")
+label    bounds(8, 38, 60, 12), text("arp ms"), fontSize(10), align("left")
+nslider  channel("faderbank_arp_ms"),    bounds(8, 52, 76, 22), range(0, 100, 0, 1, 1)
+label    bounds(8, 76, 60, 12), text("mov arp"), fontSize(10), align("left")
+nslider  channel("faderbank_mov_arp"),   bounds(8, 90, 76, 22), range(0, 1, 0, 1, 0.01)
+label    bounds(93, 14, 42, 14), text("scale"), fontSize(11)
+combobox channel("Fader_bank_scale"),    bounds(93, 28, 110, 22), items("semitone", "wholetone", "major", "minor", "penta1", "penta2"), value(1)
+label    bounds(209, 14, 50, 14), text("M.base"), fontSize(11)
+nslider  channel("faderbank_basenote"),  bounds(209, 28, 50, 22), range(0, 127, 60, 1, 1)
+label    bounds(264, 14, 50, 14), text("M.chan"), fontSize(11)
+nslider  channel("faderbank_midichan"),  bounds(264, 28, 50, 22), range(1, 16, 1, 1, 1)
+label    bounds(319, 14, 55, 14), text("M.thresh"), fontSize(11)
+nslider  channel("faderbank_ampthresh"), bounds(319, 28, 55, 22), range(0.0, 1.0, 0.08, 1, 0.001)
+label    bounds(93, 62, 42, 14), text("D.scale"), fontSize(11)
+combobox channel("Fader_bank_down_scale"), bounds(93, 76, 110, 22), items("semitone", "wholetone", "major", "minor", "penta1", "penta2"), value(1)
+label    bounds(209, 62, 50, 14), text("D.base"), fontSize(11)
+nslider  channel("faderbank_down_basenote"), bounds(209, 76, 50, 22), range(0, 127, 48, 1, 1)
+label    bounds(264, 62, 50, 14), text("D.chan"), fontSize(11)
+nslider  channel("faderbank_down_midichan"), bounds(264, 76, 50, 22), range(1, 16, 1, 1, 1)
+label    bounds(319, 62, 55, 14), text("D.thresh"), fontSize(11)
+nslider  channel("faderbank_down_ampthresh"), bounds(319, 76, 55, 22), range(-1.0, 0.0, -0.08, 1, 0.001)
+}
 
-rslider channel("Grainpitch"),        bounds(10,  300, 60, 60), text("G.pitch"), range(10, 1000, 100, 0.35)
-rslider channel("Grainamp"),          bounds(70,  300, 60, 60), text("Amp"), range(-50, 6, 0, 3)
-rslider channel("Grate"),             bounds(130, 300, 60, 60), text("G.rate"), range(0.5, 20, 4, 0.35)
-rslider channel("Gdur"),              bounds(190, 300, 60, 60), text("G.dur"), range(0.1, 2, 1, 0.35)
-rslider channel("G_dist_rate"),       bounds(250, 300, 60, 60), text("Dist_rate"), range(0, 2, 0.1, 0.35)
-rslider channel("G_voice_spread"),    bounds(310, 300, 60, 60), text("Voice_spread"), range(0, 7, 0.1, 0.35)
-button channel("Distance_grain"),     bounds(370, 300, 70, 30), text("Dstnc_grain"), colour:0("black"), colour:1("green")
+groupbox bounds(386, 85, 330, 82), colour(60,78,90), lineThickness(0){
+label    bounds(5, 5, 80, 12), text("DCT Bank"), fontSize(10), align("left")
+button   channel("Dct_bank"),         bounds(8, 18, 60, 26), text("On"), colour:0("black"), colour:1("green")
+label    bounds(74, 10, 44, 14), text("scale"), fontSize(11)
+combobox channel("Dct_bank_scale"),   bounds(74, 24, 100, 22), items("semitone", "wholetone", "major", "minor", "penta1", "penta2"), value(1)
+label    bounds(179, 10, 40, 14), text("base"), fontSize(11)
+nslider  channel("dct_basenote"),     bounds(179, 24, 46, 22), range(0, 127, 60, 1, 1)
+label    bounds(229, 10, 40, 14), text("chan"), fontSize(11)
+nslider  channel("dct_midichan"),     bounds(229, 24, 40, 22), range(1, 16, 1, 1, 1)
+label    bounds(273, 10, 52, 14), text("thresh"), fontSize(11)
+nslider  channel("dct_ampthresh"),    bounds(273, 24, 52, 22), range(0.0, 2.0, 0.3, 1, 0.01)
+label    bounds(179, 50, 30, 12), text("att"), fontSize(10), align("left")
+nslider  channel("dct_env_att"),      bounds(179, 62, 46, 18), range(0.001, 0.2, 0.01, 0.5, 0.001)
+label    bounds(229, 50, 30, 12), text("rel"), fontSize(10), align("left")
+nslider  channel("dct_env_rel"),      bounds(229, 62, 46, 18), range(0.05, 2.0, 0.9, 0.5, 0.01)
+}
 
-rslider channel("Grainpitch2"),        bounds(10,  370, 60, 60), text("G.pitch"), range(10, 1000, 100, 0.35)
-rslider channel("Grainamp2"),          bounds(70,  370, 60, 60), text("Amp"), range(-50, 6, 0, 3)
-rslider channel("Grate2"),             bounds(130, 370, 60, 60), text("G.rate"), range(0.5, 20, 4, 0.35)
-rslider channel("Gdur2"),              bounds(190, 370, 60, 60), text("G.dur"), range(0.1, 2, 1, 0.35)
-rslider channel("G2_pitchmod"),        bounds(250, 370, 60, 60), text("Pitchmod"), range(0, 2, 1, 0.35)
-rslider channel("G2_pitch_spread"),    bounds(310, 370, 60, 60), text("Pitchspread"), range(0, 1, 0.1, 0.35)
-rslider channel("G2_ratemod"),         bounds(370, 370, 60, 60), text("Ratemod"), range(0, 2, 1, 0.35)
-button channel("Grain2"),              bounds(430, 370, 70, 30), text("Grain2"), colour:0("black"), colour:1("green")
+; ── Row 3: Distance Grain ──────────────────────────────────────────────────────
+groupbox bounds(5, 218, 765, 92), colour(60,78,90), lineThickness(0){
+label   bounds(5, 5, 95, 12), text("Distance Grain"), fontSize(10), align("left")
+button  channel("Distance_grain"),       bounds(8, 20, 80, 28), text("On"), colour:0("black"), colour:1("green")
+rslider channel("Grainpitch"),           bounds(98, 14, 58, 62), text("G.pitch"),  range(10, 1000, 100, 0.35)
+rslider channel("Grainamp"),             bounds(160,14, 58, 62), text("Amp"),      range(-50, 6, 0, 3)
+rslider channel("Grate"),                bounds(222,14, 58, 62), text("G.rate"),   range(0.5, 20, 4, 0.35)
+rslider channel("Gdur"),                 bounds(284,14, 58, 62), text("G.dur"),    range(0.1, 2, 1, 0.35)
+rslider channel("G_dist_rate"),          bounds(346,14, 58, 62), text("Dist.rate"),range(0, 2, 0.1, 0.35)
+rslider channel("G_voice_spread"),       bounds(408,14, 58, 62), text("V.spread"), range(0, 7, 0.1, 0.35)
+rslider channel("distgrains_ampthresh"), bounds(478,14, 58, 62), text("M.thresh"), range(-90, 0, -5), markerColour(55,115,220)
+label   bounds(544, 14, 52, 14), text("transp"), fontSize(11)
+nslider channel("distgrains_transpose"), bounds(544, 30, 52, 22), range(-24, 24, 0, 1, 1)
+label   bounds(602, 14, 42, 14), text("chan"), fontSize(11)
+nslider channel("distgrains_midichan"),  bounds(602, 30, 52, 22), range(1, 16, 1, 1, 1)
+label   bounds(660, 36, 44, 14), text("(+1)"), fontSize(11)
+}
 
-image bounds(5,370,5,130), colour(100,100,100)
-rslider channel("graincloud_ampthresh_1"), bounds(10, 440, 60, 60), text("M.a_thresh"), range(-90, 0, -5)
-nslider channel("graincloud_transpose_1"), bounds(70, 440, 50, 30), text("M.transp"), range(-24, 24, 0, 1, 1)
-nslider channel("graincloud_midichan_1"),  bounds(70, 470, 50, 30), text("M.chan"), range(1, 16, 1, 1, 1)
-rslider channel("graincloud_ampthresh_2"), bounds(130, 440, 60, 60), text("M.a_thresh"), range(-90, 0, -5)
-nslider channel("graincloud_transpose_2"), bounds(190, 440, 50, 30), text("M.transp"), range(-24, 24, 0, 1, 1)
-nslider channel("graincloud_midichan_2"),  bounds(190, 470, 50, 30), text("M.chan"), range(1, 16, 2, 1, 1)
-rslider channel("graincloud_ampthresh_3"), bounds(250, 440, 60, 60), text("M.a_thresh"), range(-90, 0, -5)
-nslider channel("graincloud_transpose_3"), bounds(310, 440, 50, 30), text("M.transp"), range(-24, 24, 0, 1, 1)
-nslider channel("graincloud_midichan_3"),  bounds(310, 470, 50, 30), text("M.chan"), range(1, 16, 3, 1, 1)
-rslider channel("graincloud_ampthresh_4"), bounds(370, 440, 60, 60), text("M.a_thresh"), range(-90, 0, -5)
-nslider channel("graincloud_transpose_4"), bounds(430, 440, 50, 30), text("M.transp"), range(-24, 24, 0, 1, 1)
-nslider channel("graincloud_midichan_4"),  bounds(430, 470, 50, 30), text("M.chan"), range(1, 16, 4, 1, 1)
+; ── Row 4: Grain2 (audio + all 4 MIDI voices flowing right) ────────────────────
+groupbox bounds(5, 318, 1055, 92), colour(60,78,90), lineThickness(0){
+label   bounds(5, 5, 90, 12), text("Grain2"), fontSize(10), align("left")
+button  channel("Grain2"),                  bounds(8, 20, 75, 28), text("On"), colour:0("black"), colour:1("green")
+rslider channel("Grainpitch2"),             bounds(93, 14, 58, 62), text("G.pitch"),  range(10, 1000, 100, 0.35)
+rslider channel("Grainamp2"),               bounds(155,14, 58, 62), text("Amp"),      range(-50, 6, 0, 3)
+rslider channel("Grate2"),                  bounds(217,14, 58, 62), text("G.rate"),   range(0.5, 20, 4, 0.35)
+rslider channel("Gdur2"),                   bounds(279,14, 58, 62), text("G.dur"),    range(0.1, 2, 1, 0.35)
+rslider channel("G2_pitchmod"),             bounds(341,14, 58, 62), text("Ptch.mod"), range(0, 2, 1, 0.35)
+rslider channel("G2_pitch_spread"),         bounds(403,14, 58, 62), text("Ptch.spd"), range(0, 1, 0.1, 0.35)
+rslider channel("G2_ratemod"),              bounds(465,14, 58, 62), text("Ratemod"),  range(0, 2, 1, 0.35)
+rslider channel("graincloud_ampthresh_1"),  bounds(535,14, 58, 62), text("V1.thr"),   range(-90, 0, -5), markerColour(55,115,220)
+nslider channel("graincloud_transpose_1"),  bounds(597,16, 50, 22), range(-24, 24, 0, 1, 1), text("transp")
+nslider channel("graincloud_midichan_1"),   bounds(597,46, 50, 22), range(1, 16, 1, 1, 1), text("chan")
+rslider channel("graincloud_ampthresh_2"),  bounds(653,14, 58, 62), text("V2.thr"),   range(-90, 0, -5), markerColour(55,115,220)
+nslider channel("graincloud_transpose_2"),  bounds(715,16, 50, 22), range(-24, 24, 0, 1, 1), text("transp")
+nslider channel("graincloud_midichan_2"),   bounds(715,46, 50, 22), range(1, 16, 2, 1, 1), text("chan")
+rslider channel("graincloud_ampthresh_3"),  bounds(771,14, 58, 62), text("V3.thr"),   range(-90, 0, -5), markerColour(55,115,220)
+nslider channel("graincloud_transpose_3"),  bounds(833,16, 50, 22), range(-24, 24, 0, 1, 1), text("transp")
+nslider channel("graincloud_midichan_3"),   bounds(833,46, 50, 22), range(1, 16, 3, 1, 1), text("chan")
+rslider channel("graincloud_ampthresh_4"),  bounds(889,14, 58, 62), text("V4.thr"),   range(-90, 0, -5), markerColour(55,115,220)
+nslider channel("graincloud_transpose_4"),  bounds(951,16, 50, 22), range(-24, 24, 0, 1, 1), text("transp")
+nslider channel("graincloud_midichan_4"),   bounds(951,46, 50, 22), range(1, 16, 4, 1, 1), text("chan")
+}
 
+; ── Row 5: L-System + console ──────────────────────────────────────────────────
 
-nslider channel("stop_activity_thresh"), bounds(590, 230, 40, 20), range(0.01, 1, 0.3), fontSize(14)
-label bounds(590, 247, 40, 18), fontSize(11), text("stop_thresh")
-button channel("Stopchord"), bounds(640, 230, 70, 40), text("Stopchord"), colour:0("black"), colour:1("green")
-nslider channel("detune_stopchord"), bounds(715, 230, 40, 20), range(0, 1, 0.1), fontSize(14)
-nslider channel("amp_stopchord"), bounds(715, 250, 40, 20), range(-96, -10, -30), fontSize(14)
-button channel("stopchord_scalefree"), bounds(640, 273, 50, 25), text("scale"), colour:0("black"), colour:1("green")
-button channel("stopchord_minmax"), bounds(695, 273, 60, 25), text("minmax"), colour:0("black"), colour:1("green")
-
-button channel("Stop_LSYS"), bounds(800, 230, 70, 40), text("Stop_LSYS"), colour:0("black"), colour:1("green")
-
-groupbox bounds(480, 10, 410, 205), colour(75,85,90), plant("plant_lsys"), lineThickness("0"){ 
+groupbox bounds(5, 418, 415, 215), colour(60,78,90), lineThickness(0){ 
 nslider channel("generations"), bounds(5,5,40,20), range(1, 10, 3, 1, 1), fontSize(14)
 label bounds(5,22,40,18), text("gens"), fontSize(12), align("left")
 
@@ -137,7 +196,7 @@ checkbox channel("root_note_sibling"), bounds(5,185,15,15), value(1)
 label bounds(23,184,130,18), text("root_note_sibling"), fontSize(12), align("left")
 }
 
-csoundoutput bounds(500, 300, 390, 200)
+csoundoutput bounds(430, 573, 625, 133)
 </Cabbage>
 <CsoundSynthesizer>
 <CsOptions>
@@ -170,6 +229,12 @@ pgmassign -1, -1
   gkZerocross[] init 32
   gkZerocross_distance[] init 32
   gkDctbins[] init 32
+  gkFaderActiveUp[] init 32
+  gkFaderActiveDown[] init 32
+  gkFaderOnDelayUp[] init 32
+  gkFaderOnDelayDown[] init 32
+  gkFaderInstrUp[] init 32
+  gkFaderInstrDown[] init 32
 
   gihandle OSCinit 9899 ; set the network port number where we will receive OSC data from Python
 
@@ -250,6 +315,25 @@ instr 1
 
   kfader_bank_on chnget "Fader_bank"
   ButtonEvent kfader_bank_on, 17, giWaveRaw
+  kfader_bank_off trigger kfader_bank_on, 0.5, 1
+  if kfader_bank_off > 0 then
+    kup_midi_chan chnget "faderbank_midichan"
+    kdown_midi_chan chnget "faderbank_down_midichan"
+    kidx = 0
+    while kidx < gknum_faders do
+      gkFaderActiveUp[kidx] = 0
+      gkFaderActiveDown[kidx] = 0
+      gkFaderOnDelayUp[kidx] = 0
+      gkFaderOnDelayDown[kidx] = 0
+      gkFaderInstrUp[kidx] = 0
+      gkFaderInstrDown[kidx] = 0
+      kidx += 1
+    od
+    event "i", 203, 0, 0.05, int(kup_midi_chan)
+    if int(kdown_midi_chan) != int(kup_midi_chan) then
+      event "i", 203, 0, 0.05, int(kdown_midi_chan)
+    endif
+  endif
 
   knoisebank_on chnget "Noisebank"
   ButtonEvent knoisebank_on, 5
@@ -286,6 +370,8 @@ instr 1
   done_faders:
   
   knumpeaks init 0
+  knumpeaks_median init 0
+  knumpeaks_lowpass init 0
   kavg_x_distance init 0
   kavg_x_movement init 0
   kleft_lobe_x init 0
@@ -294,14 +380,18 @@ instr 1
   kshape_centroid_x init 0.5
   kwave_activity init 0
   kwave_amp init 0
+  kamp_comp init 0
+  kcurvature_rms init 0
   kspectral_centroid init 0
   kshape_centroid init 0.5
   khorizontal_cog_norm init 0.5
   nextmsg_rope_metrics:
-    kmess OSClisten gihandle, "rope_metrics", "ffffffffffff", knumpeaks, kavg_x_distance, kavg_x_movement, kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x, kwave_activity, kwave_amp, kspectral_centroid, kshape_centroid, khorizontal_cog_norm
+    kmess OSClisten gihandle, "rope_metrics", "ffffffffffffffff", knumpeaks, knumpeaks_median, knumpeaks_lowpass, kavg_x_distance, kavg_x_movement, kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x, kwave_activity, kwave_amp, kspectral_centroid, kshape_centroid, khorizontal_cog_norm, kamp_comp, kcurvature_rms
     kOSC_received += kmess
     if kmess == 0 goto done_rope_metrics
     chnset knumpeaks, "numpeaks"
+    chnset knumpeaks_median, "numpeaks_median"
+    chnset knumpeaks_lowpass, "numpeaks_lowpass"
     chnset kavg_x_distance, "avg_x_distance"
     chnset kavg_x_movement, "avg_x_movement"
     chnset kleft_lobe_x, "left_lobe_x"
@@ -310,6 +400,8 @@ instr 1
     chnset kshape_centroid_x, "shape_centroid_x"
     chnset kwave_activity, "wave_activity"
     chnset kwave_amp, "wave_amp"
+    chnset kamp_comp, "amp_comp"
+    chnset kcurvature_rms, "curvature_rms"
     chnset kspectral_centroid, "spectral_centroid"
     chnset kshape_centroid, "shape_centroid"
     chnset khorizontal_cog_norm, "horizontal_cog_norm"
@@ -826,22 +918,6 @@ opcode OscBank, aa, k[]i[]kkkii
   kcps = kbasefreq*semitone(iPitches[ivoice])
   kcps1 = kcps+(kcps*rspline(-kdetune, kdetune, 0.3, 0.9))
   a1 poscil kamp, kcps1
-
-  kmidi_amp_thresh chnget "faderbank_ampthresh"
-  kmidi_amp_thresh ampdbfs kmidi_amp_thresh
-  kmidi_transpose chnget "faderbank_transpose"
-  knote	= round(12 * (log(kcps/220)/log(2)) + 57 + kmidi_transpose)
-  kmidi_instr = 202+(knote*0.001)
-  ;printk2 kmidi_instr
-  kmidi_on trigger kamp, kmidi_amp_thresh, 0
-  kmidi_off trigger kamp, kmidi_amp_thresh, 1
-  kmidi_chan chnget "faderbank_midichan"
-  if kmidi_on > 0 then
-    kvel limit kamp*120, 40, 127  
-    event "i", kmidi_instr, 0, -1, kvel, knote, kmidi_chan
-  elseif kmidi_off > 0 then
-    event "i", -kmidi_instr, 0, .1
-  endif
   ipan = ivoice/(imaxvoice-1)
   aL = a1*sqrt(1-ipan)
   aR = a1*sqrt(ipan)
@@ -853,36 +929,134 @@ opcode OscBank, aa, k[]i[]kkkii
   xout(aL, aR)
 endop
 
+opcode FaderBankMidi, 0, k[]i[]kkkkkiii
+  kAmps[], iPitches[], kbase_note, kthreshold, kmidi_chan, karp_ms, kdir, idir, ivoice, imaxvoice xin
+  kamp = limit(kAmps[ivoice], 0, 1)
+  kthreshold = limit(kthreshold, 0, 1)
+  knote = round(kbase_note + iPitches[ivoice])
+  kmidi_instr = 202 + (knote * 0.001) + (ivoice * 0.00001) + (idir * 0.000001)
+  karp_rank = (kdir >= 0 ? ivoice : (imaxvoice - 1 - ivoice))
+  karp_delay = limit(karp_ms, 0, 100) * 0.001 * karp_rank
+  if idir == 0 then
+    kactive = gkFaderActiveUp[ivoice]
+    kstored_delay = gkFaderOnDelayUp[ivoice]
+    kstored_instr = gkFaderInstrUp[ivoice]
+  else
+    kactive = gkFaderActiveDown[ivoice]
+    kstored_delay = gkFaderOnDelayDown[ivoice]
+    kstored_instr = gkFaderInstrDown[ivoice]
+  endif
+  kmidi_on trigger kamp, kthreshold, 0
+  kmidi_off trigger kamp, kthreshold, 1
+  if kmidi_on > 0 then
+    ; If this voice is already marked active, force-clear stale note first.
+    if (kactive > 0) && (kstored_instr > 0) then
+      event "i", -kstored_instr, 0, 0.02
+    endif
+    kvel limit kamp * 120, 40, 127
+    event "i", kmidi_instr, karp_delay, -1, kvel, knote, kmidi_chan
+    if idir == 0 then
+      gkFaderActiveUp[ivoice] = 1
+      gkFaderOnDelayUp[ivoice] = karp_delay
+      gkFaderInstrUp[ivoice] = kmidi_instr
+    else
+      gkFaderActiveDown[ivoice] = 1
+      gkFaderOnDelayDown[ivoice] = karp_delay
+      gkFaderInstrDown[ivoice] = kmidi_instr
+    endif
+  elseif kmidi_off > 0 then
+    if kactive > 0 then
+      koff_instr = (kstored_instr > 0 ? kstored_instr : kmidi_instr)
+      koff_delay = max(kstored_delay, 0)
+      event "i", -koff_instr, koff_delay, 0.1
+      if idir == 0 then
+        gkFaderActiveUp[ivoice] = 0
+        gkFaderOnDelayUp[ivoice] = 0
+        gkFaderInstrUp[ivoice] = 0
+      else
+        gkFaderActiveDown[ivoice] = 0
+        gkFaderOnDelayDown[ivoice] = 0
+        gkFaderInstrDown[ivoice] = 0
+      endif
+    endif
+  endif
+  if (ivoice < imaxvoice - 1) then
+    FaderBankMidi kAmps, iPitches, kbase_note, kthreshold, kmidi_chan, karp_ms, kdir, idir, ivoice + 1, imaxvoice
+  endif
+endop
+
+opcode DctBankMidi, 0, k[]i[]kkkkkii
+  kAmps[], iPitches[], kbase_note, kthreshold, kmidi_chan, katt, krel, ivoice, imaxvoice xin
+  kamp = max(kAmps[ivoice], 0)
+  ksmooth EnvFollow kamp, katt, krel
+  kstate init 0
+  knote_on_time init -1
+  kmindur = 0.12
+  ktime timeinsts
+  kon = max(kthreshold, 0)
+  koff = max(kon * 0.75, 0)
+  knote = round(kbase_note + iPitches[ivoice])
+  kmidi_instr = 202 + (knote * 0.001) + (ivoice * 0.00001) + 0.0001
+  kmidi_on = 0
+  kmidi_off = 0
+  if (kstate == 0) && (ksmooth >= kon) then
+    kmidi_on = 1
+    kstate = 1
+    knote_on_time = ktime
+  elseif (kstate == 1) && (ksmooth <= koff) && ((ktime - knote_on_time) >= kmindur) then
+    kmidi_off = 1
+    kstate = 0
+  endif
+  if kmidi_on > 0 then
+    kvel limit ksmooth * 120, 40, 127
+    event "i", kmidi_instr, 0, -1, kvel, knote, kmidi_chan
+  elseif kmidi_off > 0 then
+    event "i", -kmidi_instr, 0, .1
+  endif
+  if (ivoice < imaxvoice - 1) then
+    DctBankMidi kAmps, iPitches, kbase_note, kthreshold, kmidi_chan, katt, krel, ivoice + 1, imaxvoice
+  endif
+endop
+
 instr 16
-  ; oscillator bank, tuned to (penta)scale, mixed by the first 8 DCT shape modes
-  itab = p4
+  ; DCT bank MIDI mapping (no audio output)
   iPitches[] fillarray 0, 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24
-  kfreq chnget "Freq_dct"
-  kamp_dB chnget "Amp_dct"
-  kamp = ampdbfs(kamp_dB)
-  kchroma chnget "chroma_dct"
-  kdetune chnget "detune_dct"
-  kdist chnget "dist_dct"
   imaxvoice = 8
-  aL,aR OscBank gkDctbins, iPitches, kfreq, kchroma, kdetune, 0, imaxvoice
-  ;a1 = (tanh(a1)/imaxvoice)*kamp
-  aL = aL/imaxvoice
-  aR = aR/imaxvoice
-  krandfq_flo rspline 0.3,0.6, 0.2, 0.7
-  klfo oscil 0.5, krandfq_flo
-  klfo += 0.5
-  a3L lpf18 aL, 1000+(klfo*400), 0.2, kdist*4
-  a3R lpf18 aR, 1000-(klfo*400), 0.2, kdist*4
-  outch 5, a3L*kamp, 6, a3R*kamp
+  ; MIDI trigger from DCT bins
+  kdct_scale chnget "Dct_bank_scale"
+  if changed(kdct_scale) > 0 then
+    reinit dct_scales
+  endif
+  dct_scales:
+  idct_scale = i(kdct_scale)
+  iMidiPitches[] fillarray 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ; semitone
+  if idct_scale == 2 then
+    iMidiPitches[] fillarray 0, 2, 4, 6,  8, 10, 12, 14, 16, 18, 20, 22, 24 ; wholetone
+  elseif idct_scale == 3 then
+    iMidiPitches[] fillarray 0, 2, 4, 5,  7,  9, 11, 12, 14, 16, 17, 19, 21 ; major
+  elseif idct_scale == 4 then
+    iMidiPitches[] fillarray 0, 2, 3, 5,  7,  8, 10, 12, 14, 15, 17, 18, 20 ; minor
+  elseif idct_scale == 5 then
+    iMidiPitches[] fillarray 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24, 27, 29 ; penta1
+  elseif idct_scale == 6 then
+    iMidiPitches[] fillarray 0, 2, 5, 7,  9, 12, 14, 17, 19, 21, 24, 26, 29 ; penta2
+  endif
+  kdct_basenote chnget "dct_basenote"
+  kdct_thresh   chnget "dct_ampthresh"
+  kdct_midichan chnget "dct_midichan"
+  kdct_env_att  chnget "dct_env_att"
+  kdct_env_rel  chnget "dct_env_rel"
+  DctBankMidi gkDctbins, iMidiPitches, kdct_basenote, kdct_thresh, kdct_midichan, kdct_env_att, kdct_env_rel, 0, imaxvoice
 endin
 
 
 instr 17
-  ; oscillator bank, tuned to (penta)scale, mix rope fader values
+  ; fader bank midi 
   itab = p4
   kscale chnget "Fader_bank_scale"
   
-  if changed(kscale) > 0 then
+  kdown_scale chnget "Fader_bank_down_scale"
+  if changed(kscale) + changed(kdown_scale) > 0 then
     reinit scales
   endif
   scales:
@@ -901,39 +1075,51 @@ instr 17
     iPitches[] fillarray 0, 2, 5, 7, 9, 12, 14, 17, 19, 21, 24, 26, 29 ; penta2
   endif
 
+  idown_scale = i(kdown_scale)
+  iPitchesDown[] fillarray 0, 1, 2, 3,  4,  5,  6,  7,  8,  9, 10, 11, 12 ; semitone
+  if idown_scale == 2 then
+    iPitchesDown[] fillarray 0, 2, 4, 6,  8, 10, 12, 14, 16, 18, 20, 22, 24 ; wholetone
+  elseif idown_scale == 3 then
+    iPitchesDown[] fillarray 0, 2, 4, 5,  7,  9, 11, 12, 14, 16, 17, 19, 21 ; major
+  elseif idown_scale == 4 then
+    iPitchesDown[] fillarray 0, 2, 3, 5,  7,  8, 10, 12, 14, 15, 17, 18, 20 ; minor
+  elseif idown_scale == 5 then
+    iPitchesDown[] fillarray 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24, 27, 29 ; penta1
+  elseif idown_scale == 6 then
+    iPitchesDown[] fillarray 0, 2, 5, 7,  9, 12, 14, 17, 19, 21, 24, 26, 29 ; penta2
+  endif
+
   kFaders[] tab2array giWaveRaw1
-  kFaders limit kFaders, 0.001, 1
-  kFaders -= 0.001
-  kFaders = (kFaders^2)*10
-  krise = 0.01
-  kfall = 1.5
-  kFaders[0] EnvFollow kFaders[0], krise, kfall  
-  kFaders[1] EnvFollow kFaders[1], krise, kfall  
-  kFaders[2] EnvFollow kFaders[2], krise, kfall  
-  kFaders[3] EnvFollow kFaders[3], krise, kfall  
-  kFaders[4] EnvFollow kFaders[4], krise, kfall  
-  kFaders[5] EnvFollow kFaders[5], krise, kfall  
-  kFaders[6] EnvFollow kFaders[6], krise, kfall  
-  kFaders[7] EnvFollow kFaders[7], krise, kfall  
-  kFaders[8] EnvFollow kFaders[8], krise, kfall  
-  kFaders[9] EnvFollow kFaders[9], krise, kfall  
-  
-  kfreq chnget "Freq_fadr"
-  kamp_dB chnget "Amp_fadr"
-  kamp = ampdbfs(kamp_dB)
-  kdetune chnget "detune_fadr"
-  kchroma chnget "chroma_fadr"
-  kdist chnget "dist_fadr"
+  kFadersUp[] = kFaders
+  kFadersDown[] = -kFaders
+  kFadersUp limit kFadersUp, 0, 1
+  kFadersDown limit kFadersDown, 0, 1
+
+  kup_basenote chnget "faderbank_basenote"
+  kup_thresh chnget "faderbank_ampthresh"
+  kup_midi_chan chnget "faderbank_midichan"
+  karp_ms chnget "faderbank_arp_ms"
+  kmov_arp chnget "faderbank_mov_arp"
+  kwave_move chnget "avg_x_movement"
+  karp_dir = (kwave_move >= 0 ? 1 : -1)
+  keff_arp_ms = karp_ms + limit(abs(kwave_move) * kmov_arp * 500, 0, 150)
+  kdown_basenote chnget "faderbank_down_basenote"
+  kdown_thresh_ui chnget "faderbank_down_ampthresh"
+  kdown_thresh = abs(kdown_thresh_ui)
+  kdown_midi_chan chnget "faderbank_down_midichan"
   imaxvoice = 10
-  aL,aR OscBank kFaders, iPitches, kfreq, kchroma, kdetune, 0, imaxvoice
-  aL = aL/imaxvoice
-  aR = aR/imaxvoice
-  krandfq_flo rspline 0.3,0.6, 0.2, 0.7
-  klfo oscil 0.5, krandfq_flo
-  klfo += 0.5
-  a3L lpf18 aL, 1000+(klfo*400), 0.2, kdist*4
-  a3R lpf18 aR, 1000-(klfo*400), 0.2, kdist*4
-  outch 7, a3L*kamp, 8, a3R*kamp
+  FaderBankMidi kFadersUp, iPitches, kup_basenote, kup_thresh, kup_midi_chan, keff_arp_ms, karp_dir, 0, 0, imaxvoice
+  FaderBankMidi kFadersDown, iPitchesDown, kdown_basenote, kdown_thresh, kdown_midi_chan, keff_arp_ms, karp_dir, 1, 0, imaxvoice
+endin
+
+instr 203
+  ; Send note-off (velocity 0) for all notes on one channel.
+  ichan = int(p4)
+  inote = 0
+  while inote < 128 do
+    event_i "i", 202, 0, 0.02, 0, inote, ichan
+    inote += 1
+  od
 endin
 
 

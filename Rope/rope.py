@@ -8,6 +8,7 @@ import time
 import json
 import argparse
 from pathlib import Path
+from collections import deque
 
 try:
     from atem_auto_calibrate import run_auto_calibration
@@ -20,8 +21,8 @@ test_video_path = SCRIPT_DIR / 'test_video.avi'
 
 
 # config parms
-binary_thresh = 15
-blur_size = 5
+binary_thresh = 20
+blur_size = 10
 fps = 20
 flip = False
 video_device = 1
@@ -64,6 +65,19 @@ shape_state_labels = ['straight', 'one-bump', 'arc', 'periodic', 'endpoint-lost'
 shape_state_smooth_alpha = 0.22
 shape_state_switch_margin = 0.08
 shape_state_min_score = 0.38
+numpeaks_median_window_frames = max(1, int(round(fps / 3.0)))
+if numpeaks_median_window_frames % 2 == 0:
+    numpeaks_median_window_frames += 1
+numpeaks_lowpass_cutoff_hz = 0.5
+numpeaks_lp_dt = 1.0 / max(float(fps), 1.0)
+numpeaks_lp_rc = 1.0 / (2.0 * np.pi * numpeaks_lowpass_cutoff_hz)
+numpeaks_lowpass_alpha = float(np.clip(numpeaks_lp_dt / (numpeaks_lp_rc + numpeaks_lp_dt), 0.0, 1.0))
+amp_comp_n_ref = 2.0       # reference numpeaks for frequency-compensated amplitude
+amp_comp_gamma = 0.5       # exponent: >1 boosts high-freq, <1 compresses
+curvature_profile_samples = 64
+curvature_sensitivity = 0.588
+curvature_slope_mix = 0.75  # blend in first-derivative steepness to catch sharp turns
+curvature_gamma = 1.5
 
 # optional ATEM calibration
 atem_enable_calibration = True
@@ -239,6 +253,9 @@ roi_bottom_y = int(max(pts[2][0][1], pts[3][0][1]))
 print('mask LR', mask_left, mask_right)
 send_counter = 0
 max_numpeaks = 0
+numpeaks_median_value = 0
+numpeaks_lowpass_value = 0.0
+numpeaks_history = deque(maxlen=numpeaks_median_window_frames)
 prev_wave_1D = np.zeros(dimensions[1])
 prev_roi_wave_motion = None
 prev_binary_img = np.copy(previous_frame_gray)
@@ -248,6 +265,8 @@ horizontal_cog_y = float(np.mean(mask_center[mask_left:mask_right]))
 horizontal_cog_norm = float(np.clip(horizontal_cog_y / max(dimensions[0] - 1, 1), 0.0, 1.0))
 wave_activity = 0.0
 wave_amp = 0.0
+amp_comp = 0.0
+curvature_rms = 0.0
 wave_motion_value = 0.0
 avg_x_distance = 0
 avg_x_movement = 0
@@ -1084,9 +1103,28 @@ try:
         if len(roi_wave_for_motion) > 0:
             roi_residual = roi_wave_for_motion.astype(np.float32) - center_roi_wave.astype(np.float32)
             wave_amp_rms_px = float(np.sqrt(np.mean(np.square(roi_residual))))
+            if len(roi_residual) > 2:
+                _sample_count = int(max(8, curvature_profile_samples))
+                _x_src = np.linspace(0.0, 1.0, len(roi_residual), dtype=np.float32)
+                _x_dst = np.linspace(0.0, 1.0, _sample_count, dtype=np.float32)
+                _residual_ds = np.interp(_x_dst, _x_src, roi_residual).astype(np.float32)
+                _residual_smooth = np.convolve(_residual_ds, np.array([1.0, 4.0, 6.0, 4.0, 1.0], dtype=np.float32) / 16.0, mode='same')
+                _d1 = np.diff(_residual_smooth)
+                _d2 = np.diff(_residual_smooth, n=2)
+                _slope_rms_px = float(np.sqrt(np.mean(np.square(_d1))))
+                _curvature_rms_px = float(np.sqrt(np.mean(np.square(_d2))))
+                _sample_span = float(_sample_count - 1)
+                _slope_norm = _slope_rms_px * _sample_span * np.sqrt(2) / max(max_amp * np.pi, 1.0)
+                _curvature_norm = _curvature_rms_px * (_sample_span ** 2) / max(max_amp * (np.pi ** 2) * np.sqrt(2), 1.0)
+                _turn_norm = ((1.0 - curvature_slope_mix) * _curvature_norm) + (curvature_slope_mix * _slope_norm)
+                _turn_shaped = _turn_norm ** curvature_gamma
+                curvature_rms = float(np.clip(_turn_shaped * curvature_sensitivity, 0.0, 2.0))
+            else:
+                curvature_rms = 0.0
         else:
             wave_amp_rms_px = 0.0
-        wave_amp = float(np.clip(wave_amp_rms_px / max((max_amp * 0.5), 1.0), 0.0, 1.0))
+            curvature_rms = 0.0
+        wave_amp = float(np.clip(wave_amp_rms_px / max((max_amp * 0.25), 1.0), 0.0, 1.0))
         wave_activity = estimate_wave_activity(prev_roi_wave_motion, roi_wave_for_motion, center_roi_wave, max_amp, wave_activity)
         wave_motion_value, prev_roi_wave_motion = estimate_wave_motion(prev_roi_wave_motion, roi_wave_for_motion, wave_activity, wave_motion_value)
         # Find only significant rope lobes using amplitude/prominence on the center-line residual.
@@ -1113,8 +1151,15 @@ try:
         avg_x_movement = descriptors['avg_x_movement']
         x_pos = descriptors['x_pos']
         x_distances = descriptors['x_distances']
+        numpeaks_history.append(int(numpeaks))
+        numpeaks_median_value = int(round(float(np.median(numpeaks_history))))
+        if frame_num == 1:
+            numpeaks_lowpass_value = float(numpeaks)
+        else:
+            numpeaks_lowpass_value += numpeaks_lowpass_alpha * (float(numpeaks) - numpeaks_lowpass_value)
         if numpeaks > max_numpeaks:
             max_numpeaks = numpeaks
+        amp_comp = float(np.clip(wave_amp * (max(numpeaks_median_value, 1) / amp_comp_n_ref) ** amp_comp_gamma, 0.0, 2.0))
         # other stats
         if numpeaks > 0:
             for i in range(np.min((len(x_pos),32))):
@@ -1218,6 +1263,8 @@ try:
         # Consolidate all peak/shape/activity/centroid metrics into one OSC message.
         osc_msg = (
             float(numpeaks),
+            float(numpeaks_median_value),
+            float(numpeaks_lowpass_value),
             float(avg_x_distance),
             float(avg_x_movement),
             float(descriptors['left_lobe_x']),
@@ -1229,6 +1276,8 @@ try:
             float(spectral_centroid_norm),
             float(descriptors['shape_centroid_x']),
             float(horizontal_cog_norm),
+            float(amp_comp),
+            float(curvature_rms),
         )
         osc_io.sendOSC('rope_metrics', osc_msg) # send OSC back to client
         for i in range(len(faders)):
@@ -1291,7 +1340,7 @@ try:
             zc = ''.join([f'{z:.2f} ' for z in zero_crossings])
             zc_disp = 'zc_dist: ' + ''.join([f'{i:.2f}, ' for i in zc_diff])
             stats_lines = [
-                f'numpeaks: {numpeaks}  max: {max_numpeaks}',
+                f'numpeaks raw:{numpeaks} med:{numpeaks_median_value} lp:{numpeaks_lowpass_value:.2f} max:{max_numpeaks}',
                 f'avg_x_dist: {avg_x_distance:.2f}, avg movement {avg_x_movement:.2f}',
                 x_pos_disp,
                 x_dist_disp,
@@ -1301,18 +1350,22 @@ try:
             wave_activity_text = f'wave activity {wave_activity:.2f}'
             wave_movement_text = f'wave movement {wave_motion_value:+.2f}'
             wave_amp_text = f'wave amp rms {wave_amp:.2f}'
+            wave_amp_comp_text = f'amp comp {amp_comp:.2f}'
+            wave_curvature_text = f'curvature rms {curvature_rms:.2f}'
             wave_shape_text = f'shape {shape_state_label} ({shape_state_confidence:.2f})'
             wave_activity_slider_width = 300
             (wave_activity_text_w, _), _ = cv2.getTextSize(wave_activity_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
             (wave_movement_text_w, _), _ = cv2.getTextSize(wave_movement_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
             (wave_amp_text_w, _), _ = cv2.getTextSize(wave_amp_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+            (wave_amp_comp_text_w, _), _ = cv2.getTextSize(wave_amp_comp_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+            (wave_curvature_text_w, _), _ = cv2.getTextSize(wave_curvature_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
             (wave_shape_text_w, _), _ = cv2.getTextSize(wave_shape_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
-            stats_panel_label_w = max(wave_activity_text_w, wave_movement_text_w, wave_amp_text_w, wave_shape_text_w)
+            stats_panel_label_w = max(wave_activity_text_w, wave_movement_text_w, wave_amp_text_w, wave_amp_comp_text_w, wave_curvature_text_w, wave_shape_text_w)
             stats_panel_min_width = 20 + stats_panel_label_w + 14 + wave_activity_slider_width + 20
             if show_stats:
                 stats_step = v_offset * 2
                 stats_first_y = 25
-                total_rows = len(stats_lines) + 4
+                total_rows = len(stats_lines) + 6
                 stats_panel_height = int((stats_first_y - 8) + ((total_rows - 1) * stats_step) + 18)
                 stats_panel_width = max(int(dimensions[1]*0.40), stats_panel_min_width)
                 draw_transparent_rect(output, 8, 8, stats_panel_width, stats_panel_height, alpha=0.45)
@@ -1329,6 +1382,7 @@ try:
                 ('n', f'dct bc {dct_boundary_mode}', True, dct_boundary_option_color),
                 ('d', f'polarity {"dark" if rope_is_darker else "light"}', True, polarity_option_color),
                 ('i', 'dct input', show_dct_signal, dct_boundary_option_color),
+                ('x', 'reset max peaks', True, option_stats_color),
                 ('1-4', f'display every {display_update_stride}', True, option_stats_color),
                 ('z', 'options', show_option_panel, option_stats_color),
             ]
@@ -1425,6 +1479,24 @@ try:
                 cv2.rectangle(output, (slider_x, amp_slider_y), (slider_x + wave_activity_slider_width, amp_slider_y + slider_h), stats_color, 1)
                 if amp_fill_w > 0:
                     cv2.rectangle(output, (slider_x, amp_slider_y), (slider_x + amp_fill_w, amp_slider_y + slider_h), stats_color, -1)
+                stats_y += v_offset*2
+
+                cv2.putText(output, wave_amp_comp_text, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, stats_color, 1, cv2.LINE_AA)
+                amp_comp_slider_y = stats_y - 13
+                amp_comp_norm = float(np.clip(amp_comp / 2.0, 0.0, 1.0))
+                amp_comp_fill_w = int(round(amp_comp_norm * wave_activity_slider_width))
+                cv2.rectangle(output, (slider_x, amp_comp_slider_y), (slider_x + wave_activity_slider_width, amp_comp_slider_y + slider_h), stats_color, 1)
+                if amp_comp_fill_w > 0:
+                    cv2.rectangle(output, (slider_x, amp_comp_slider_y), (slider_x + amp_comp_fill_w, amp_comp_slider_y + slider_h), stats_color, -1)
+                stats_y += v_offset*2
+
+                cv2.putText(output, wave_curvature_text, (stats_x,stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, stats_color, 1, cv2.LINE_AA)
+                curvature_slider_y = stats_y - 13
+                curvature_norm = float(np.clip(curvature_rms / 2.0, 0.0, 1.0))
+                curvature_fill_w = int(round(curvature_norm * wave_activity_slider_width))
+                cv2.rectangle(output, (slider_x, curvature_slider_y), (slider_x + wave_activity_slider_width, curvature_slider_y + slider_h), stats_color, 1)
+                if curvature_fill_w > 0:
+                    cv2.rectangle(output, (slider_x, curvature_slider_y), (slider_x + curvature_fill_w, curvature_slider_y + slider_h), stats_color, -1)
                 stats_y += v_offset*2
 
                 if shape_state_label == 'periodic':
@@ -1557,6 +1629,9 @@ try:
             show_dct_signal = not show_dct_signal
         if key == ord('d'):
             rope_is_darker = not rope_is_darker
+        if key == ord('x'):
+            max_numpeaks = 0
+            print('Reset max numpeaks.')
         if key in (ord('1'), ord('2'), ord('3'), ord('4')):
             display_update_stride = int(chr(key))
             display_frame_counter = 0
