@@ -53,8 +53,8 @@ dct_display_height = 120
 # ── Hex grid isomorphic keyboard layouts ─────────────────────────────────────
 # Each entry: (name, semitone_step_per_q, semitone_step_per_r)
 # Grid uses flat-top hexagons in axial (q, r) coordinates.
-hex_grid_fields_x = 12   # desired number of hex fields across ROI (horizontal)
-hex_grid_fields_y = 10   # desired number of hex fields across ROI (vertical)
+hex_grid_fields_x = 6   # desired number of hex fields across ROI (horizontal)
+hex_grid_fields_y = 6   # desired number of hex fields across ROI (vertical)
 HEX_LAYOUTS = [
     ("Harmonic",     7, 4),   # Harmonic Table (C-Thru): P5 along q, M3 along r
     ("Wicki-Hayden", 2, 7),   # Wicki-Hayden: M2 along q, P5 along r
@@ -1175,6 +1175,12 @@ try:
     osc_io.register_handler('/hex_size_y', _on_hex_size_y)
     osc_io.register_handler('hex_size_y', _on_hex_size_y)
     osc_io.start_background_receive_server()
+    # Ask Csound for current hex settings. If Csound isn't up yet, this is harmless;
+    # Csound also pushes values at its own startup and on later changes.
+    try:
+        osc_io.sendOSC('hex_query', 1)
+    except Exception:
+        pass
     # Hex grid origin: center of the analysis ROI (fixed for the session)
     hex_orig_x = (mask_left + mask_right) // 2
     hex_orig_y = (roi_top_y + roi_bottom_y) // 2
