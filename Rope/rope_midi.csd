@@ -1,24 +1,6 @@
 <Cabbage>
 form size(1065, 711), caption("Rope MIDI"), pluginId("rom1"), guiMode("queue"), colour(30,30,30)
 ; -- Row 1: event-to-MIDI triggers ---------------------------------------------------------
-groupbox bounds(5, 5, 205, 72), colour(60,78,90), lineThickness(0){
-label   bounds(5, 5, 90, 12), text("Numpeaks"), fontSize(10), align("left")
-button  channel("Wave_numpeaks"),      bounds(8, 18, 72, 28), text("On"), colour:0("black"), colour:1("green")
-label   bounds(90, 17, 42, 14), text("base"), fontSize(11)
-nslider channel("numpeaks_basenote"),  bounds(90, 33, 50, 22), range(1, 127, 60, 1, 1)
-label   bounds(148, 17, 42, 14), text("chan"), fontSize(11)
-nslider channel("numpeaks_midichan"),  bounds(148, 33, 50, 22), range(1, 16, 1, 1, 1)
-}
-
-groupbox bounds(211, 5, 205, 72), colour(60,78,90), lineThickness(0){
-label   bounds(5, 5, 90, 12), text("ZeroCross"), fontSize(10), align("left")
-button  channel("Wave_zerocross"),     bounds(8, 18, 72, 28), text("On"), colour:0("black"), colour:1("green")
-label   bounds(90, 17, 42, 14), text("base"), fontSize(11)
-nslider channel("zerocross_basenote"), bounds(90, 33, 50, 22), range(1, 127, 60, 1, 1)
-label   bounds(148, 17, 42, 14), text("chan"), fontSize(11)
-nslider channel("zerocross_midichan"), bounds(148, 33, 50, 22), range(1, 16, 1, 1, 1)
-}
-
 groupbox bounds(417, 5, 270, 82), colour(60,78,90), lineThickness(0){
 label bounds(5, 5, 90, 12), text("Wave Osc"), fontSize(10), align("left")
 rslider channel("Freq_wav"),     bounds(8,  14, 58, 62), text("Freq"),   range(20, 300, 100, 0.35)
@@ -107,21 +89,18 @@ nslider  channel("hexgrid_size_y"),     bounds(162, 72, 58, 22), range(3, 30, 6,
 }
 
 ; -- Row 3: Distance Grain -----------------------------------------------------------------
-groupbox bounds(5, 218, 765, 92), colour(60,78,90), lineThickness(0){
+groupbox bounds(5, 218, 545, 92), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 95, 12), text("Distance Grain"), fontSize(10), align("left")
 button  channel("Distance_grain"),       bounds(8, 20, 80, 28), text("On"), colour:0("black"), colour:1("green")
-rslider channel("Grainpitch"),           bounds(98, 14, 58, 62), text("G.pitch"),  range(10, 1000, 100, 0.35)
-rslider channel("Grainamp"),             bounds(160,14, 58, 62), text("Amp"),      range(-50, 6, 0, 3)
-rslider channel("Grate"),                bounds(222,14, 58, 62), text("G.rate"),   range(0.5, 20, 4, 0.35)
-rslider channel("Gdur"),                 bounds(284,14, 58, 62), text("G.dur"),    range(0.1, 2, 1, 0.35)
-rslider channel("G_dist_rate"),          bounds(346,14, 58, 62), text("Dist.rate"),range(0, 2, 0.1, 0.35)
-rslider channel("G_voice_spread"),       bounds(408,14, 58, 62), text("V.spread"), range(0, 7, 0.1, 0.35)
-rslider channel("distgrains_ampthresh"), bounds(478,14, 58, 62), text("M.thresh"), range(-90, 0, -5), markerColour(55,115,220)
-label   bounds(544, 14, 52, 14), text("transp"), fontSize(11)
-nslider channel("distgrains_transpose"), bounds(544, 30, 52, 22), range(-24, 24, 0, 1, 1)
-label   bounds(602, 14, 42, 14), text("chan"), fontSize(11)
-nslider channel("distgrains_midichan"),  bounds(602, 30, 52, 22), range(1, 16, 1, 1, 1)
-label   bounds(660, 36, 44, 14), text("(+1)"), fontSize(11)
+rslider channel("Grate"),                bounds(98, 14, 58, 62), text("G.rate"),   range(0.5, 20, 4, 0.35)
+rslider channel("Gdur"),                 bounds(160,14, 58, 62), text("G.dur"),    range(0.1, 2, 1, 0.35)
+rslider channel("G_dist_rate"),          bounds(222,14, 58, 62), text("Dist.rate"),range(0, 10, 0.1)
+rslider channel("G_voice_spread"),       bounds(284,14, 58, 62), text("V.spread"), range(0, 7, 0.1)
+rslider channel("distgrains_ampthresh"), bounds(354,14, 58, 62), text("M.thresh"), range(-90, 0, -5), markerColour(55,115,220)
+label   bounds(420, 14, 52, 14), text("base"), fontSize(11)
+nslider channel("distgrains_basenote"), bounds(420, 30, 52, 22), range(0, 127, 45, 1, 1)
+label   bounds(478, 14, 56, 14), text("basechan"), fontSize(11)
+nslider channel("distgrains_midichan"),  bounds(478, 30, 52, 22), range(1, 16, 1, 1, 1)
 }
 
 ; -- Row 4: Grain2 (audio + all 4 MIDI voices flowing right) ------
@@ -309,11 +288,6 @@ instr 1
 
   kwave_fine_on chnget "Wave_fine_on"
   ButtonEvent kwave_fine_on, 10.2, giWaveFine
-
-  kwave_numpeaks chnget "Wave_numpeaks"
-  ButtonEvent kwave_numpeaks, 8
-  kwave_zerocross chnget "Wave_zerocross"
-  ButtonEvent kwave_zerocross, 9
 
   kwave_raw_detune_on chnget "Wave_raw_detune_on"
   ButtonEvent kwave_raw_detune_on, 11.1, giWaveRaw
@@ -564,43 +538,6 @@ instr 2
 endin
 
 
-instr 8
-  knumpeaks_basenote chnget "numpeaks_basenote"
-  knumpeaks_midichan chnget "numpeaks_midichan"
-  knumpeaks chnget "numpeaks"
-  if changed(knumpeaks) > 0 then
-    knote = knumpeaks_basenote+knumpeaks
-    kvel = 90
-    kdur = 0.5
-    event "i", 202, 0, kdur, kvel, knote, knumpeaks_midichan
-  endif
-endin
-
-instr 9
-  kzerocross_basenote chnget "zerocross_basenote"
-  kzerocross_midichan chnget "zerocross_midichan"
-  kzerocrosses init 0
-  ilen lenarray gkZerocross
-  ktrig metro 10
-  if ktrig > 0 then
-    kndx = 0
-    kzerocrosses = 0
-    while kndx < ilen do
-      if gkZerocross[kndx] > 0 then
-        kzerocrosses += 1
-      endif
-      kndx += 1
-    od
-  endif
-  if changed(kzerocrosses) > 0 then
-    knote = kzerocross_basenote+kzerocrosses
-    kvel = 90
-    kdur = 0.5
-    event "i", 202, 0, kdur, kvel, knote, kzerocross_midichan
-  endif
-endin
-
-
 instr 10
   ; hsb oscil waveshaped by rope wave
   itab = p4
@@ -674,11 +611,11 @@ endin
 opcode DistanceGrains, a, k[]kkkkkkkkkiii
   kDistance[], kamp, kwavfreq, kgrainrate, kdist_rate, kvoice_spread, kgraindur, kamp_thresh, ktranspose, kchan, ivoice, imaxvoice, iopcode_id xin
   kamp1 = kDistance[ivoice] > 0 ? 1 : 0
-  kamp1 tonek kamp1, 1  
+  kamp1 EnvFollow kamp1, 0.01, 2
   kamp *= kamp1
 
   ; grain rate
-  kgrainrate tonek kgrainrate*(1+kDistance[ivoice]*kdist_rate), 1
+  kgrainrate tonek kgrainrate*(1+(kDistance[ivoice]*kdist_rate)), 1
   agrainrate = kgrainrate
   async = 0
 
@@ -707,7 +644,7 @@ opcode DistanceGrains, a, k[]kkkkkkkkkiii
 	asamplepos	= 0				
 
 ; "master" grain pitch (transpose for all 4 source waveforms)
-	kwavfreq	= kwavfreq*semitone(ivoice*kvoice_spread)					; transposition factor (playback speed) of audio inside grains, 
+  kwavfreq	= kwavfreq*semitone(ivoice*kvoice_spread)					; transposition factor (playback speed) of audio inside grains, 
   
 ; pitch sweep
 	ksweepshape		= 0.5						; grain wave pitch sweep shape (sweep speed), 0.5 is linear sweep
@@ -764,12 +701,24 @@ opcode DistanceGrains, a, k[]kkkkkkkkkiii
   kSig shiftin apulse
   kpulse = sumarray(kSig) 
   kphase downsamp aphase
+  ilen_dist lenarray kDistance
+  kactive_count init 0
+  kcount_ndx = 0
+  while kcount_ndx < ilen_dist do
+    if abs(kDistance[kcount_ndx]) > 0.0001 then
+      kactive_count += 1
+    endif
+    kcount_ndx += 1
+  od
+
   if (kpulse > 0) && (kamp > kamp_thresh) then
     knote = (kwavfreq*12)+48
     knote = 12*log2(kwavfreq/440) + 69 + ktranspose
-    kvel limit kamp*120, 40, 127
+    kvel_norm = limit(abs(kDistance[ivoice]), 0, 1)
+    kvel = int(limit(50 + (kvel_norm * 70), 50, 120))
     kmidi_chan chnget "distgrains_midichan"
-    kchan2 = ceil(0.2+kamp)+kmidi_chan-1; switching between 2 channels
+    kchan_offset = (kactive_count > 0 ? (kactive_count - 1) % 4 : 0)
+    kchan2 limit (kmidi_chan + kchan_offset), 1, 16
     event "i", 202, 0, (kduration/1000)+0.01, kvel, knote, kchan2
   endif
 
@@ -783,24 +732,22 @@ endop
 
 instr 12
   ; grain rhythm detuned by peak distances
-  kwavfreq chnget "Grainpitch"
-  kamp_dB chnget "Grainamp"
+  kbasenote chnget "distgrains_basenote"
+  kwavfreq = cpsmidinn(kbasenote)
   kgrainrate chnget "Grate"
   kx_dist chnget "avg_x_distance"
   kgrainrate *= limit(1-(kx_dist)*2, 0.1, 1)
   kgraindur chnget "Gdur"
-  kamp = ampdbfs(kamp_dB)
+  kamp = ampdbfs(6)
   kactivity chnget "wave_activity"
   kactivity limit kactivity, 0, 1
   kamp_env EnvFollow kactivity, 0.01, 3
   kamp *= kamp_env
-  knumpeaks chnget "numpeaks"
-  kwavfreq *= (knumpeaks+1)
   kdist_rate chnget "G_dist_rate"
   kvoice_spread chnget "G_voice_spread"
   kmidi_amp_thresh chnget "distgrains_ampthresh"
   kmidi_amp_thresh ampdbfs kmidi_amp_thresh
-  kmidi_transpose chnget "distgrains_transpose"
+  kmidi_transpose = 0
   kmidi_chan chnget "distgrains_midichan"
   imaxvoice = 5
   iopcode_id1 = 1
