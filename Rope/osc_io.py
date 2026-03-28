@@ -75,4 +75,19 @@ signal.signal(signal.SIGINT, inner_ctrl_c_signal_handler)
 init_osc_client()
 dispatcher = dispatcher.Dispatcher()
 
+def register_handler(address, handler):
+    """Register a handler function for an incoming OSC address."""
+    dispatcher.map(address, handler)
+
+def start_background_receive_server():
+    """Start the OSC receive server in a daemon background thread."""
+    import threading
+    ip, port = receive_address
+    def _run():
+        server = BlockingOSCUDPServer((ip, port), dispatcher)
+        print(f"OSC receive server started at {ip}:{port}")
+        server.serve_forever()
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+
 

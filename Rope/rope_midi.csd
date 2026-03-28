@@ -1,6 +1,6 @@
-<Cabbage>
+﻿<Cabbage>
 form size(1065, 711), caption("Rope MIDI"), pluginId("rom1"), guiMode("queue"), colour(30,30,30)
-; ── Row 1: event-to-MIDI triggers ─────────────────────────────────────────────
+; â”€â”€ Row 1: event-to-MIDI triggers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 groupbox bounds(5, 5, 205, 72), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 90, 12), text("Numpeaks"), fontSize(10), align("left")
 button  channel("Wave_numpeaks"),      bounds(8, 18, 72, 28), text("On"), colour:0("black"), colour:1("green")
@@ -46,7 +46,7 @@ label bounds(5, 5, 90, 12), text("Stop LSYS"), fontSize(10), align("left")
 button channel("Stop_LSYS"), bounds(20, 24, 75, 28), text("On"), colour:0("black"), colour:1("green")
 }
 
-; ── Row 2: Fader Bank + DCT Bank ────────────────────────────────────────────────
+; â”€â”€ Row 2: Fader Bank + DCT Bank â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 groupbox bounds(5, 85, 380, 116), colour(60,78,90), lineThickness(0){
 label    bounds(5, 5, 90, 12), text("Fader Bank"), fontSize(10), align("left")
 button   channel("Fader_bank"),          bounds(8, 16, 76, 23), text("On"), colour:0("black"), colour:1("green")
@@ -89,7 +89,24 @@ label    bounds(229, 50, 30, 12), text("rel"), fontSize(10), align("left")
 nslider  channel("dct_env_rel"),      bounds(229, 62, 46, 18), range(0.05, 2.0, 0.9, 0.5, 0.01)
 }
 
-; ── Row 3: Distance Grain ──────────────────────────────────────────────────────
+groupbox bounds(718, 85, 342, 116), colour(60,78,90), lineThickness(0){
+label    bounds(5, 5, 80, 12), text("Hex Grid"), fontSize(10), align("left")
+button   channel("Hex_grid"),           bounds(8, 18, 60, 26), text("On"), colour:0("black"), colour:1("green")
+label    bounds(74, 10, 44, 14), text("layout"), fontSize(11)
+combobox channel("hexgrid_layout"),     bounds(74, 24, 152, 22), items("Harmonic", "Wicki-Hayden", "Tonnetz", "Harmonetta", "Janko", "Chromatic"), value(1)
+label    bounds(230, 10, 40, 14), text("base"), fontSize(11)
+nslider  channel("hexgrid_basenote"),   bounds(230, 24, 46, 22), range(0, 127, 60, 1, 1)
+label    bounds(280, 10, 36, 14), text("chan"), fontSize(11)
+nslider  channel("hexgrid_midichan"),   bounds(280, 24, 40, 22), range(1, 16, 1, 1, 1)
+label    bounds(8, 58, 56, 12), text("max dur"), fontSize(10), align("left")
+nslider  channel("hexgrid_maxdur"),     bounds(8, 72, 80, 22), range(0.1, 4.0, 0.7, 1, 0.05)
+label    bounds(96, 58, 48, 12), text("fields x"), fontSize(10), align("left")
+nslider  channel("hexgrid_size_x"),     bounds(96, 72, 58, 22), range(3, 30, 28, 1, 1)
+label    bounds(162, 58, 48, 12), text("fields y"), fontSize(10), align("left")
+nslider  channel("hexgrid_size_y"),     bounds(162, 72, 58, 22), range(3, 30, 28, 1, 1)
+}
+
+; â”€â”€ Row 3: Distance Grain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 groupbox bounds(5, 218, 765, 92), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 95, 12), text("Distance Grain"), fontSize(10), align("left")
 button  channel("Distance_grain"),       bounds(8, 20, 80, 28), text("On"), colour:0("black"), colour:1("green")
@@ -107,7 +124,7 @@ nslider channel("distgrains_midichan"),  bounds(602, 30, 52, 22), range(1, 16, 1
 label   bounds(660, 36, 44, 14), text("(+1)"), fontSize(11)
 }
 
-; ── Row 4: Grain2 (audio + all 4 MIDI voices flowing right) ────────────────────
+; â”€â”€ Row 4: Grain2 (audio + all 4 MIDI voices flowing right) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 groupbox bounds(5, 318, 1055, 92), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 90, 12), text("Grain2"), fontSize(10), align("left")
 button  channel("Grain2"),                  bounds(8, 20, 75, 28), text("On"), colour:0("black"), colour:1("green")
@@ -132,7 +149,7 @@ nslider channel("graincloud_transpose_4"),  bounds(951,16, 50, 22), range(-24, 2
 nslider channel("graincloud_midichan_4"),   bounds(951,46, 50, 22), range(1, 16, 4, 1, 1), text("chan")
 }
 
-; ── Row 5: L-System + console ──────────────────────────────────────────────────
+; â”€â”€ Row 5: L-System + console â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 groupbox bounds(5, 418, 415, 215), colour(60,78,90), lineThickness(0){ 
 nslider channel("generations"), bounds(5,5,40,20), range(1, 10, 3, 1, 1), fontSize(14)
@@ -345,7 +362,27 @@ instr 1
   ButtonEvent kstop_lsys_on, 20
 
   ; OSC receive
-  kOSC_received = 0
+    khex_grid_on chnget "Hex_grid"
+    ButtonEvent khex_grid_on, 21
+    khex_grid_off trigger khex_grid_on, 0.5, 1
+    if khex_grid_off > 0 then
+      khex_chan_off chnget "hexgrid_midichan"
+      event "i", 203, 0, 0.05, int(khex_chan_off)
+    endif
+
+    klayout_hex chnget "hexgrid_layout"
+    ktrig_hex_layout changed klayout_hex
+    OSCsend ktrig_hex_layout, "127.0.0.1", 9801, "/hex_layout", "f", klayout_hex
+
+    khex_size_x chnget "hexgrid_size_x"
+    khex_size_y chnget "hexgrid_size_y"
+    ktrig_hex_size_x changed khex_size_x
+    ktrig_hex_size_y changed khex_size_y
+    OSCsend ktrig_hex_size_x, "127.0.0.1", 9801, "/hex_size_x", "f", khex_size_x
+    OSCsend ktrig_hex_size_y, "127.0.0.1", 9801, "/hex_size_y", "f", khex_size_y
+
+    ; OSC receive
+    kOSC_received = 0
   
   kfader_ndx init 0
   kfader_val init 0
@@ -1248,6 +1285,38 @@ instr 20
 endin
 
 #include "lsys_cs_midi.inc"
+
+;***************************************************
+instr 21
+  ; Hex Grid MIDI: forward OSC note-on/off from Python to instr 202
+  khex_basenote chnget "hexgrid_basenote"
+  khex_midichan chnget "hexgrid_midichan"
+  khex_maxdur   chnget "hexgrid_maxdur"
+
+  ; Poll hex note-on  (/hex_note_on ii: semitone_offset, velocity)
+  khex_offset init 0
+  khex_vel    init 64
+  next_hex_on:
+  kmess_on OSClisten gihandle, "hex_note_on", "ii", khex_offset, khex_vel
+  if kmess_on > 0 then
+    knote limit (khex_basenote + khex_offset), 0, 127
+    kmidi_instr = 202 + (knote * 0.001) + 0.0002
+    kvel limit khex_vel, 1, 127
+    event "i", kmidi_instr, 0, khex_maxdur, kvel, knote, khex_midichan
+    kgoto next_hex_on
+  endif
+
+  ; Poll hex note-off  (/hex_note_off i: semitone_offset)
+  khex_offset_off init 0
+  next_hex_off:
+  kmess_off OSClisten gihandle, "hex_note_off", "i", khex_offset_off
+  if kmess_off > 0 then
+    knote_off limit (khex_basenote + khex_offset_off), 0, 127
+    kmidi_instr_off = 202 + (knote_off * 0.001) + 0.0002
+    event "i", -kmidi_instr_off, 0, 0.1
+    kgoto next_hex_off
+  endif
+endin
 
 ;***************************************************
 instr 202

@@ -37,6 +37,7 @@ dark_floor = 30   # pixels with bg average below this are treated as persistent 
 max_spatial_jump_px = 18
 max_temporal_deviation_px = 65
 kinematic_min_obs_pixels = 2
+endpoint_memory_min_obs_pixels = 1
 kinematic_snap_to_obs_px = 22
 kinematic_edge_anchor_px = 24
 peak_min_amplitude_frac = 0.015
@@ -49,6 +50,19 @@ dct_display_cycles = np.array([
 ], dtype=np.float32)
 dct_highmode_start_cycles = 10.0
 dct_display_height = 120
+# ── Hex grid isomorphic keyboard layouts ─────────────────────────────────────
+# Each entry: (name, semitone_step_per_q, semitone_step_per_r)
+# Grid uses flat-top hexagons in axial (q, r) coordinates.
+hex_grid_fields_x = 12   # desired number of hex fields across ROI (horizontal)
+hex_grid_fields_y = 10   # desired number of hex fields across ROI (vertical)
+HEX_LAYOUTS = [
+    ("Harmonic",     7, 4),   # Harmonic Table (C-Thru): P5 along q, M3 along r
+    ("Wicki-Hayden", 2, 7),   # Wicki-Hayden: M2 along q, P5 along r
+    ("Tonnetz",      7, 3),   # Euler Tonnetz: P5 along q, m3 along r
+    ("Harmonetta",   4, 3),   # Harmonetta: M3 along q, m3 along r
+    ("Janko",        2, 1),   # Janko: whole-tone q, semitone r
+    ("Chromatic",    1, 4),   # Chromatic: semitone q, P4 r
+]
 dct_display_db_floor = -40.0  # dB floor for display; -40dB = amplitude 1/100 of full swing
 dct_display_db_ceiling = 32.0  # positive headroom so strong modes do not saturate too early
 dct_display_shape_gamma = 1.8  # emphasize high-end differences in normalized DCT display values
@@ -257,6 +271,10 @@ numpeaks_median_value = 0
 numpeaks_lowpass_value = 0.0
 numpeaks_history = deque(maxlen=numpeaks_median_window_frames)
 prev_wave_1D = np.zeros(dimensions[1])
+remembered_left_endpoint_y = float(wavecenter_y_left)
+remembered_right_endpoint_y = float(wavecenter_y_right)
+remembered_left_outside_y = float(wavecenter_y_left)
+remembered_right_outside_y = float(wavecenter_y_right)
 prev_roi_wave_motion = None
 prev_binary_img = np.copy(previous_frame_gray)
 spectral_centroid_cycles = 0.0
@@ -336,6 +354,8 @@ show_stats = True
 show_faders = True
 show_fft = True
 show_option_panel = True
+show_hex_grid = True
+hex_active_cells = set()
 paused = False
 use_bg_model = True       # combine background-model diff with per-frame diff
 use_screen_blend = False   # screen-blend equalization before threshold
@@ -358,6 +378,9 @@ screen_blend_option_color = (180,120,255)  # soft purple
 kinematic_option_color = (120,220,255)
 polarity_option_color = (255,210,180)
 dct_boundary_option_color = (160,255,180)
+# hex grid overlay colors
+hex_grid_dim_color    = (80, 80, 100)      # BGR: dim lines for inactive cells
+hex_grid_active_color = (50, 220, 255)     # BGR: bright highlight for active cells
 
 def find_center_wave_regr(wave_1D, mask_left, mask_right):
     x = np.arange(0,len(wave_1D[mask_left:mask_right]),1)
@@ -387,7 +410,7 @@ def centroid_1D_from_img(input_img, output_img, show_centroid, centroid_color):
 
 
 def constrain_centroid_by_rope_kinematics(centroid_1D, obs_count_1D, prev_wave_1D, left_limit, right_limit):
-    constrained = np.zeros_like(centroid_1D)
+    constrained = np.copy(centroid_1D)
     if right_limit <= left_limit:
         return constrained
 
@@ -416,6 +439,7 @@ def constrain_centroid_by_rope_kinematics(centroid_1D, obs_count_1D, prev_wave_1
     forward = pass_once(left_limit, right_limit, 1)
     backward = pass_once(right_limit - 1, left_limit - 1, -1)
     both_mask = (forward > 0) & (backward > 0)
+    constrained[left_limit:right_limit] = 0
     constrained[both_mask] = 0.5 * (forward[both_mask] + backward[both_mask])
     constrained[(forward > 0) & (backward == 0)] = forward[(forward > 0) & (backward == 0)]
     constrained[(backward > 0) & (forward == 0)] = backward[(backward > 0) & (forward == 0)]
@@ -430,7 +454,8 @@ def constrain_centroid_by_rope_kinematics(centroid_1D, obs_count_1D, prev_wave_1
         obs_is_strong = obs_count_1D[x] >= kinematic_min_obs_pixels
         in_edge_zone = (x - left_limit) < kinematic_edge_anchor_px or x >= right_edge_start
         if in_edge_zone:
-            constrained[x] = y_obs
+            if obs_is_strong and (not has_prev_wave or abs(y_obs - prev_wave_1D[x]) <= max_temporal_deviation_px):
+                constrained[x] = y_obs
             continue
         if not obs_is_strong:
             continue
@@ -439,7 +464,35 @@ def constrain_centroid_by_rope_kinematics(centroid_1D, obs_count_1D, prev_wave_1
             constrained[x] = y_obs
     return constrained
 
+def update_endpoint_memory(centroid_1D, obs_count_1D, left_memory_y, right_memory_y):
+    strong_obs = np.where((centroid_1D > 0) & (obs_count_1D >= endpoint_memory_min_obs_pixels))[0]
+    if len(strong_obs) == 0:
+        return left_memory_y, right_memory_y
+    left_memory_y = float(centroid_1D[int(strong_obs[0])])
+    right_memory_y = float(centroid_1D[int(strong_obs[-1])])
+    return left_memory_y, right_memory_y
+
+def update_outside_anchor_memory(centroid_1D, obs_count_1D, left_limit, right_limit, left_outside_y, right_outside_y):
+    strong_obs = np.where((centroid_1D > 0) & (obs_count_1D >= endpoint_memory_min_obs_pixels))[0]
+    if len(strong_obs) == 0:
+        return left_outside_y, right_outside_y
+    left_candidates = strong_obs[strong_obs < left_limit]
+    right_candidates = strong_obs[strong_obs >= right_limit]
+    if len(left_candidates) > 0:
+        left_outside_y = float(centroid_1D[int(left_candidates[-1])])
+    if len(right_candidates) > 0:
+        right_outside_y = float(centroid_1D[int(right_candidates[0])])
+    return left_outside_y, right_outside_y
+
 def fill_in_missing_points(y_init_left, y_init_right, input_1D, output_1D, output_img, show_fill_blanks, fill_blanks_color):
+    valid_points = np.where(input_1D > 0)[0]
+    if len(valid_points) == 0:
+        output_1D[:dimensions[1]] = np.linspace(y_init_left, y_init_right, dimensions[1])
+        if show_fill_blanks:
+            for i in range(mask_left,mask_right):
+                cv2.circle(output_img, (i,int(output_1D[i])), 3, fill_blanks_color, 1)
+        return output_1D
+
     # fill in missing points
     x_prev = 0
     y_prev = y_init_left
@@ -472,11 +525,12 @@ def fill_in_missing_points(y_init_left, y_init_right, input_1D, output_1D, outpu
             output_1D[i] = y_value
             y_prev = y_value
             savepoint = 0
-    # fill any blank spaces at the end of the array with zeros
-    line_len = dimensions[1]-x_prev
-    line = np.linspace(y_init_right, y_init_right, line_len)
-    output_1D[x_prev:dimensions[1]] = np.reshape(line, shape=(line_len,))
-    output_1D[dimensions[1]:] = y_init_right
+    # Fill the tail only if the array actually ended inside a blank segment.
+    # Otherwise this can overwrite valid observed points near the right side.
+    if savepoint == 1:
+        line_len = dimensions[1] - x_prev
+        line = np.linspace(y_init_right, y_init_right, line_len)
+        output_1D[x_prev:dimensions[1]] = np.reshape(line, shape=(line_len,))
     if show_fill_blanks:
         for i in range(mask_left,mask_right):
             cv2.circle(output_img, (i,int(output_1D[i])), 3, fill_blanks_color, 1)
@@ -964,43 +1018,167 @@ def display_faders(faders, fader_x_positions, mask_center, max_amp, output_img, 
             cv2.putText(output_img, f'{y_val:.2f}', (x-20,y+45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, fader_color, 2, cv2.LINE_AA)
 
 
-def smooth_fill_to_mask_edges(wave_line, centroid_line, left_bound, right_bound, max_y):
+# ── Hex grid helpers ──────────────────────────────────────────────────────────
+_HEX_SQRT3 = np.sqrt(3.0)
+
+def _pixels_to_hex_cells(xs_f, ys_f, ox, oy, size_x, size_y):
+    """Vectorized: float pixel arrays → set of unique axial (q, r) hex cells (flat-top)."""
+    if len(xs_f) == 0:
+        return set()
+    dx = xs_f - ox;  dy = ys_f - oy
+    fq = (2.0 / 3.0) * (dx / size_x)
+    fr = (-1.0 / 3.0) * (dx / size_x) + (_HEX_SQRT3 / 3.0) * (dy / size_y)
+    fs = -fq - fr
+    qi = np.round(fq).astype(np.int32);  ri = np.round(fr).astype(np.int32);  si = np.round(fs).astype(np.int32)
+    aq = np.abs(qi.astype(np.float32) - fq)
+    ar = np.abs(ri.astype(np.float32) - fr)
+    as_ = np.abs(si.astype(np.float32) - fs)
+    fix_q = (aq > ar) & (aq > as_)
+    fix_r = (~fix_q) & (ar > as_)
+    qi = np.where(fix_q, -ri - si, qi)
+    ri = np.where(fix_r, -qi - si, ri)
+    return set(map(tuple, np.unique(np.column_stack([qi, ri]), axis=0).tolist()))
+
+def _hex_center_px(q, r, ox, oy, size_x, size_y):
+    """Flat-top axial (q, r) → pixel center (cx, cy)."""
+    return ox + size_x * 1.5 * q, oy + size_y * (_HEX_SQRT3 * 0.5 * q + _HEX_SQRT3 * r)
+
+def _hex_verts(cx, cy, size_x, size_y):
+    """6 vertices of a flat-top hexagon as int32 ndarray for cv2.polylines."""
+    return np.array([[int(cx + size_x * np.cos(np.radians(60.0 * i))),
+                      int(cy + size_y * np.sin(np.radians(60.0 * i)))] for i in range(6)], dtype=np.int32)
+
+def draw_hex_grid_overlay(img, active_cells, ox, oy, size_x, size_y, roi_bounds, layout_idx):
+    """Draw flat-top hex grid over ROI onto img; highlight active (rope-touched) cells."""
+    rl, rr, rt, rb = roi_bounds
+    layout_name, dq, dr = HEX_LAYOUTS[layout_idx]
+    draw_sx = size_x * 0.90
+    draw_sy = size_y * 0.90
+    q_min = int(np.floor((2.0 / 3.0) * (rl - ox) / size_x)) - 1
+    q_max = int(np.ceil((2.0 / 3.0) * (rr - ox) / size_x)) + 1
+    for q in range(q_min, q_max + 1):
+        cy_q = oy + size_y * _HEX_SQRT3 * 0.5 * q
+        r_min = int(np.floor((rt - cy_q) / (size_y * _HEX_SQRT3))) - 1
+        r_max = int(np.ceil((rb - cy_q) / (size_y * _HEX_SQRT3))) + 1
+        for r in range(r_min, r_max + 1):
+            cx, cy = _hex_center_px(q, r, ox, oy, size_x, size_y)
+            if not (rl - size_x < cx < rr + size_x and rt - size_y < cy < rb + size_y):
+                continue
+            active = (q, r) in active_cells
+            color = hex_grid_active_color if active else hex_grid_dim_color
+            cv2.polylines(img, [_hex_verts(cx, cy, draw_sx, draw_sy)], True, color, 2 if active else 1)
+            offset = q * dq + r * dr
+            cv2.putText(img, str(offset), (int(cx) - 7, int(cy) + 4),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.28, color, 1, cv2.LINE_AA)
+    cv2.putText(img, f'hex:{layout_name}', (rl, max(rt - 4, 14)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.52, hex_grid_dim_color, 1, cv2.LINE_AA)
+
+
+def smooth_fill_to_mask_edges(wave_line, centroid_line, left_bound, right_bound, max_y, left_default_y, right_default_y, left_outside_mem_y, right_outside_mem_y):
     filled = np.copy(wave_line)
     if right_bound <= left_bound:
         return filled
 
-    valid = np.where(centroid_line[left_bound:right_bound] > 0)[0] + left_bound
-    if len(valid) < 2:
+    valid_all = np.where(centroid_line > 0)[0]
+    valid = valid_all[(valid_all >= left_bound) & (valid_all < right_bound)]
+    if len(valid) == 0:
+        filled[left_bound:right_bound] = np.linspace(left_default_y, right_default_y, right_bound - left_bound)
+        filled[:left_bound] = left_default_y
+        filled[right_bound:] = right_default_y
+        return filled
+    if len(valid) == 1:
+        idx = int(valid[0])
+        y_at_idx = float(filled[idx])
+        if idx > left_bound:
+            xs = np.arange(left_bound, idx)
+            t = (xs - left_bound) / float(idx - left_bound)
+            filled[left_bound:idx] = (1.0 - t) * left_default_y + t * y_at_idx
+        if idx < (right_bound - 1):
+            xs = np.arange(idx + 1, right_bound)
+            t = (xs - idx) / float(right_bound - idx)
+            filled[idx + 1:right_bound] = (1.0 - t) * y_at_idx + t * right_default_y
+        filled[:left_bound] = left_default_y
+        filled[right_bound:] = right_default_y
         return filled
 
     left_first = int(valid[0])
     right_last = int(valid[-1])
-    fit_count = int(min(12, len(valid)))
+    total_w = len(filled)
+    _extend = 1.5
+
+    left_outside = valid_all[valid_all < left_bound]
+    right_outside = valid_all[valid_all >= right_bound]
 
     if left_first > left_bound:
-        left_fit_x = valid[:fit_count]
-        left_fit_y = filled[left_fit_x]
-        if len(left_fit_x) >= 2:
-            left_m, left_c = np.polyfit(left_fit_x, left_fit_y, 1)
-            x_ext = np.arange(left_bound, left_first)
-            y_ext = (left_m * x_ext) + left_c
-            filled[left_bound:left_first] = np.clip(y_ext, 0, max_y)
+        y_at_first = float(filled[left_first])
+        gap = left_first - left_bound
+        if len(left_outside) > 0:
+            anchor_left = int(left_outside[-1])
+            y_anchor_left = float(centroid_line[anchor_left])
+        else:
+            anchor_left = max(0, int(round(left_bound - (_extend * gap))))
+            y_anchor_left = float(left_outside_mem_y)
+            filled[:anchor_left] = left_default_y
+
+        if anchor_left < left_first:
+            xs = np.arange(anchor_left, left_first)
+            t = (xs - anchor_left) / float(left_first - anchor_left)
+            filled[anchor_left:left_first] = (1.0 - t) * y_anchor_left + t * y_at_first
+        filled[:anchor_left] = y_anchor_left
+    else:
+        filled[:left_bound] = filled[left_bound]
 
     if right_last < (right_bound - 1):
-        right_fit_x = valid[-fit_count:]
-        right_fit_y = filled[right_fit_x]
-        if len(right_fit_x) >= 2:
-            right_m, right_c = np.polyfit(right_fit_x, right_fit_y, 1)
-            x_ext = np.arange(right_last + 1, right_bound)
-            y_ext = (right_m * x_ext) + right_c
-            filled[right_last + 1:right_bound] = np.clip(y_ext, 0, max_y)
+        y_at_last = float(filled[right_last])
+        gap = (right_bound - 1) - right_last
+        if len(right_outside) > 0:
+            anchor_right = int(right_outside[0])
+            y_anchor_right = float(centroid_line[anchor_right])
+        else:
+            anchor_right = min(total_w - 1, int(round((right_bound - 1) + (_extend * gap))))
+            y_anchor_right = float(right_outside_mem_y)
 
-    filled[:left_bound] = filled[left_bound]
-    filled[right_bound:] = filled[right_bound - 1]
+        if right_last < anchor_right:
+            xs = np.arange(right_last + 1, anchor_right + 1)
+            t = (xs - right_last) / float(anchor_right - right_last)
+            filled[right_last + 1:anchor_right + 1] = (1.0 - t) * y_at_last + t * y_anchor_right
+        filled[anchor_right + 1:] = y_anchor_right
+    else:
+        filled[right_bound:] = filled[right_bound - 1]
+
     return filled
 
 try:
     print('Starting video. Press q to exit.')
+    # ── Hex grid OSC receive (Csound → Python layout selection) ───────────────
+    _hex_layout_buf = [0]   # 0-based layout index; written by background OSC thread
+    _hex_size_x_buf = [float(hex_grid_fields_x)]
+    _hex_size_y_buf = [float(hex_grid_fields_y)]
+
+    def _on_hex_layout(address, *args):
+        if args:
+            _hex_layout_buf[0] = max(0, min(len(HEX_LAYOUTS) - 1, int(float(args[0])) - 1))
+
+    def _on_hex_size_x(address, *args):
+        if args:
+            _hex_size_x_buf[0] = float(np.clip(float(args[0]), 3.0, 30.0))
+
+    def _on_hex_size_y(address, *args):
+        if args:
+            _hex_size_y_buf[0] = float(np.clip(float(args[0]), 3.0, 30.0))
+
+    # Accept both '/addr' and 'addr' OSC styles for robustness across senders.
+    osc_io.register_handler('/hex_layout', _on_hex_layout)
+    osc_io.register_handler('hex_layout', _on_hex_layout)
+    osc_io.register_handler('/hex_size_x', _on_hex_size_x)
+    osc_io.register_handler('hex_size_x', _on_hex_size_x)
+    osc_io.register_handler('/hex_size_y', _on_hex_size_y)
+    osc_io.register_handler('hex_size_y', _on_hex_size_y)
+    osc_io.start_background_receive_server()
+    # Hex grid origin: center of the analysis ROI (fixed for the session)
+    hex_orig_x = (mask_left + mask_right) // 2
+    hex_orig_y = (roi_top_y + roi_bottom_y) // 2
+    hex_layout_idx = 0   # local copy, updated each frame from _hex_layout_buf
     frame_num = 0
     underflow_window_start = time.time()
     perf_window_start = underflow_window_start
@@ -1041,11 +1219,13 @@ try:
             frame_diff = screen_blend_self(frame_diff)
         frame_diff_masked = cv2.bitwise_and(frame_diff, frame_diff, mask=mask)
         frame_diff_masked = cv2.blur(frame_diff_masked, (blur_size,blur_size))
+        frame_diff_full = cv2.blur(frame_diff, (blur_size, blur_size))
         # threshold the image to make hard black/white
-        _, binary_img = cv2.threshold(frame_diff_masked, binary_thresh, 255, cv2.THRESH_BINARY)
+        _, binary_img_roi = cv2.threshold(frame_diff_masked, binary_thresh, 255, cv2.THRESH_BINARY)
+        _, binary_img = cv2.threshold(frame_diff_full, binary_thresh, 255, cv2.THRESH_BINARY)
         time_binary = time.time()
-        max_image = np.shape(binary_img)[0]*np.shape(binary_img)[1]*255
-        activation_sum = np.sum(binary_img)/max_image
+        max_image = np.shape(binary_img_roi)[0]*np.shape(binary_img_roi)[1]*255
+        activation_sum = np.sum(binary_img_roi)/max_image
         
         diff_thresh = 0.000001 # can use this to hold last shape (set thresh higher than approx 0.01)
         noise_gate = 1
@@ -1062,6 +1242,20 @@ try:
             centroid_1D = constrain_centroid_by_rope_kinematics(centroid_1D_raw, centroid_obs_count, prev_wave_1D, mask_left, mask_right)
         else:
             centroid_1D = centroid_1D_raw
+        remembered_left_endpoint_y, remembered_right_endpoint_y = update_endpoint_memory(
+            centroid_1D_raw,
+            centroid_obs_count,
+            remembered_left_endpoint_y,
+            remembered_right_endpoint_y,
+        )
+        remembered_left_outside_y, remembered_right_outside_y = update_outside_anchor_memory(
+            centroid_1D_raw,
+            centroid_obs_count,
+            mask_left,
+            mask_right,
+            remembered_left_outside_y,
+            remembered_right_outside_y,
+        )
         # fill in any blanks in the wave
         filter_padding = 0
         #if noise_gate == 0:
@@ -1070,7 +1264,7 @@ try:
         #    prev_binary_img = binary_img
         #    wave_1D = np.zeros(dimensions[1]+filter_padding*2)
         wave_1D = np.zeros(dimensions[1])
-        wave_1D = fill_in_missing_points(wavecenter_y_left, wavecenter_y_right, centroid_1D, wave_1D, wave_img, False, fill_blanks_color)
+        wave_1D = fill_in_missing_points(remembered_left_endpoint_y, remembered_right_endpoint_y, centroid_1D, wave_1D, wave_img, False, fill_blanks_color)
         # median filtering
         filter_size1 = 43  # 1.5x original size for stronger smoothing
         wave_1D_filled = np.copy(wave_1D)
@@ -1080,6 +1274,10 @@ try:
             mask_left,
             mask_right,
             dimensions[0] - 1,
+            remembered_left_endpoint_y,
+            remembered_right_endpoint_y,
+            remembered_left_outside_y,
+            remembered_right_outside_y,
         )
         wave_1D_median = median_filter(wave_1D_filled, size=filter_size1)
         # lowpass
@@ -1286,6 +1484,32 @@ try:
             osc_msg = i, val, len(faders)
             osc_io.sendOSC('faders', osc_msg) # send OSC back to client
         time_stats = time.time()
+        # ── Hex grid cell detection + OSC dispatch ────────────────────────────
+        hex_layout_idx = _hex_layout_buf[0]
+        hex_fields_x = float(np.clip(_hex_size_x_buf[0], 3.0, 30.0))
+        hex_fields_y = float(np.clip(_hex_size_y_buf[0], 3.0, 30.0))
+        roi_w = max(mask_right - mask_left, 1)
+        roi_h = max(roi_bottom_y - roi_top_y, 1)
+        # Convert desired field counts to flat-top hex radii (pixels).
+        hex_size_x = float(np.clip(roi_w / (1.5 * hex_fields_x + 0.5), 2.0, 200.0))
+        hex_size_y = float(np.clip(roi_h / (((hex_fields_y - 1.0) * _HEX_SQRT3) + 2.0), 2.0, 200.0))
+        _, hex_dq, hex_dr = HEX_LAYOUTS[hex_layout_idx]
+        xs_h = np.arange(mask_left, mask_right, 2, dtype=np.int32)
+        ys_h = wave_1D[xs_h].astype(np.int32)
+        valid_h = (ys_h >= roi_top_y) & (ys_h <= roi_bottom_y)
+        current_hex_cells = _pixels_to_hex_cells(
+            xs_h[valid_h].astype(np.float32), ys_h[valid_h].astype(np.float32),
+            hex_orig_x, hex_orig_y, hex_size_x, hex_size_y)
+        hex_vel = int(np.clip(40 + wave_activity * 87, 40, 127))
+        for _q, _r in (current_hex_cells - hex_active_cells):
+            _off = _q * hex_dq + _r * hex_dr
+            if abs(_off) <= 60:
+                osc_io.sendOSC('hex_note_on', (int(_off), hex_vel))
+        for _q, _r in (hex_active_cells - current_hex_cells):
+            _off = _q * hex_dq + _r * hex_dr
+            if abs(_off) <= 60:
+                osc_io.sendOSC('hex_note_off', int(_off))
+        hex_active_cells = current_hex_cells
 
         display_frame_counter += 1
         update_display_this_frame = paused or (display_frame_counter % display_update_stride == 0)
@@ -1316,6 +1540,11 @@ try:
             cv2.line(output, (shape_centroid_x_px, roi_top_y), (shape_centroid_x_px, roi_bottom_y), red, 1)
 
             cog_label_font_scale = 0.825
+            if show_hex_grid:
+                draw_hex_grid_overlay(output, hex_active_cells, hex_orig_x, hex_orig_y,
+                                      hex_size_x, hex_size_y,
+                                      (mask_left, mask_right, roi_top_y, roi_bottom_y),
+                                      hex_layout_idx)
             cog_label_thickness = 2
             cog_label_x = int(mask_right + 4)
             cog_label_text_y = int(np.clip(horizontal_cog_y_px - 4, 20, dimensions[0] - 30))
@@ -1384,6 +1613,7 @@ try:
                 ('i', 'dct input', show_dct_signal, dct_boundary_option_color),
                 ('x', 'reset max peaks', True, option_stats_color),
                 ('1-4', f'display every {display_update_stride}', True, option_stats_color),
+                ('H', f'hex grid ({HEX_LAYOUTS[_hex_layout_buf[0]][0]})', show_hex_grid, hex_grid_active_color),
                 ('z', 'options', show_option_panel, option_stats_color),
             ]
             option_box_width = 380
@@ -1640,6 +1870,15 @@ try:
             show_option_panel = not show_option_panel
         if key == ord('s') and paused:
             step_one_frame = True
+        if key == ord('H'):
+            show_hex_grid = not show_hex_grid
+            if not show_hex_grid:
+                _, hdq, hdr = HEX_LAYOUTS[_hex_layout_buf[0]]
+                for _q, _r in list(hex_active_cells):
+                    _off = _q * hdq + _r * hdr
+                    if abs(_off) <= 60:
+                        osc_io.sendOSC('hex_note_off', int(_off))
+                hex_active_cells = set()
         if key == ord('r'):
             if args.use_recorded_video:
                 print('Recording is disabled in recorded-video playback mode.')
