@@ -44,6 +44,27 @@ ktrig changed(kval)
 - For GUI toggles/checkboxes, prefer setting a default `value(...)` on the widget and driving behavior from `changed(...)` logic in a long-running controller instrument.
 - Avoid extra startup-only branches when the same state transition can be handled by the existing change-trigger path.
 
+## OSCsend Trigger Behavior (`kwhen`)
+- `OSCsend` is trigger-driven by its `kwhen` argument.
+- Do not use a static value like `1` for `kwhen` when you want send-on-change behavior.
+- Prefer a trigger signal from `changed(...)`, and call `OSCsend` directly with that trigger.
+
+Example:
+
+```csound
+khex_size_x chnget "hexgrid_size_x"
+ktrig_hex_size_x changed khex_size_x
+OSCsend ktrig_hex_size_x, "127.0.0.1", 9801, "/hex_size_x", "f", khex_size_x
+```
+
+Likewise for layout updates:
+
+```csound
+klayout_hex chnget "hexgrid_layout"
+ktrig_hex_layout changed klayout_hex
+OSCsend ktrig_hex_layout, "127.0.0.1", 9801, "/hex_layout", "f", klayout_hex
+```
+
 ## Table Lookup Rate Rule
 - If the table number/index source is `k`-rate (dynamic at control-rate), use `tablekt` instead of `table`.
 - Use `table` only when table selection is `i`-rate/static.
