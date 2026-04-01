@@ -94,6 +94,11 @@ curvature_profile_samples = 64
 curvature_sensitivity = 0.588
 curvature_slope_mix = 0.75  # blend in first-derivative steepness to catch sharp turns
 curvature_gamma = 1.5
+shape_centroid_weight_floor_frac = 0.035  # ignore tiny centroid contributions close to centerline
+shape_centroid_weight_gamma = 2.15        # emphasize large off-center excursions
+shape_centroid_offcenter_power = 1.0      # >1 de-emphasizes small off-center centroid moves
+shape_centroid_center_deadzone = 0.012    # normalized x deadzone around center (0.5)
+shape_centroid_smooth_alpha = 0.22        # temporal smoothing for centroid stability
 
 # optional ATEM calibration
 atem_enable_calibration = True
@@ -104,6 +109,17 @@ atem_collect_seconds = 2.0
 atem_settle_seconds = 0.8
 atem_sample_seconds_static = 1.2
 atem_sample_seconds_motion = 1.8
+
+_HEX_SQRT3 = np.sqrt(3.0)
+
+
+def _hex_center_px(q, r, ox, oy, size_x, size_y):
+    return ox + size_x * 1.5 * q, oy + size_y * (_HEX_SQRT3 * 0.5 * q + _HEX_SQRT3 * r)
+
+
+def _hex_verts(cx, cy, size_x, size_y):
+    return np.array([[int(cx + size_x * np.cos(np.radians(60.0 * i))),
+                      int(cy + size_y * np.sin(np.radians(60.0 * i)))] for i in range(6)], dtype=np.int32)
 
 
 def display_worker_process(frame_queue, key_queue, stop_event, window_name, out_size):
@@ -123,8 +139,11 @@ def display_worker_process(frame_queue, key_queue, stop_event, window_name, out_
         if payload is None:
             break
 
-        frame, total_skipped, current_skipped, underflow_text, underflow_color = payload
-        output = cv2.resize(frame, out_size)
+        output = compose_display_frame(payload, out_size)
+        total_skipped = payload['total_skipped']
+        current_skipped = payload['current_skipped']
+        underflow_text = payload['underflow_text']
+        underflow_color = payload['underflow_color']
 
         skip_text = f'skipped total:{int(total_skipped)}  current:{int(current_skipped)}'
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -151,6 +170,264 @@ def display_worker_process(frame_queue, key_queue, stop_event, window_name, out_
                 pass
 
     cv2.destroyAllWindows()
+
+
+def draw_transparent_rect_display(image, x, y, width, height, alpha=0.45):
+    x = max(0, int(x))
+    y = max(0, int(y))
+    width = max(1, int(width))
+    height = max(1, int(height))
+    x2 = min(image.shape[1], x + width)
+    y2 = min(image.shape[0], y + height)
+    if x2 <= x or y2 <= y:
+        return
+    overlay = image.copy()
+    cv2.rectangle(overlay, (x, y), (x2, y2), (0, 0, 0), -1)
+    cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
+
+
+def draw_wave_line_display(output_img, line_1d, color, height, thickness=2):
+    if line_1d is None or len(line_1d) < 2:
+        return
+    points = np.column_stack((np.arange(len(line_1d)), np.clip(line_1d, 0, height - 1).astype(np.int32)))
+    points = points.reshape((-1, 1, 2))
+    cv2.polylines(output_img, [points], False, color, thickness)
+
+
+def draw_centered_signal_panel_display(output_img, signal_1d, x, y, width, height, center_color, signal_color, max_amp_value):
+    if signal_1d is None or len(signal_1d) < 2:
+        return
+    center_y = y + int(height * 0.5)
+    cv2.line(output_img, (x, center_y), (x + width, center_y), center_color, 1)
+    zoom_y = 2.0
+    scale = zoom_y * (height * 0.45) / max(max_amp_value * 0.5, 1.0)
+    x_coords = np.linspace(x, x + width - 1, len(signal_1d)).astype(np.int32)
+    y_coords = np.clip(center_y + (signal_1d * scale), y, y + height - 1).astype(np.int32)
+    points = np.column_stack((x_coords, y_coords)).reshape((-1, 1, 2))
+    cv2.polylines(output_img, [points], False, signal_color, 2)
+
+
+def compose_display_frame(payload, out_size):
+    current_frame = payload['current_frame']
+    wave_img = payload['wave_img']
+    output = cv2.add(current_frame, wave_img)
+    height, width = output.shape[:2]
+
+    show_binary = payload['show_binary']
+    show_mask = payload['show_mask']
+    show_fill_blanks = payload['show_fill_blanks']
+    show_medianfilter = payload['show_medianfilter']
+    show_lowpassfilter = payload['show_lowpassfilter']
+    show_finalwave = payload['show_finalwave']
+    show_hex_grid = payload['show_hex_grid']
+    show_option_panel = payload['show_option_panel']
+    show_fft = payload['show_fft']
+    show_stats = payload['show_stats']
+    show_dct_signal = payload['show_dct_signal']
+
+    colors = payload['colors']
+
+    if show_binary:
+        binary_tint = np.zeros_like(output)
+        binary_img = payload['binary_img']
+        binary_tint[:, :, 0] = binary_img
+        binary_tint[:, :, 1] = binary_img
+        output = cv2.addWeighted(output, 1.0, binary_tint, 0.28, 0)
+
+    if show_mask:
+        cv2.polylines(output, pts=[payload['pts']], isClosed=True, color=(255, 0, 0), thickness=2)
+
+    if show_fill_blanks:
+        draw_wave_line_display(output, payload['wave_1D_filled'], colors['fill_blanks'], height, 4)
+    if show_medianfilter:
+        draw_wave_line_display(output, payload['wave_1D_median'], colors['median'], height, 3)
+    if show_lowpassfilter:
+        draw_wave_line_display(output, payload['wave_1D_lowpass'], colors['lowpass'], height, 2)
+    if show_finalwave:
+        draw_wave_line_display(output, payload['wave_1D_final'], colors['finalwave'], height, 2)
+
+    mask_left = payload['mask_left']
+    mask_right = payload['mask_right']
+    roi_top_y = payload['roi_top_y']
+    roi_bottom_y = payload['roi_bottom_y']
+    descriptors = payload['descriptors']
+    vertical_cog_y = payload['vertical_cog_y']
+    roi_width_px = max(mask_right - mask_left, 1)
+    shape_centroid_x_px = int(np.clip(mask_left + descriptors['shape_centroid_x'] * (roi_width_px - 1), mask_left, mask_right - 1))
+    vertical_cog_y_px = int(np.clip(vertical_cog_y, roi_top_y, roi_bottom_y))
+    cv2.line(output, (mask_left, vertical_cog_y_px), (mask_right, vertical_cog_y_px), colors['red'], 1)
+    cv2.line(output, (shape_centroid_x_px, roi_top_y), (shape_centroid_x_px, roi_bottom_y), colors['red'], 3)
+
+    if show_hex_grid:
+        draw_hex_grid_overlay_module(
+            output,
+            payload['hex_active_cells'],
+            payload['hex_orig_x'],
+            payload['hex_orig_y'],
+            payload['hex_size_x'],
+            payload['hex_size_y'],
+            (mask_left, mask_right, roi_top_y, roi_bottom_y),
+            payload['hex_layout_idx'],
+        )
+
+    cog_label_font_scale = 0.825
+    cog_label_thickness = 2
+    cog_label_x = int(mask_right + 4)
+    cog_label_text_y = int(np.clip(vertical_cog_y_px - 4, 20, height - 30))
+    cog_label_value_y = int(np.clip(cog_label_text_y + 28, 32, height - 6))
+    cv2.putText(output, 'cog', (cog_label_x, cog_label_text_y), cv2.FONT_HERSHEY_SIMPLEX, cog_label_font_scale, colors['red'], cog_label_thickness, cv2.LINE_AA)
+    cv2.putText(output, f"{payload['vertical_cog_norm']:.2f}", (cog_label_x, cog_label_value_y), cv2.FONT_HERSHEY_SIMPLEX, cog_label_font_scale, colors['red'], cog_label_thickness, cv2.LINE_AA)
+
+    centroid_label = f"cent {descriptors['shape_centroid_x']:.2f}"
+    centroid_font_scale = 0.825
+    centroid_thickness = 2
+    (centroid_text_w, _), _ = cv2.getTextSize(centroid_label, cv2.FONT_HERSHEY_SIMPLEX, centroid_font_scale, centroid_thickness)
+    centroid_label_x = int(np.clip(shape_centroid_x_px - centroid_text_w // 2, 4, width - centroid_text_w - 4))
+    centroid_label_y = max(30, roi_top_y - 8)
+    cv2.putText(output, centroid_label, (centroid_label_x, centroid_label_y), cv2.FONT_HERSHEY_SIMPLEX, centroid_font_scale, colors['red'], centroid_thickness, cv2.LINE_AA)
+
+    v_offset = 24
+    wave_activity_slider_width = 300
+    if show_stats:
+        wave_texts = payload['wave_texts']
+        stats_lines = payload['stats_lines']
+        (wave_activity_text_w, _), _ = cv2.getTextSize(wave_texts['activity'], cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+        (wave_movement_text_w, _), _ = cv2.getTextSize(wave_texts['movement'], cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+        (wave_amp_text_w, _), _ = cv2.getTextSize(wave_texts['amp'], cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+        (wave_amp_comp_text_w, _), _ = cv2.getTextSize(wave_texts['amp_comp'], cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+        (wave_curvature_text_w, _), _ = cv2.getTextSize(wave_texts['curvature'], cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+        (wave_shape_text_w, _), _ = cv2.getTextSize(wave_texts['shape'], cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+        stats_panel_label_w = max(wave_activity_text_w, wave_movement_text_w, wave_amp_text_w, wave_amp_comp_text_w, wave_curvature_text_w, wave_shape_text_w)
+        stats_panel_min_width = 20 + stats_panel_label_w + 14 + wave_activity_slider_width + 20
+        stats_step = v_offset * 2
+        stats_first_y = 25
+        total_rows = len(stats_lines) + 6
+        stats_panel_height = int((stats_first_y - 8) + ((total_rows - 1) * stats_step) + 18)
+        stats_panel_width = max(int(width * 0.40), stats_panel_min_width)
+        draw_transparent_rect_display(output, 8, 8, stats_panel_width, stats_panel_height, alpha=0.45)
+
+    if show_option_panel:
+        option_rows = payload['option_rows']
+        option_box_width = 380
+        option_box_height = 12 + len(option_rows) * v_offset
+        option_box_x = width - option_box_width - 10
+        option_box_y = 8
+        draw_transparent_rect_display(output, option_box_x, option_box_y, option_box_width, option_box_height, alpha=0.45)
+        legend_x = option_box_x + 10
+        legend_y = option_box_y + 15
+        for key_symbol, label, enabled, stage_color in option_rows:
+            color = tuple(stage_color) if enabled else tuple(colors['toggle_gray'])
+            cv2.circle(output, (legend_x, legend_y), 4, color, 4)
+            cv2.putText(output, f'[{key_symbol}] {label}', (legend_x + 12, legend_y + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.96, color, 1, cv2.LINE_AA)
+            legend_y += v_offset
+
+    if show_fft:
+        dct_display_values = payload['dct_display_values']
+        dct_start_x = 14
+        dct_step_x = 28
+        dct_hm_x = dct_start_x + len(dct_display_values) * dct_step_x + 20
+        dct_label_pad = 26
+        dct_plot_height = payload['dct_display_height'] + dct_label_pad
+        dct_panel_y = height - dct_plot_height - 56
+        dct_base_y = dct_panel_y + dct_plot_height - 1
+        dct_panel_width = (dct_hm_x - 8) + 36
+        dct_signal_panel_y = dct_panel_y - payload['dct_display_height'] - 10
+        dct_signal_panel_width = min(width - 16, (dct_panel_width * 2))
+        if show_dct_signal:
+            draw_transparent_rect_display(output, 8, dct_signal_panel_y, dct_signal_panel_width, payload['dct_display_height'], alpha=0.35)
+            cv2.putText(output, payload['dct_input_label'], (16, dct_signal_panel_y + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.6, tuple(colors['yellow']), 1, cv2.LINE_AA)
+            draw_centered_signal_panel_display(output, payload['dct_input_full'], 12, dct_signal_panel_y + 24, dct_signal_panel_width - 10, payload['dct_display_height'] - 30, tuple(colors['dull_green']), tuple(colors['light_blue']), payload['max_amp'])
+        draw_transparent_rect_display(output, 8, dct_panel_y, dct_panel_width, dct_plot_height, alpha=0.35)
+        dct_label_indices = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25}
+        dct_cycles = payload['dct_display_cycles']
+        dct_x_positions = dct_start_x + np.arange(len(dct_display_values)) * dct_step_x
+        for i, dct_val in enumerate(dct_display_values):
+            cycle = dct_cycles[i]
+            dct_color = tuple(colors['orange']) if cycle < 3.0 else tuple(colors['green'])
+            bar_height = max(1, int(dct_val * dct_plot_height))
+            x = int(dct_x_positions[i])
+            cv2.line(output, (x, dct_base_y), (x, dct_base_y - bar_height), dct_color, 2)
+            if i in dct_label_indices:
+                cv2.putText(output, f'{cycle:g}', (x - 8, dct_base_y + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.7, dct_color, 1, cv2.LINE_AA)
+        spectral_centroid_cycle_clip = float(np.clip(payload['spectral_centroid_cycles'], float(dct_cycles[0]), float(dct_cycles[-1])))
+        spectral_centroid_x = int(np.interp(spectral_centroid_cycle_clip, dct_cycles, dct_x_positions))
+        cv2.line(output, (spectral_centroid_x, dct_base_y), (spectral_centroid_x, dct_base_y - dct_plot_height), tuple(colors['red']), 2)
+        cv2.putText(output, 'cent', (spectral_centroid_x - 14, dct_base_y - dct_plot_height - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tuple(colors['red']), 1, cv2.LINE_AA)
+        hf_height = max(1, int(payload['dct_highmode_norm'] * dct_plot_height))
+        cv2.line(output, (dct_hm_x, dct_base_y), (dct_hm_x, dct_base_y - hf_height), tuple(colors['red']), 3)
+        cv2.putText(output, 'HM', (dct_hm_x - 16, dct_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, tuple(colors['red']), 1, cv2.LINE_AA)
+
+    if show_stats:
+        wave_texts = payload['wave_texts']
+        stats_lines = payload['stats_lines']
+        stats_x = 20
+        stats_y = 25
+        slider_x = stats_x + payload['stats_panel_label_w'] + 14
+        slider_h = 14
+        cv2.putText(output, wave_texts['activity'], (stats_x, stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, tuple(colors['stats']), 1, cv2.LINE_AA)
+        slider_y = stats_y - 13
+        wave_activity_norm = float(np.clip(payload['wave_activity'], 0.0, 1.0))
+        slider_fill_w = int(round(wave_activity_norm * wave_activity_slider_width))
+        cv2.rectangle(output, (slider_x, slider_y), (slider_x + wave_activity_slider_width, slider_y + slider_h), tuple(colors['stats']), 1)
+        if slider_fill_w > 0:
+            cv2.rectangle(output, (slider_x, slider_y), (slider_x + slider_fill_w, slider_y + slider_h), tuple(colors['stats']), -1)
+        stats_y += v_offset * 2
+        move_color = tuple(colors['green']) if payload['wave_motion_value'] < 0.0 else tuple(colors['red']) if payload['wave_motion_value'] > 0.0 else tuple(colors['stats'])
+        cv2.putText(output, wave_texts['movement'], (stats_x, stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, move_color, 1, cv2.LINE_AA)
+        move_slider_y = stats_y - 13
+        move_center_x = slider_x + (wave_activity_slider_width // 2)
+        move_norm = float(np.clip(payload['wave_motion_value'] / payload['wave_motion_slider_max'], -1.0, 1.0))
+        move_fill_half = int(round(abs(move_norm) * (wave_activity_slider_width // 2)))
+        cv2.rectangle(output, (slider_x, move_slider_y), (slider_x + wave_activity_slider_width, move_slider_y + slider_h), tuple(colors['stats']), 1)
+        cv2.line(output, (move_center_x, move_slider_y), (move_center_x, move_slider_y + slider_h), tuple(colors['stats']), 1)
+        if move_fill_half > 0:
+            if move_norm >= 0.0:
+                cv2.rectangle(output, (move_center_x, move_slider_y), (move_center_x + move_fill_half, move_slider_y + slider_h), move_color, -1)
+            else:
+                cv2.rectangle(output, (move_center_x - move_fill_half, move_slider_y), (move_center_x, move_slider_y + slider_h), move_color, -1)
+        stats_y += v_offset * 2
+        for key_name, divisor in [('amp', 1.0), ('amp_comp', 2.0), ('curvature', 2.0)]:
+            cv2.putText(output, wave_texts[key_name], (stats_x, stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, tuple(colors['stats']), 1, cv2.LINE_AA)
+            slider_y = stats_y - 13
+            value = payload['wave_amp'] if key_name == 'amp' else payload['amp_comp'] if key_name == 'amp_comp' else payload['curvature_rms']
+            norm = float(np.clip(value / divisor, 0.0, 1.0))
+            fill_w = int(round(norm * wave_activity_slider_width))
+            cv2.rectangle(output, (slider_x, slider_y), (slider_x + wave_activity_slider_width, slider_y + slider_h), tuple(colors['stats']), 1)
+            if fill_w > 0:
+                cv2.rectangle(output, (slider_x, slider_y), (slider_x + fill_w, slider_y + slider_h), tuple(colors['stats']), -1)
+            stats_y += v_offset * 2
+        shape_color = tuple(colors['green']) if payload['shape_state_label'] == 'periodic' else tuple(colors['red']) if payload['shape_state_label'] == 'endpoint-lost' else tuple(colors['orange']) if payload['shape_state_label'] == 'arc' else tuple(colors['light_blue']) if payload['shape_state_label'] == 'straight' else tuple(colors['yellow']) if payload['shape_state_label'] == 'one-bump' else tuple(colors['stats'])
+        cv2.putText(output, wave_texts['shape'], (stats_x, stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, shape_color, 1, cv2.LINE_AA)
+        stats_y += v_offset * 2
+        for line in stats_lines:
+            cv2.putText(output, line, (stats_x, stats_y), cv2.FONT_HERSHEY_SIMPLEX, 0.96, tuple(colors['stats']), 1, cv2.LINE_AA)
+            stats_y += v_offset * 2
+
+    output = cv2.resize(output, out_size)
+    return output
+
+
+def draw_hex_grid_overlay_module(img, active_cells, ox, oy, size_x, size_y, roi_bounds, layout_idx):
+    rl, rr, rt, rb = roi_bounds
+    layout_name, dq, dr = HEX_LAYOUTS[layout_idx]
+    draw_sx = size_x * 0.90
+    draw_sy = size_y * 0.90
+    q_min = int(np.floor((2.0 / 3.0) * (rl - ox) / size_x)) - 1
+    q_max = int(np.ceil((2.0 / 3.0) * (rr - ox) / size_x)) + 1
+    for q in range(q_min, q_max + 1):
+        cy_q = oy + size_y * _HEX_SQRT3 * 0.5 * q
+        r_min = int(np.floor((rt - cy_q) / (size_y * _HEX_SQRT3))) - 1
+        r_max = int(np.ceil((rb - cy_q) / (size_y * _HEX_SQRT3))) + 1
+        for r in range(r_min, r_max + 1):
+            cx, cy = _hex_center_px(q, r, ox, oy, size_x, size_y)
+            if not (rl - size_x < cx < rr + size_x and rt - size_y < cy < rb + size_y):
+                continue
+            active = (q, r) in active_cells
+            color = (50, 220, 255) if active else (80, 80, 100)
+            cv2.polylines(img, [_hex_verts(cx, cy, draw_sx, draw_sy)], True, color, 2 if active else 1)
+            offset = q * dq + r * dr
+            cv2.putText(img, str(offset), (int(cx) - 7, int(cy) + 4), cv2.FONT_HERSHEY_SIMPLEX, 0.28, color, 1, cv2.LINE_AA)
+    cv2.putText(img, f'hex:{layout_name}', (rl, max(rt - 4, 14)), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (80, 80, 100), 1, cv2.LINE_AA)
 
 
 def main():
@@ -330,8 +607,8 @@ def main():
     prev_binary_img = np.copy(previous_frame_gray)
     spectral_centroid_cycles = 0.0
     spectral_centroid_norm = 0.0
-    horizontal_cog_y = float(np.mean(mask_center[mask_left:mask_right]))
-    horizontal_cog_norm = float(np.clip(horizontal_cog_y / max(dimensions[0] - 1, 1), 0.0, 1.0))
+    vertical_cog_y = float(np.mean(mask_center[mask_left:mask_right]))
+    vertical_cog_norm = float(np.clip(vertical_cog_y / max(dimensions[0] - 1, 1), 0.0, 1.0))
     wave_activity = 0.0
     wave_amp = 0.0
     amp_comp = 0.0
@@ -439,6 +716,20 @@ def main():
     # hex grid overlay colors
     hex_grid_dim_color    = (80, 80, 100)      # BGR: dim lines for inactive cells
     hex_grid_active_color = (50, 220, 255)     # BGR: bright highlight for active cells
+    display_colors = {
+        'red': red,
+        'green': green,
+        'yellow': yellow,
+        'orange': orange,
+        'light_blue': light_blue,
+        'dull_green': dull_green,
+        'fill_blanks': fill_blanks_color,
+        'median': median_color,
+        'lowpass': lowpass_color,
+        'finalwave': finalwave_color,
+        'stats': stats_color,
+        'toggle_gray': toggle_gray,
+    }
     
     def find_center_wave_regr(wave_1D, mask_left, mask_right):
         x = np.arange(0,len(wave_1D[mask_left:mask_right]),1)
@@ -786,7 +1077,7 @@ def main():
                 else:
                     cv2.circle(output_img, (x,y), 14, peaknegative_color, 8)
      
-    def compute_peak_descriptors(peak_indices, wave_1D, center_wave, mask_left, mask_right, max_amp, prev_shape_centroid_x):
+    def compute_peak_descriptors(peak_indices, wave_1D, center_wave, roi_centerline, mask_left, mask_right, max_amp, prev_shape_centroid_x, shape_floor_frac, shape_gamma, shape_offcenter_pow):
         roi_width = max(mask_right-mask_left, 1)
         peak_positions = [peak for peak in peak_indices if mask_left <= peak <= mask_right]
         peak_positions = np.array(sorted(peak_positions), dtype=np.int32)
@@ -811,10 +1102,27 @@ def main():
             right_lobe_x = 0.0
             max_lobe_x = 0.0
     
-        shape_slice = np.abs(wave_1D[mask_left:mask_right] - center_wave[mask_left:mask_right])
+        shape_slice = np.abs(wave_1D[mask_left:mask_right] - roi_centerline)
         if np.sum(shape_slice) > 0:
             shape_x = np.arange(mask_right-mask_left) / roi_width
-            shape_centroid_x = float(np.sum(shape_x * shape_slice) / np.sum(shape_slice))
+            floor_frac = float(np.clip(shape_floor_frac, 0.0, 1.00))
+            gamma = float(np.clip(shape_gamma, 0.25, 12.0))
+            floor_px = max(0.0, float(max_amp) * floor_frac)
+            shape_weight = np.maximum(shape_slice - floor_px, 0.0)
+            if np.sum(shape_weight) <= 0:
+                shape_centroid_target = prev_shape_centroid_x
+            else:
+                shape_weight = np.power(shape_weight, gamma)
+                shape_centroid_target = float(np.sum(shape_x * shape_weight) / np.sum(shape_weight))
+            offpow = float(np.clip(shape_offcenter_pow, 0.25, 12.0))
+            shape_delta = float(np.clip((shape_centroid_target - 0.5) * 2.0, -1.0, 1.0))
+            shape_mag = float(abs(shape_delta))
+            shape_mag_shaped = float(shape_mag ** offpow)
+            shape_centroid_target = float(np.clip(0.5 + (0.5 * np.sign(shape_delta) * shape_mag_shaped), 0.0, 1.0))
+            if abs(shape_centroid_target - 0.5) < shape_centroid_center_deadzone:
+                shape_centroid_target = 0.5
+            smooth_alpha = float(np.clip(shape_centroid_smooth_alpha, 0.01, 1.0))
+            shape_centroid_x = float(np.clip(prev_shape_centroid_x + (shape_centroid_target - prev_shape_centroid_x) * smooth_alpha, 0.0, 1.0))
         else:
             shape_centroid_x = prev_shape_centroid_x
     
@@ -1223,6 +1531,10 @@ def main():
         _hex_size_y_buf = [float(hex_grid_fields_y)]
         _hex_peak_mode_buf = [0]
         _peaknotes_mode_buf = [0]
+        _dct_peak_skew_buf = [1.0]
+        _shape_cent_floor_buf = [float(shape_centroid_weight_floor_frac)]
+        _shape_cent_gamma_buf = [float(shape_centroid_weight_gamma)]
+        _shape_cent_offpow_buf = [float(shape_centroid_offcenter_power)]
     
         def _on_hex_layout(address, *args):
             if args:
@@ -1243,6 +1555,22 @@ def main():
         def _on_peaknotes_mode(address, *args):
             if args:
                 _peaknotes_mode_buf[0] = 1 if float(args[0]) >= 0.5 else 0
+
+        def _on_dct_peak_skew(address, *args):
+            if args:
+                _dct_peak_skew_buf[0] = float(np.clip(float(args[0]), 0.0, 4.0))
+
+        def _on_shape_cent_floor(address, *args):
+            if args:
+                _shape_cent_floor_buf[0] = float(np.clip(float(args[0]), 0.0, 1.00))
+
+        def _on_shape_cent_gamma(address, *args):
+            if args:
+                _shape_cent_gamma_buf[0] = float(np.clip(float(args[0]), 0.25, 12.0))
+
+        def _on_shape_cent_offpow(address, *args):
+            if args:
+                _shape_cent_offpow_buf[0] = float(np.clip(float(args[0]), 0.25, 12.0))
     
         # Accept both '/addr' and 'addr' OSC styles for robustness across senders.
         osc_io.register_handler('/hex_layout', _on_hex_layout)
@@ -1255,6 +1583,14 @@ def main():
         osc_io.register_handler('hex_peak_mode', _on_hex_peak_mode)
         osc_io.register_handler('/peaknotes_mode', _on_peaknotes_mode)
         osc_io.register_handler('peaknotes_mode', _on_peaknotes_mode)
+        osc_io.register_handler('/dctpeak_skew', _on_dct_peak_skew)
+        osc_io.register_handler('dctpeak_skew', _on_dct_peak_skew)
+        osc_io.register_handler('/shapecent_floor', _on_shape_cent_floor)
+        osc_io.register_handler('shapecent_floor', _on_shape_cent_floor)
+        osc_io.register_handler('/shapecent_gamma', _on_shape_cent_gamma)
+        osc_io.register_handler('shapecent_gamma', _on_shape_cent_gamma)
+        osc_io.register_handler('/shapecent_offpow', _on_shape_cent_offpow)
+        osc_io.register_handler('shapecent_offpow', _on_shape_cent_offpow)
         osc_io.start_background_receive_server()
         # Ask Csound for current hex settings. If Csound isn't up yet, this is harmless;
         # Csound also pushes values at its own startup and on later changes.
@@ -1431,7 +1767,19 @@ def main():
             faders = wave_1D[fader_x_positions]
             display_faders(faders, fader_x_positions, mask_center, max_amp, wave_img, show_faders, fader_color)
             # peak parms and stats
-            descriptors = compute_peak_descriptors(peak_indices, wave_1D, center_wave, mask_left, mask_right, max_amp, prev_shape_centroid_x)
+            descriptors = compute_peak_descriptors(
+                peak_indices,
+                wave_1D,
+                center_wave,
+                mask_center[mask_left:mask_right],
+                mask_left,
+                mask_right,
+                max_amp,
+                prev_shape_centroid_x,
+                _shape_cent_floor_buf[0],
+                _shape_cent_gamma_buf[0],
+                _shape_cent_offpow_buf[0],
+            )
             prev_shape_centroid_x = descriptors['shape_centroid_x']
             numpeaks = descriptors['numpeaks']
             avg_x_distance = descriptors['avg_x_distance']
@@ -1497,13 +1845,19 @@ def main():
                 osc_msg = int(i), float(zc_diff[i])
                 osc_io.sendOSC('zerocross_distance', osc_msg) # send OSC back to client
             roi_wave = wave_1D[mask_left:mask_right]
+            roi_centerline = mask_center[mask_left:mask_right]
             if len(roi_wave) > 0:
-                horizontal_cog_y = float(np.mean(roi_wave))
+                vertical_cog_y = float(np.mean(roi_wave))
+                if len(roi_centerline) == len(roi_wave):
+                    cog_offset_px = float(np.mean(roi_wave - roi_centerline))
+                    vertical_cog_norm = float(np.clip(0.5 + (cog_offset_px / max(float(max_amp), 1.0)), 0.0, 1.0))
+                else:
+                    vertical_cog_norm = 0.5
             else:
-                horizontal_cog_y = float(np.mean(mask_center[mask_left:mask_right]))
-            horizontal_cog_norm = float(np.clip(horizontal_cog_y / max(dimensions[0] - 1, 1), 0.0, 1.0))
+                vertical_cog_y = float(np.mean(roi_centerline))
+                vertical_cog_norm = 0.5
             # DCT zero-reference: horizontal baseline at the rope's vertical center of gravity in the ROI.
-            dct_input_raw = roi_wave - horizontal_cog_y
+            dct_input_raw = roi_wave - vertical_cog_y
             dct_adaptive_choice = dct_boundary_mode
             if dct_boundary_mode == 'adaptive':
                 edge_input, edge_baseline = apply_dct_edge_boundary_lifting(dct_input_raw)
@@ -1549,6 +1903,10 @@ def main():
             dct_db = 20.0 * np.log10(np.maximum(dct_selected / dct_ref, 1e-9))
             dct_display_values = np.clip((dct_db - dct_display_db_floor) / (dct_display_db_ceiling - dct_display_db_floor), 0.0, 1.0)
             dct_display_values = np.power(dct_display_values, dct_display_shape_gamma)
+            dct_skew = float(np.clip(_dct_peak_skew_buf[0], 0.0, 4.0))
+            dct_bin_norm = np.linspace(0.0, 1.0, len(dct_display_values), dtype=np.float32)
+            dct_skew_weights = np.power(0.2 + dct_bin_norm, dct_skew)
+            dct_display_values_skewed = np.clip(dct_display_values * dct_skew_weights, 0.0, 1.0)
             highmode_db = 20.0 * float(np.log10(max(dct_highmode / dct_ref, 1e-9)))
             dct_highmode_norm = float(np.clip((highmode_db - dct_display_db_floor) / (dct_display_db_ceiling - dct_display_db_floor), 0.0, 1.0))
             dct_highmode_norm = float(dct_highmode_norm ** dct_display_shape_gamma)
@@ -1596,7 +1954,7 @@ def main():
                 float(wave_amp),
                 float(spectral_centroid_norm),
                 float(descriptors['shape_centroid_x']),
-                float(horizontal_cog_norm),
+                float(vertical_cog_norm),
                 float(amp_comp),
                 float(curvature_rms),
             )
@@ -1645,15 +2003,116 @@ def main():
             if update_display_this_frame and display_compose_in_worker and (display_frame_queue is not None):
                 uf_line_color = (140, 140, 255) if underflow_avg_ms_per_sec >= 6.0 else (120, 200, 255) if underflow_avg_ms_per_sec > 0.0 else (210, 210, 210)
                 underflow_panel_text = f'underflow {underflow_avg_ms_per_sec:.2f} ms/s   events {underflow_event_rate_per_sec:.2f}/s'
-                output_fast = cv2.add(current_frame, wave_img)
-                if show_binary:
-                    binary_tint = np.zeros_like(output_fast)
-                    binary_tint[:, :, 0] = binary_img
-                    binary_tint[:, :, 1] = binary_img
-                    output_fast = cv2.addWeighted(output_fast, 1.0, binary_tint, 0.28, 0)
-                if show_mask:
-                    cv2.polylines(output_fast, pts=[pts], isClosed=True, color=(255,0,0), thickness=2)
-                payload = (output_fast, display_skipped_total, display_skipped_current, underflow_panel_text, uf_line_color)
+                x_pos_disp = 'x_pos :' + ''.join([f'{x:.2f}, ' for x in x_pos])
+                x_dist_disp = 'x_dist :' + ''.join([f'{x:.2f}, ' for x in x_distances])
+                zc = ''.join([f'{z:.2f} ' for z in zero_crossings])
+                zc_disp = 'zc_dist: ' + ''.join([f'{i:.2f}, ' for i in zc_diff])
+                stats_lines = [
+                    f'numpeaks raw:{numpeaks} med:{numpeaks_median_value} lp:{numpeaks_lowpass_value:.2f} max:{max_numpeaks}',
+                    f'avg_x_dist: {avg_x_distance:.2f}, avg movement {avg_x_movement:.2f}',
+                    f'cent tune floor:{_shape_cent_floor_buf[0]:.3f} gamma:{_shape_cent_gamma_buf[0]:.2f} offpow:{_shape_cent_offpow_buf[0]:.2f}',
+                    x_pos_disp,
+                    x_dist_disp,
+                    f'zero_cross: {zc}',
+                    zc_disp,
+                ]
+                wave_activity_text = f'wave activity {wave_activity:.2f}'
+                wave_movement_text = f'wave movement {wave_motion_value:+.2f}'
+                wave_amp_text = f'wave amp rms {wave_amp:.2f}'
+                wave_amp_comp_text = f'amp comp {amp_comp:.2f}'
+                wave_curvature_text = f'curvature rms {curvature_rms:.2f}'
+                wave_shape_text = f'shape {shape_state_label} ({shape_state_confidence:.2f})'
+                (wave_activity_text_w, _), _ = cv2.getTextSize(wave_activity_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+                (wave_movement_text_w, _), _ = cv2.getTextSize(wave_movement_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+                (wave_amp_text_w, _), _ = cv2.getTextSize(wave_amp_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+                (wave_amp_comp_text_w, _), _ = cv2.getTextSize(wave_amp_comp_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+                (wave_curvature_text_w, _), _ = cv2.getTextSize(wave_curvature_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+                (wave_shape_text_w, _), _ = cv2.getTextSize(wave_shape_text, cv2.FONT_HERSHEY_SIMPLEX, 0.96, 1)
+                stats_panel_label_w = max(wave_activity_text_w, wave_movement_text_w, wave_amp_text_w, wave_amp_comp_text_w, wave_curvature_text_w, wave_shape_text_w)
+                option_rows = [
+                    ('b', 'binary', show_binary, binary_option_color),
+                    ('f', 'filled', show_fill_blanks, filled_option_color),
+                    ('m', 'median', show_medianfilter, median_option_color),
+                    ('l', 'lowpass', show_lowpassfilter, lowpass_option_color),
+                    ('w', 'final', show_finalwave, final_option_color),
+                    ('o', 'center', show_wavecenter, center_option_color),
+                    ('g', 'bg model', use_bg_model, bg_model_option_color),
+                    ('e', 'equalize', use_screen_blend, screen_blend_option_color),
+                    ('k', 'kinematic', use_kinematic_constraint, kinematic_option_color),
+                    ('n', f'dct bc {dct_boundary_mode}', True, dct_boundary_option_color),
+                    ('d', f'polarity {"dark" if rope_is_darker else "light"}', True, polarity_option_color),
+                    ('i', 'dct input', show_dct_signal, dct_boundary_option_color),
+                    ('x', 'reset max peaks', True, option_stats_color),
+                    ('1-4', f'display every {display_update_stride}', True, option_stats_color),
+                    ('H', f'hex grid ({HEX_LAYOUTS[_hex_layout_buf[0]][0]})', show_hex_grid, hex_grid_active_color),
+                    ('z', 'options', show_option_panel, option_stats_color),
+                ]
+                dct_input_label = f'DCT input (adaptive->{dct_adaptive_choice} + even ext.)' if dct_boundary_mode == 'adaptive' else f'DCT input ({dct_boundary_mode} + even extension)'
+                payload = {
+                    'current_frame': current_frame.copy(),
+                    'wave_img': wave_img.copy(),
+                    'binary_img': binary_img.copy(),
+                    'pts': pts.copy(),
+                    'wave_1D_filled': wave_1D_filled.copy(),
+                    'wave_1D_median': wave_1D_median.copy(),
+                    'wave_1D_lowpass': wave_1D_lowpass.copy(),
+                    'wave_1D_final': wave_1D_final.copy(),
+                    'mask_left': mask_left,
+                    'mask_right': mask_right,
+                    'roi_top_y': roi_top_y,
+                    'roi_bottom_y': roi_bottom_y,
+                    'descriptors': dict(descriptors),
+                    'vertical_cog_y': vertical_cog_y,
+                    'vertical_cog_norm': vertical_cog_norm,
+                    'hex_active_cells': list(hex_active_cells),
+                    'hex_orig_x': hex_orig_x,
+                    'hex_orig_y': hex_orig_y,
+                    'hex_size_x': hex_size_x,
+                    'hex_size_y': hex_size_y,
+                    'hex_layout_idx': hex_layout_idx,
+                    'show_binary': show_binary,
+                    'show_mask': show_mask,
+                    'show_fill_blanks': show_fill_blanks,
+                    'show_medianfilter': show_medianfilter,
+                    'show_lowpassfilter': show_lowpassfilter,
+                    'show_finalwave': show_finalwave,
+                    'show_hex_grid': show_hex_grid,
+                    'show_option_panel': show_option_panel,
+                    'show_fft': show_fft,
+                    'show_stats': show_stats,
+                    'show_dct_signal': show_dct_signal,
+                    'stats_lines': stats_lines,
+                    'wave_texts': {
+                        'activity': wave_activity_text,
+                        'movement': wave_movement_text,
+                        'amp': wave_amp_text,
+                        'amp_comp': wave_amp_comp_text,
+                        'curvature': wave_curvature_text,
+                        'shape': wave_shape_text,
+                    },
+                    'stats_panel_label_w': stats_panel_label_w,
+                    'option_rows': option_rows,
+                    'dct_display_values': np.array(dct_display_values_skewed, copy=True),
+                    'dct_display_cycles': np.array(dct_display_cycles, copy=True),
+                    'dct_display_height': dct_display_height,
+                    'dct_input_full': np.array(dct_input_full, copy=True),
+                    'dct_input_label': dct_input_label,
+                    'spectral_centroid_cycles': spectral_centroid_cycles,
+                    'dct_highmode_norm': dct_highmode_norm,
+                    'max_amp': max_amp,
+                    'wave_activity': wave_activity,
+                    'wave_motion_value': wave_motion_value,
+                    'wave_motion_slider_max': wave_motion_slider_max,
+                    'wave_amp': wave_amp,
+                    'amp_comp': amp_comp,
+                    'curvature_rms': curvature_rms,
+                    'shape_state_label': shape_state_label,
+                    'total_skipped': display_skipped_total,
+                    'current_skipped': display_skipped_current,
+                    'underflow_text': underflow_panel_text,
+                    'underflow_color': uf_line_color,
+                    'colors': display_colors,
+                }
                 try:
                     display_frame_queue.put_nowait(payload)
                     display_skipped_current = 0
@@ -1685,9 +2144,9 @@ def main():
                 # ROI guide lines: horizontal COG and vertical shape centroid.
                 roi_width_px = max(mask_right - mask_left, 1)
                 shape_centroid_x_px = int(np.clip(mask_left + descriptors['shape_centroid_x'] * (roi_width_px - 1), mask_left, mask_right - 1))
-                horizontal_cog_y_px = int(np.clip(horizontal_cog_y, roi_top_y, roi_bottom_y))
-                cv2.line(output, (mask_left, horizontal_cog_y_px), (mask_right, horizontal_cog_y_px), red, 1)
-                cv2.line(output, (shape_centroid_x_px, roi_top_y), (shape_centroid_x_px, roi_bottom_y), red, 1)
+                vertical_cog_y_px = int(np.clip(vertical_cog_y, roi_top_y, roi_bottom_y))
+                cv2.line(output, (mask_left, vertical_cog_y_px), (mask_right, vertical_cog_y_px), red, 1)
+                cv2.line(output, (shape_centroid_x_px, roi_top_y), (shape_centroid_x_px, roi_bottom_y), red, 3)
     
                 cog_label_font_scale = 0.825
                 if show_hex_grid:
@@ -1697,10 +2156,10 @@ def main():
                                           hex_layout_idx)
                 cog_label_thickness = 2
                 cog_label_x = int(mask_right + 4)
-                cog_label_text_y = int(np.clip(horizontal_cog_y_px - 4, 20, dimensions[0] - 30))
+                cog_label_text_y = int(np.clip(vertical_cog_y_px - 4, 20, dimensions[0] - 30))
                 cog_label_value_y = int(np.clip(cog_label_text_y + 28, 32, dimensions[0] - 6))
                 cv2.putText(output, 'cog', (cog_label_x, cog_label_text_y), cv2.FONT_HERSHEY_SIMPLEX, cog_label_font_scale, red, cog_label_thickness, cv2.LINE_AA)
-                cv2.putText(output, f'{horizontal_cog_norm:.2f}', (cog_label_x, cog_label_value_y), cv2.FONT_HERSHEY_SIMPLEX, cog_label_font_scale, red, cog_label_thickness, cv2.LINE_AA)
+                cv2.putText(output, f'{vertical_cog_norm:.2f}', (cog_label_x, cog_label_value_y), cv2.FONT_HERSHEY_SIMPLEX, cog_label_font_scale, red, cog_label_thickness, cv2.LINE_AA)
     
                 centroid_label = f'cent {descriptors["shape_centroid_x"]:.2f}'
                 centroid_font_scale = 0.825
@@ -1721,6 +2180,7 @@ def main():
                 stats_lines = [
                     f'numpeaks raw:{numpeaks} med:{numpeaks_median_value} lp:{numpeaks_lowpass_value:.2f} max:{max_numpeaks}',
                     f'avg_x_dist: {avg_x_distance:.2f}, avg movement {avg_x_movement:.2f}',
+                    f'cent tune floor:{_shape_cent_floor_buf[0]:.3f} gamma:{_shape_cent_gamma_buf[0]:.2f} offpow:{_shape_cent_offpow_buf[0]:.2f}',
                     x_pos_disp,
                     x_dist_disp,
                     f'zero_cross: {zc}',

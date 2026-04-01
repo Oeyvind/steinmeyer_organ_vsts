@@ -352,24 +352,6 @@ If you want the next pass to improve the system without expanding scope too much
 - review, calibrate and test the shape identification (straight, bump, waves) 
 
 ## Manual edited todo, midification
-- fader bank midifications
-  - currently high threshold, not responsive enough
-  - note mapping for fader bank
-    - positive only
-    - negative and positive (abs)
-    - negative produce other notes than positive
-      - negative one octave down?
-- for all fader bank midifications:
-  - alternative where we have a fader per peak
-  - if same note activated: sustain
-  - if new note: stop old, start new
-- fft to midi, bit like fader bank but for fft bins
-
-* midi chan, base note, range
-  - simple shape centroid to midi note
-  - simple horiz cog  toi midi note
-  - dct simple freq centroid to midi note
-  - dct simple most prominent frequency to midi note
 
 * fix Distance grains: more sound, and check if several channels are being triggered
   - respond to curvature rather than distance, rename as needed
@@ -379,6 +361,6 @@ If you want the next pass to improve the system without expanding scope too much
 
 * make anti-derivatives of the analyzed features, controlling "critters" moving on the display surface. The critters can then be used as control values for the midi generators.
 
-* new mode: only highest peak to note
-
 * fix DCT, test also FFT, overlap or how to make curve = expected signal?
+
+* Tune the shape_centroid

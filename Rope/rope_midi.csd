@@ -1,5 +1,5 @@
 <Cabbage>
-form size(1112, 711), caption("Rope MIDI"), pluginId("rom1"), guiMode("queue"), colour(30,30,30)
+form size(1112, 739), caption("Rope MIDI"), pluginId("rom1"), guiMode("queue"), colour(30,30,30)
 ; -- Row 1: event-to-MIDI triggers ---------------------------------------------------------
 groupbox bounds(5, 5, 270, 82), colour(60,78,90), lineThickness(0){
 label bounds(5, 5, 90, 12), text("Wave Osc"), fontSize(10), align("left")
@@ -10,7 +10,7 @@ button  channel("Wave_raw_on"),  bounds(200,14, 60, 26), text("raw"),    colour:
 button  channel("Wave_fine_on"), bounds(200,46, 60, 26), text("fine"),   colour:0("black"), colour:1("green")
 }
 
-groupbox bounds(5, 634, 300, 72), colour(60,78,90), lineThickness(0){
+groupbox bounds(430, 644, 300, 72), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 90, 12), text("Stopchord"), fontSize(10), align("left")
 label   bounds(8, 17, 52, 14),  text("thresh"), fontSize(11)
 nslider channel("stop_activity_thresh"), bounds(8, 32, 50, 22), range(0.01, 1, 0.3)
@@ -23,7 +23,7 @@ button  channel("stopchord_scalefree"),  bounds(258, 14, 38, 24), text("scale"),
 button  channel("stopchord_minmax"),     bounds(258, 42, 38, 24), text("minmax"), colour:0("black"), colour:1("green")
 }
 
-groupbox bounds(306, 634, 114, 72), colour(60,78,90), lineThickness(0){
+groupbox bounds(736, 644, 114, 72), colour(60,78,90), lineThickness(0){
 label bounds(5, 5, 90, 12), text("Stop LSYS"), fontSize(10), align("left")
 button channel("Stop_LSYS"), bounds(20, 24, 75, 28), text("On"), colour:0("black"), colour:1("green")
 }
@@ -52,23 +52,6 @@ label    bounds(264, 62, 50, 14), text("D.chan"), fontSize(11)
 nslider  channel("faderbank_down_midichan"), bounds(264, 76, 50, 22), range(1, 16, 1, 1, 1)
 label    bounds(319, 62, 55, 14), text("D.thresh"), fontSize(11)
 nslider  channel("faderbank_down_ampthresh"), bounds(319, 76, 55, 22), range(-1.0, 0.0, -0.08, 1, 0.001)
-}
-
-groupbox bounds(280, 5, 330, 82), colour(60,78,90), lineThickness(0){
-label    bounds(5, 5, 80, 12), text("DCT Bank"), fontSize(10), align("left")
-button   channel("Dct_bank"),         bounds(8, 18, 60, 26), text("On"), colour:0("black"), colour:1("green")
-label    bounds(74, 10, 44, 14), text("scale"), fontSize(11)
-combobox channel("Dct_bank_scale"),   bounds(74, 24, 100, 22), items("semitone", "wholetone", "major", "minor", "penta1", "penta2"), value(1)
-label    bounds(179, 10, 40, 14), text("base"), fontSize(11)
-nslider  channel("dct_basenote"),     bounds(179, 24, 46, 22), range(0, 127, 60, 1, 1)
-label    bounds(229, 10, 40, 14), text("chan"), fontSize(11)
-nslider  channel("dct_midichan"),     bounds(229, 24, 40, 22), range(1, 16, 1, 1, 1)
-label    bounds(273, 10, 52, 14), text("thresh"), fontSize(11)
-nslider  channel("dct_ampthresh"),    bounds(273, 24, 52, 22), range(0.0, 2.0, 0.3, 1, 0.01)
-label    bounds(179, 50, 30, 12), text("att"), fontSize(10), align("left")
-nslider  channel("dct_env_att"),      bounds(179, 62, 46, 18), range(0.001, 0.2, 0.01, 0.5, 0.001)
-label    bounds(229, 50, 30, 12), text("rel"), fontSize(10), align("left")
-nslider  channel("dct_env_rel"),      bounds(229, 62, 46, 18), range(0.05, 2.0, 0.9, 0.5, 0.01)
 }
 
 groupbox bounds(386, 85, 342, 116), colour(60,78,90), lineThickness(0){
@@ -141,7 +124,35 @@ nslider  channel("rope_rhythm_midichan"), bounds(332, 24, 52, 22), range(1, 16, 
 }
 
 ; -- Row 4: Grain2 (audio + all 4 MIDI voices flowing right) ------
-groupbox bounds(5, 318, 1055, 92), colour(60,78,90), lineThickness(0){
+groupbox bounds(5, 318, 264, 92), colour(60,78,90), lineThickness(0){
+label   bounds(5, 5, 120, 12), text("SpatialCent MIDI"), fontSize(10), align("left")
+button  channel("Horiz_cog_note"),          bounds(8, 20, 80, 28), text("On"), colour:0("black"), colour:1("green")
+label   bounds(96, 14, 52, 14), text("base"), fontSize(11)
+nslider channel("horizcog_basenote"),       bounds(96, 30, 52, 22), range(0, 127, 60, 1, 1)
+label   bounds(154, 14, 42, 14), text("chan"), fontSize(11)
+nslider channel("horizcog_midichan"),       bounds(154, 30, 42, 22), range(1, 16, 1, 1, 1)
+label   bounds(202, 14, 52, 14), text("range"), fontSize(11)
+nslider channel("horizcog_range"),          bounds(202, 30, 52, 22), range(0, 48, 12, 1, 1)
+label   bounds(96, 54, 52, 12), text("floor"), fontSize(10), align("left")
+nslider channel("shapecent_floor"),         bounds(96, 68, 74, 20), range(0.0, 1.00, 0.035, 1, 0.001)
+label   bounds(176, 54, 52, 12), text("gamma"), fontSize(10), align("left")
+nslider channel("shapecent_gamma"),         bounds(176, 68, 78, 20), range(0.25, 12.0, 2.15, 1, 0.01)
+label   bounds(8, 54, 76, 12), text("off.pow"), fontSize(10), align("left")
+nslider channel("shapecent_offpow"),        bounds(8, 68, 82, 20), range(0.25, 12.0, 1.0, 1, 0.01)
+}
+
+groupbox bounds(274, 318, 264, 92), colour(60,78,90), lineThickness(0){
+label   bounds(5, 5, 120, 12), text("Vert COG MIDI"), fontSize(10), align("left")
+button  channel("Vert_cog_note"),           bounds(8, 20, 80, 28), text("On"), colour:0("black"), colour:1("green")
+label   bounds(96, 14, 52, 14), text("base"), fontSize(11)
+nslider channel("vertcog_basenote"),        bounds(96, 30, 52, 22), range(0, 127, 60, 1, 1)
+label   bounds(154, 14, 42, 14), text("chan"), fontSize(11)
+nslider channel("vertcog_midichan"),        bounds(154, 30, 42, 22), range(1, 16, 1, 1, 1)
+label   bounds(202, 14, 52, 14), text("range"), fontSize(11)
+nslider channel("vertcog_range"),           bounds(202, 30, 52, 22), range(0, 48, 12, 1, 1)
+}
+
+groupbox bounds(5, 418, 1055, 92), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 90, 12), text("Grain2"), fontSize(10), align("left")
 button  channel("Grain2"),                  bounds(8, 20, 75, 28), text("On"), colour:0("black"), colour:1("green")
 rslider channel("Grainpitch2"),             bounds(93, 14, 58, 62), text("G.pitch"),  range(10, 1000, 100, 0.35)
@@ -167,7 +178,7 @@ nslider channel("graincloud_midichan_4"),   bounds(951,46, 50, 22), range(1, 16,
 
 ; -- Row 5: L-System + console ---------------------------------------------------------
 
-groupbox bounds(5, 418, 415, 215), colour(60,78,90), lineThickness(0){ 
+groupbox bounds(5, 516, 415, 215), colour(60,78,90), lineThickness(0){ 
 nslider channel("generations"), bounds(5,5,40,20), range(1, 10, 3, 1, 1), fontSize(14)
 label bounds(5,22,40,18), text("gens"), fontSize(12), align("left")
 
@@ -229,7 +240,7 @@ checkbox channel("root_note_sibling"), bounds(5,185,15,15), value(1)
 label bounds(23,184,130,18), text("root_note_sibling"), fontSize(12), align("left")
 }
 
-csoundoutput bounds(430, 573, 625, 133)
+csoundoutput bounds(430, 522, 625, 116)
 </Cabbage>
 <CsoundSynthesizer>
 <CsOptions>
@@ -325,6 +336,31 @@ opcode MinArrayThresh, k, k[]k
   xout kmin
 endop
 
+opcode NormMidiNote, 0, kkkkki
+  knorm, kbasenote, knoterange, kmidi_chan, kvel, iident xin
+  knorm limit knorm, 0, 1
+  knoterange = max(knoterange, 0)
+  knote = round(kbasenote + (knorm * knoterange))
+  kmidi_instr = 202 + (knote * 0.001) + (iident * 0.0001)
+  kactive init 0
+  kactive_note init -1
+  kactive_instr init 0
+  kactive_chan init -1
+  if (kactive == 0) then
+    event "i", kmidi_instr, 0, -1, kvel, knote, kmidi_chan
+    kactive = 1
+    kactive_note = knote
+    kactive_instr = kmidi_instr
+    kactive_chan = kmidi_chan
+  elseif (knote != kactive_note) || (kmidi_chan != kactive_chan) then
+    event "i", -kactive_instr, 0, 0.05
+    event "i", kmidi_instr, 0, -1, kvel, knote, kmidi_chan
+    kactive_note = knote
+    kactive_instr = kmidi_instr
+    kactive_chan = kmidi_chan
+  endif
+endop
+
 
 instr 1
   ; GUI control
@@ -345,6 +381,22 @@ instr 1
 
   krope_rhythm_on chnget "Rope_rhythm"
   ButtonEvent krope_rhythm_on, 22
+
+  khoriz_cog_on chnget "Horiz_cog_note"
+  ButtonEvent khoriz_cog_on, 24
+  khoriz_cog_off trigger khoriz_cog_on, 0.5, 1
+  if khoriz_cog_off > 0 then
+    khoriz_cog_chan chnget "horizcog_midichan"
+    event "i", 203, 0, 0.05, int(khoriz_cog_chan)
+  endif
+
+  kvert_cog_on chnget "Vert_cog_note"
+  ButtonEvent kvert_cog_on, 25
+  kvert_cog_off trigger kvert_cog_on, 0.5, 1
+  if kvert_cog_off > 0 then
+    kvert_cog_chan chnget "vertcog_midichan"
+    event "i", 203, 0, 0.05, int(kvert_cog_chan)
+  endif
 
   kpeak_notes_on chnget "Peak_notes"
   ButtonEvent kpeak_notes_on, 23
@@ -368,9 +420,6 @@ instr 1
 
   kgrain2_on chnget "Grain2"
   ButtonEvent kgrain2_on, 13
-
-  kdct_bank_on chnget "Dct_bank"
-  ButtonEvent kdct_bank_on, 16, giWaveRaw
 
   kfader_bank_on chnget "Fader_bank"
   ButtonEvent kfader_bank_on, 17, giWaveRaw
@@ -422,18 +471,30 @@ instr 1
     khex_size_y chnget "hexgrid_size_y"
     khex_peak_mode chnget "hexgrid_peak_mode"
     kpeak_notes_mode chnget "Peak_notes"
+    kshapecent_floor chnget "shapecent_floor"
+    kshapecent_gamma chnget "shapecent_gamma"
+    kshapecent_offpow chnget "shapecent_offpow"
     ktrig_hex_size_x changed khex_size_x
     ktrig_hex_size_y changed khex_size_y
     ktrig_hex_peak_mode changed khex_peak_mode
     ktrig_peak_notes_mode changed kpeak_notes_mode
+    ktrig_shapecent_floor changed kshapecent_floor
+    ktrig_shapecent_gamma changed kshapecent_gamma
+    ktrig_shapecent_offpow changed kshapecent_offpow
     ktrig_hex_size_x = (ktrig_hex_size_x > 0 || khex_boot > 0 ? 1 : 0)
     ktrig_hex_size_y = (ktrig_hex_size_y > 0 || khex_boot > 0 ? 1 : 0)
     ktrig_hex_peak_mode = (ktrig_hex_peak_mode > 0 || khex_boot > 0 ? 1 : 0)
     ktrig_peak_notes_mode = (ktrig_peak_notes_mode > 0 || khex_boot > 0 ? 1 : 0)
+    ktrig_shapecent_floor = (ktrig_shapecent_floor > 0 || khex_boot > 0 ? 1 : 0)
+    ktrig_shapecent_gamma = (ktrig_shapecent_gamma > 0 || khex_boot > 0 ? 1 : 0)
+    ktrig_shapecent_offpow = (ktrig_shapecent_offpow > 0 || khex_boot > 0 ? 1 : 0)
     OSCsend ktrig_hex_size_x, "127.0.0.1", 9801, "/hex_size_x", "f", khex_size_x
     OSCsend ktrig_hex_size_y, "127.0.0.1", 9801, "/hex_size_y", "f", khex_size_y
     OSCsend ktrig_hex_peak_mode, "127.0.0.1", 9801, "/hex_peak_mode", "f", khex_peak_mode
     OSCsend ktrig_peak_notes_mode, "127.0.0.1", 9801, "/peaknotes_mode", "f", kpeak_notes_mode
+    OSCsend ktrig_shapecent_floor, "127.0.0.1", 9801, "/shapecent_floor", "f", kshapecent_floor
+    OSCsend ktrig_shapecent_gamma, "127.0.0.1", 9801, "/shapecent_gamma", "f", kshapecent_gamma
+    OSCsend ktrig_shapecent_offpow, "127.0.0.1", 9801, "/shapecent_offpow", "f", kshapecent_offpow
     khex_boot = 0
 
     ; Python startup query: send current grid settings on request.
@@ -445,6 +506,9 @@ instr 1
     OSCsend kmess_hex_query, "127.0.0.1", 9801, "/hex_size_y", "f", khex_size_y
     OSCsend kmess_hex_query, "127.0.0.1", 9801, "/hex_peak_mode", "f", khex_peak_mode
     OSCsend kmess_hex_query, "127.0.0.1", 9801, "/peaknotes_mode", "f", kpeak_notes_mode
+    OSCsend kmess_hex_query, "127.0.0.1", 9801, "/shapecent_floor", "f", kshapecent_floor
+    OSCsend kmess_hex_query, "127.0.0.1", 9801, "/shapecent_gamma", "f", kshapecent_gamma
+    OSCsend kmess_hex_query, "127.0.0.1", 9801, "/shapecent_offpow", "f", kshapecent_offpow
     if kmess_hex_query > 0 then
       kgoto next_hex_query
     endif
@@ -549,9 +613,9 @@ instr 1
   kcurvature_rms init 0
   kspectral_centroid init 0
   kshape_centroid init 0.5
-  khorizontal_cog_norm init 0.5
+  kvertical_cog_norm init 0.5
   nextmsg_rope_metrics:
-    kmess OSClisten gihandle, "rope_metrics", "ffffffffffffffff", knumpeaks, knumpeaks_median, knumpeaks_lowpass, kavg_x_distance, kavg_x_movement, kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x, kwave_activity, kwave_amp, kspectral_centroid, kshape_centroid, khorizontal_cog_norm, kamp_comp, kcurvature_rms
+    kmess OSClisten gihandle, "rope_metrics", "ffffffffffffffff", knumpeaks, knumpeaks_median, knumpeaks_lowpass, kavg_x_distance, kavg_x_movement, kleft_lobe_x, kright_lobe_x, kmax_lobe_x, kshape_centroid_x, kwave_activity, kwave_amp, kspectral_centroid, kshape_centroid, kvertical_cog_norm, kamp_comp, kcurvature_rms
     kOSC_received += kmess
     if kmess == 0 goto done_rope_metrics
     chnset knumpeaks, "numpeaks"
@@ -570,7 +634,7 @@ instr 1
     chnset kcurvature_rms, "curvature_rms"
     chnset kspectral_centroid, "spectral_centroid"
     chnset kshape_centroid, "shape_centroid"
-    chnset khorizontal_cog_norm, "horizontal_cog_norm"
+    chnset kvertical_cog_norm, "vertical_cog_norm"
     kgoto nextmsg_rope_metrics
   done_rope_metrics:
  
@@ -1222,71 +1286,6 @@ opcode FaderBankMidi, 0, k[]i[]kkkkkiii
   endif
 endop
 
-opcode DctBankMidi, 0, k[]i[]kkkkkii
-  kAmps[], iPitches[], kbase_note, kthreshold, kmidi_chan, katt, krel, ivoice, imaxvoice xin
-  kamp = max(kAmps[ivoice], 0)
-  ksmooth EnvFollow kamp, katt, krel
-  kstate init 0
-  knote_on_time init -1
-  kmindur = 0.12
-  ktime timeinsts
-  kon = max(kthreshold, 0)
-  koff = max(kon * 0.75, 0)
-  knote = round(kbase_note + iPitches[ivoice])
-  kmidi_instr = 202 + (knote * 0.001) + (ivoice * 0.00001) + 0.0001
-  kmidi_on = 0
-  kmidi_off = 0
-  if (kstate == 0) && (ksmooth >= kon) then
-    kmidi_on = 1
-    kstate = 1
-    knote_on_time = ktime
-  elseif (kstate == 1) && (ksmooth <= koff) && ((ktime - knote_on_time) >= kmindur) then
-    kmidi_off = 1
-    kstate = 0
-  endif
-  if kmidi_on > 0 then
-    kvel limit ksmooth * 120, 40, 127
-    event "i", kmidi_instr, 0, -1, kvel, knote, kmidi_chan
-  elseif kmidi_off > 0 then
-    event "i", -kmidi_instr, 0, .1
-  endif
-  if (ivoice < imaxvoice - 1) then
-    DctBankMidi kAmps, iPitches, kbase_note, kthreshold, kmidi_chan, katt, krel, ivoice + 1, imaxvoice
-  endif
-endop
-
-instr 16
-  ; DCT bank MIDI mapping (no audio output)
-  iPitches[] fillarray 0, 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24
-  imaxvoice = 8
-  ; MIDI trigger from DCT bins
-  kdct_scale chnget "Dct_bank_scale"
-  if changed(kdct_scale) > 0 then
-    reinit dct_scales
-  endif
-  dct_scales:
-  idct_scale = i(kdct_scale)
-  iMidiPitches[] fillarray 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ; semitone
-  if idct_scale == 2 then
-    iMidiPitches[] fillarray 0, 2, 4, 6,  8, 10, 12, 14, 16, 18, 20, 22, 24 ; wholetone
-  elseif idct_scale == 3 then
-    iMidiPitches[] fillarray 0, 2, 4, 5,  7,  9, 11, 12, 14, 16, 17, 19, 21 ; major
-  elseif idct_scale == 4 then
-    iMidiPitches[] fillarray 0, 2, 3, 5,  7,  8, 10, 12, 14, 15, 17, 18, 20 ; minor
-  elseif idct_scale == 5 then
-    iMidiPitches[] fillarray 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24, 27, 29 ; penta1
-  elseif idct_scale == 6 then
-    iMidiPitches[] fillarray 0, 2, 5, 7,  9, 12, 14, 17, 19, 21, 24, 26, 29 ; penta2
-  endif
-  kdct_basenote chnget "dct_basenote"
-  kdct_thresh   chnget "dct_ampthresh"
-  kdct_midichan chnget "dct_midichan"
-  kdct_env_att  chnget "dct_env_att"
-  kdct_env_rel  chnget "dct_env_rel"
-  DctBankMidi gkDctbins, iMidiPitches, kdct_basenote, kdct_thresh, kdct_midichan, kdct_env_att, kdct_env_rel, 0, imaxvoice
-endin
-
-
 instr 17
   ; fader bank midi 
   itab = p4
@@ -1481,6 +1480,25 @@ instr 23
       kDownAmpLast = 0
     endif
   endif
+endin
+
+instr 24
+  ; Spatial centroid (x) from Python descriptor.
+  khoriz_norm chnget "shape_centroid_x"
+  khoriz_base chnget "horizcog_basenote"
+  khoriz_range chnget "horizcog_range"
+  khoriz_chan chnget "horizcog_midichan"
+  NormMidiNote khoriz_norm, khoriz_base, khoriz_range, khoriz_chan, 78, 24
+endin
+
+instr 25
+  ; Vertical center-of-gravity (rope mean y) to MIDI note.
+  kvert_norm chnget "vertical_cog_norm"
+  kvert_norm = 1 - kvert_norm
+  kvert_base chnget "vertcog_basenote"
+  kvert_range chnget "vertcog_range"
+  kvert_chan chnget "vertcog_midichan"
+  NormMidiNote kvert_norm, kvert_base, kvert_range, kvert_chan, 78, 25
 endin
 
 instr 203
