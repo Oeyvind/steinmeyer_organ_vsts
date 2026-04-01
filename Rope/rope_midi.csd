@@ -1,5 +1,5 @@
 <Cabbage>
-form size(1065, 711), caption("Rope MIDI"), pluginId("rom1"), guiMode("queue"), colour(30,30,30)
+form size(1112, 711), caption("Rope MIDI"), pluginId("rom1"), guiMode("queue"), colour(30,30,30)
 ; -- Row 1: event-to-MIDI triggers ---------------------------------------------------------
 groupbox bounds(5, 5, 270, 82), colour(60,78,90), lineThickness(0){
 label bounds(5, 5, 90, 12), text("Wave Osc"), fontSize(10), align("left")
@@ -74,8 +74,9 @@ nslider  channel("dct_env_rel"),      bounds(229, 62, 46, 18), range(0.05, 2.0, 
 groupbox bounds(386, 85, 342, 116), colour(60,78,90), lineThickness(0){
 label    bounds(5, 5, 80, 12), text("Hex Grid"), fontSize(10), align("left")
 button   channel("Hex_grid"),           bounds(8, 18, 60, 26), text("On"), value(0), colour:0("black"), colour:1("green")
-label    bounds(74, 10, 44, 14), text("layout"), fontSize(11)
-combobox channel("hexgrid_layout"),     bounds(74, 24, 152, 22), items("Harmonic", "Wicki-Hayden", "Tonnetz", "Harmonetta", "Janko", "Chromatic"), value(1)
+button   channel("hexgrid_peak_mode"),  bounds(72, 18, 52, 26), text("Peaks"), value(0), colour:0("black"), colour:1("green")
+label    bounds(128, 10, 44, 14), text("layout"), fontSize(11)
+combobox channel("hexgrid_layout"),     bounds(128, 24, 98, 22), items("Harmonic", "Wicki-Hayden", "Tonnetz", "Harmonetta", "Janko", "Chromatic"), value(1)
 label    bounds(230, 10, 40, 14), text("base"), fontSize(11)
 nslider  channel("hexgrid_basenote"),   bounds(230, 24, 46, 22), range(0, 127, 60, 1, 1)
 label    bounds(280, 10, 36, 14), text("chan"), fontSize(11)
@@ -86,6 +87,29 @@ label    bounds(96, 58, 48, 12), text("fields x"), fontSize(10), align("left")
 nslider  channel("hexgrid_size_x"),     bounds(96, 72, 58, 22), range(2, 30, 6, 1, 1)
 label    bounds(162, 58, 48, 12), text("fields y"), fontSize(10), align("left")
 nslider  channel("hexgrid_size_y"),     bounds(162, 72, 58, 22), range(2, 30, 6, 1, 1)
+}
+
+groupbox bounds(732, 85, 380, 116), colour(60,78,90), lineThickness(0){
+label    bounds(5, 5, 100, 12), text("Peak Notes"), fontSize(10), align("left")
+button   channel("Peak_notes"),               bounds(8, 16, 76, 23), text("On"), colour:0("black"), colour:1("green")
+label    bounds(8, 58, 56, 12), text("max dur"), fontSize(10), align("left")
+nslider  channel("peaknotes_maxdur"),         bounds(8, 72, 80, 22), range(0.1, 4.0, 0.7, 1, 0.05)
+label    bounds(93, 14, 42, 14), text("U.scale"), fontSize(11)
+combobox channel("Peak_notes_scale"),         bounds(93, 28, 110, 22), items("semitone", "wholetone", "major", "minor", "penta1", "penta2"), value(1)
+label    bounds(209, 14, 50, 14), text("U.base"), fontSize(11)
+nslider  channel("peaknotes_basenote"),       bounds(209, 28, 50, 22), range(0, 127, 60, 1, 1)
+label    bounds(264, 14, 50, 14), text("U.chan"), fontSize(11)
+nslider  channel("peaknotes_midichan"),       bounds(264, 28, 50, 22), range(1, 16, 1, 1, 1)
+label    bounds(319, 14, 55, 14), text("U.thresh"), fontSize(11)
+nslider  channel("peaknotes_ampthresh"),      bounds(319, 28, 55, 22), range(0.0, 1.0, 0.02, 1, 0.001)
+label    bounds(93, 62, 42, 14), text("D.scale"), fontSize(11)
+combobox channel("Peak_notes_down_scale"),    bounds(93, 76, 110, 22), items("semitone", "wholetone", "major", "minor", "penta1", "penta2"), value(1)
+label    bounds(209, 62, 50, 14), text("D.base"), fontSize(11)
+nslider  channel("peaknotes_down_basenote"),  bounds(209, 76, 50, 22), range(0, 127, 48, 1, 1)
+label    bounds(264, 62, 50, 14), text("D.chan"), fontSize(11)
+nslider  channel("peaknotes_down_midichan"),  bounds(264, 76, 50, 22), range(1, 16, 1, 1, 1)
+label    bounds(319, 62, 55, 14), text("D.thresh"), fontSize(11)
+nslider  channel("peaknotes_down_ampthresh"), bounds(319, 76, 55, 22), range(0.0, 1.0, 0.02, 1, 0.001)
 }
 
 ; -- Row 3: Distance Grain -----------------------------------------------------------------
@@ -244,6 +268,14 @@ pgmassign -1, -1
   gkFaderOnDelayDown[] init 32
   gkFaderInstrUp[] init 32
   gkFaderInstrDown[] init 32
+  gkPeakBinUpActive[] init 10
+  gkPeakBinDownActive[] init 10
+  gkPeakBinUpVel[] init 10
+  gkPeakBinDownVel[] init 10
+  gkPeakBinUpOnTrig[] init 10
+  gkPeakBinDownOnTrig[] init 10
+  gkPeakBinUpOffTrig[] init 10
+  gkPeakBinDownOffTrig[] init 10
 
   gihandle OSCinit 9899 ; set the network port number where we will receive OSC data from Python
 
@@ -314,6 +346,26 @@ instr 1
   krope_rhythm_on chnget "Rope_rhythm"
   ButtonEvent krope_rhythm_on, 22
 
+  kpeak_notes_on chnget "Peak_notes"
+  ButtonEvent kpeak_notes_on, 23
+  kpeak_notes_off trigger kpeak_notes_on, 0.5, 1
+  if kpeak_notes_off > 0 then
+    kup_peak_chan chnget "peaknotes_midichan"
+    kdown_peak_chan chnget "peaknotes_down_midichan"
+    gkPeakBinUpActive *= 0
+    gkPeakBinDownActive *= 0
+    gkPeakBinUpVel *= 0
+    gkPeakBinDownVel *= 0
+    gkPeakBinUpOnTrig *= 0
+    gkPeakBinDownOnTrig *= 0
+    gkPeakBinUpOffTrig *= 0
+    gkPeakBinDownOffTrig *= 0
+    event "i", 203, 0, 0.05, int(kup_peak_chan)
+    if int(kdown_peak_chan) != int(kup_peak_chan) then
+      event "i", 203, 0, 0.05, int(kdown_peak_chan)
+    endif
+  endif
+
   kgrain2_on chnget "Grain2"
   ButtonEvent kgrain2_on, 13
 
@@ -368,12 +420,20 @@ instr 1
 
     khex_size_x chnget "hexgrid_size_x"
     khex_size_y chnget "hexgrid_size_y"
+    khex_peak_mode chnget "hexgrid_peak_mode"
+    kpeak_notes_mode chnget "Peak_notes"
     ktrig_hex_size_x changed khex_size_x
     ktrig_hex_size_y changed khex_size_y
+    ktrig_hex_peak_mode changed khex_peak_mode
+    ktrig_peak_notes_mode changed kpeak_notes_mode
     ktrig_hex_size_x = (ktrig_hex_size_x > 0 || khex_boot > 0 ? 1 : 0)
     ktrig_hex_size_y = (ktrig_hex_size_y > 0 || khex_boot > 0 ? 1 : 0)
+    ktrig_hex_peak_mode = (ktrig_hex_peak_mode > 0 || khex_boot > 0 ? 1 : 0)
+    ktrig_peak_notes_mode = (ktrig_peak_notes_mode > 0 || khex_boot > 0 ? 1 : 0)
     OSCsend ktrig_hex_size_x, "127.0.0.1", 9801, "/hex_size_x", "f", khex_size_x
     OSCsend ktrig_hex_size_y, "127.0.0.1", 9801, "/hex_size_y", "f", khex_size_y
+    OSCsend ktrig_hex_peak_mode, "127.0.0.1", 9801, "/hex_peak_mode", "f", khex_peak_mode
+    OSCsend ktrig_peak_notes_mode, "127.0.0.1", 9801, "/peaknotes_mode", "f", kpeak_notes_mode
     khex_boot = 0
 
     ; Python startup query: send current grid settings on request.
@@ -383,12 +443,74 @@ instr 1
     OSCsend kmess_hex_query, "127.0.0.1", 9801, "/hex_layout", "f", klayout_hex
     OSCsend kmess_hex_query, "127.0.0.1", 9801, "/hex_size_x", "f", khex_size_x
     OSCsend kmess_hex_query, "127.0.0.1", 9801, "/hex_size_y", "f", khex_size_y
+    OSCsend kmess_hex_query, "127.0.0.1", 9801, "/hex_peak_mode", "f", khex_peak_mode
+    OSCsend kmess_hex_query, "127.0.0.1", 9801, "/peaknotes_mode", "f", kpeak_notes_mode
     if kmess_hex_query > 0 then
       kgoto next_hex_query
     endif
 
     ; OSC receive
     kOSC_received = 0
+
+  ; Parse peak-note events from Python centrally in instr 1.
+  gkPeakBinUpOnTrig *= 0
+  gkPeakBinDownOnTrig *= 0
+  gkPeakBinUpOffTrig *= 0
+  gkPeakBinDownOffTrig *= 0
+
+  kpk_bin init 0
+  kpk_ispos init 0
+  kpk_vel init 64
+  kpk_guard init 0
+  nextmsg_peakbank_on:
+  if kpk_guard >= 256 then
+    kgoto done_peakbank_on
+  endif
+  kmess_pk_on OSClisten gihandle, "peakbank_on", "iii", kpk_bin, kpk_ispos, kpk_vel
+  kOSC_received += kmess_pk_on
+  if kmess_pk_on == 0 goto done_peakbank_on
+  kpk_bidx = limit(int(kpk_bin), 0, gknum_faders - 1)
+  kpk_vel_clamped = limit(int(kpk_vel), 1, 127)
+  if kpk_ispos > 0 then
+    gkPeakBinUpOnTrig[kpk_bidx] = 1
+    gkPeakBinUpActive[kpk_bidx] = 1
+    gkPeakBinUpVel[kpk_bidx] = kpk_vel_clamped
+  else
+    gkPeakBinDownOnTrig[kpk_bidx] = 1
+    gkPeakBinDownActive[kpk_bidx] = 1
+    gkPeakBinDownVel[kpk_bidx] = kpk_vel_clamped
+  endif
+  kpk_guard += 1
+  kgoto nextmsg_peakbank_on
+  done_peakbank_on:
+
+  kpk_bin_off init 0
+  kpk_ispos_off init 0
+  kpk_guard_off init 0
+  nextmsg_peakbank_off:
+  if kpk_guard_off >= 256 then
+    kgoto done_peakbank_off
+  endif
+  kmess_pk_off OSClisten gihandle, "peakbank_off", "ii", kpk_bin_off, kpk_ispos_off
+  kOSC_received += kmess_pk_off
+  if kmess_pk_off == 0 goto done_peakbank_off
+  kpk_bidx_off = limit(int(kpk_bin_off), 0, gknum_faders - 1)
+  if kpk_ispos_off > 0 then
+    if gkPeakBinUpActive[kpk_bidx_off] > 0 then
+      gkPeakBinUpOffTrig[kpk_bidx_off] = 1
+    endif
+    gkPeakBinUpActive[kpk_bidx_off] = 0
+    gkPeakBinUpVel[kpk_bidx_off] = 0
+  else
+    if gkPeakBinDownActive[kpk_bidx_off] > 0 then
+      gkPeakBinDownOffTrig[kpk_bidx_off] = 1
+    endif
+    gkPeakBinDownActive[kpk_bidx_off] = 0
+    gkPeakBinDownVel[kpk_bidx_off] = 0
+  endif
+  kpk_guard_off += 1
+  kgoto nextmsg_peakbank_off
+  done_peakbank_off:
   
   kfader_ndx init 0
   kfader_val init 0
@@ -1225,6 +1347,140 @@ instr 17
   imaxvoice = 10
   FaderBankMidi kFadersUp, iPitches, kup_basenote, kup_thresh, kup_midi_chan, keff_arp_ms, karp_dir, 0, 0, imaxvoice
   FaderBankMidi kFadersDown, iPitchesDown, kdown_basenote, kdown_thresh, kdown_midi_chan, keff_arp_ms, karp_dir, 1, 0, imaxvoice
+endin
+
+instr 23
+  ; Peak Notes MIDI from fader values: one max-up and one max-down voice.
+  kscale chnget "Peak_notes_scale"
+  kdown_scale chnget "Peak_notes_down_scale"
+  if changed(kscale) + changed(kdown_scale) > 0 then
+    reinit peak_scales
+  endif
+  peak_scales:
+  iscale = i(kscale)
+  iPitches[] fillarray 0, 1, 2, 3,  4,  5,  6,  7,  8,  9, 10, 11, 12
+  if iscale == 2 then
+    iPitches[] fillarray 0, 2, 4, 6,  8, 10, 12, 14, 16, 18, 20, 22, 24
+  elseif iscale == 3 then
+    iPitches[] fillarray 0, 2, 4, 5,  7,  9, 11, 12, 14, 16, 17, 19, 21
+  elseif iscale == 4 then
+    iPitches[] fillarray 0, 2, 3, 5,  7,  8, 10, 12, 14, 15, 17, 18, 20
+  elseif iscale == 5 then
+    iPitches[] fillarray 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24, 27, 29
+  elseif iscale == 6 then
+    iPitches[] fillarray 0, 2, 5, 7,  9, 12, 14, 17, 19, 21, 24, 26, 29
+  endif
+
+  idown_scale = i(kdown_scale)
+  iPitchesDown[] fillarray 0, 1, 2, 3,  4,  5,  6,  7,  8,  9, 10, 11, 12
+  if idown_scale == 2 then
+    iPitchesDown[] fillarray 0, 2, 4, 6,  8, 10, 12, 14, 16, 18, 20, 22, 24
+  elseif idown_scale == 3 then
+    iPitchesDown[] fillarray 0, 2, 4, 5,  7,  9, 11, 12, 14, 16, 17, 19, 21
+  elseif idown_scale == 4 then
+    iPitchesDown[] fillarray 0, 2, 3, 5,  7,  8, 10, 12, 14, 15, 17, 18, 20
+  elseif idown_scale == 5 then
+    iPitchesDown[] fillarray 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24, 27, 29
+  elseif idown_scale == 6 then
+    iPitchesDown[] fillarray 0, 2, 5, 7,  9, 12, 14, 17, 19, 21, 24, 26, 29
+  endif
+
+  kup_basenote chnget "peaknotes_basenote"
+  kup_midi_chan chnget "peaknotes_midichan"
+  kdown_basenote chnget "peaknotes_down_basenote"
+  kdown_midi_chan chnget "peaknotes_down_midichan"
+  kpeak_maxdur chnget "peaknotes_maxdur"
+  kpeak_maxdur limit kpeak_maxdur, 0.05, 10
+  kup_thresh chnget "peaknotes_ampthresh"
+  kdown_thresh chnget "peaknotes_down_ampthresh"
+  kup_thresh limit kup_thresh, 0.001, 1
+  kdown_thresh limit kdown_thresh, 0.001, 1
+
+  kFaders[] tab2array giWaveRaw
+  kmax_up, kmax_up_idx maxarray kFaders
+  kmin_down, kmin_down_idx minarray kFaders
+  kmax_up = (kmax_up > 0 ? kmax_up : 0)
+  kmax_down = (kmin_down < 0 ? -kmin_down : 0)
+  kmax_down_idx = (kmin_down < 0 ? kmin_down_idx : -1)
+
+
+  kUpActive init 0
+  kUpIdxActive init -1
+  kUpInstrActive init 0
+  kUpAmpLast init 0
+  kDownActive init 0
+  kDownIdxActive init -1
+  kDownInstrActive init 0
+  kDownAmpLast init 0
+  kpeak_vel_scale = 95
+  kpeak_vel_min = 35
+  kpeak_vel_max = 110
+
+  ; Up side: keep one active note (the strongest positive fader).
+  if (kmax_up_idx >= 0) && (kmax_up >= kup_thresh) then
+    kup_note = round(kup_basenote + iPitches[kmax_up_idx])
+    kup_instr = 202 + (kup_note * 0.001) + (kmax_up_idx * 0.00001) + 0.00003
+    kup_vel limit (kmax_up * kpeak_vel_scale), kpeak_vel_min, kpeak_vel_max
+    if (kUpActive == 0) then
+      event "i", kup_instr, 0, kpeak_maxdur, kup_vel, kup_note, kup_midi_chan
+      kUpActive = 1
+      kUpIdxActive = kmax_up_idx
+      kUpInstrActive = kup_instr
+      kUpAmpLast = kmax_up
+    elseif (kUpIdxActive != kmax_up_idx) then
+      event "i", -kUpInstrActive, 0, 0.05
+      event "i", kup_instr, 0, kpeak_maxdur, kup_vel, kup_note, kup_midi_chan
+      kUpIdxActive = kmax_up_idx
+      kUpInstrActive = kup_instr
+      kUpAmpLast = kmax_up
+    elseif abs(kmax_up - kUpAmpLast) >= kup_thresh then
+      event "i", -kUpInstrActive, 0, 0.02
+      event "i", kup_instr, 0, kpeak_maxdur, kup_vel, kup_note, kup_midi_chan
+      kUpInstrActive = kup_instr
+      kUpAmpLast = kmax_up
+    endif
+  else
+    if kUpActive > 0 then
+      event "i", -kUpInstrActive, 0, 0.05
+      kUpActive = 0
+      kUpIdxActive = -1
+      kUpInstrActive = 0
+      kUpAmpLast = 0
+    endif
+  endif
+
+  ; Down side: keep one active note (the strongest negative fader).
+  if (kmax_down_idx >= 0) && (kmax_down >= kdown_thresh) then
+    kdown_note = round(kdown_basenote + iPitchesDown[kmax_down_idx])
+    kdown_instr = 202 + (kdown_note * 0.001) + (kmax_down_idx * 0.00001) + 0.00004
+    kdown_vel limit (kmax_down * kpeak_vel_scale), kpeak_vel_min, kpeak_vel_max
+    if (kDownActive == 0) then
+      event "i", kdown_instr, 0, kpeak_maxdur, kdown_vel, kdown_note, kdown_midi_chan
+      kDownActive = 1
+      kDownIdxActive = kmax_down_idx
+      kDownInstrActive = kdown_instr
+      kDownAmpLast = kmax_down
+    elseif (kDownIdxActive != kmax_down_idx) then
+      event "i", -kDownInstrActive, 0, 0.05
+      event "i", kdown_instr, 0, kpeak_maxdur, kdown_vel, kdown_note, kdown_midi_chan
+      kDownIdxActive = kmax_down_idx
+      kDownInstrActive = kdown_instr
+      kDownAmpLast = kmax_down
+    elseif abs(kmax_down - kDownAmpLast) >= kdown_thresh then
+      event "i", -kDownInstrActive, 0, 0.02
+      event "i", kdown_instr, 0, kpeak_maxdur, kdown_vel, kdown_note, kdown_midi_chan
+      kDownInstrActive = kdown_instr
+      kDownAmpLast = kmax_down
+    endif
+  else
+    if kDownActive > 0 then
+      event "i", -kDownInstrActive, 0, 0.05
+      kDownActive = 0
+      kDownIdxActive = -1
+      kDownInstrActive = 0
+      kDownAmpLast = 0
+    endif
+  endif
 endin
 
 instr 203

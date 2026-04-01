@@ -364,15 +364,18 @@ If you want the next pass to improve the system without expanding scope too much
   - if same note activated: sustain
   - if new note: stop old, start new
 - fft to midi, bit like fader bank but for fft bins
-- simple shape centroid to midi note
-- simple freq centroid to midi note
-- simple most prominent frequency to midi note
-- isomorphic keyboard (Wicki-Hayden, Harmonic tablenote layout and/or Euler Tonnetz)
-  - trigger a midi note when rope enters a hex area, 
-  - send midi via osc, enable in Csound, with base note and channel selector
+
+* midi chan, base note, range
+  - simple shape centroid to midi note
+  - simple horiz cog  toi midi note
+  - dct simple freq centroid to midi note
+  - dct simple most prominent frequency to midi note
 
 * fix Distance grains: more sound, and check if several channels are being triggered
   - respond to curvature rather than distance, rename as needed
+  - much more rope features to grain voice parms
+
+* or... make a new granular mode with different granular gestures than grain2
 
 * make anti-derivatives of the analyzed features, controlling "critters" moving on the display surface. The critters can then be used as control values for the midi generators.
 
