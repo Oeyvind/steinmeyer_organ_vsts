@@ -371,8 +371,11 @@ If you want the next pass to improve the system without expanding scope too much
   - trigger a midi note when rope enters a hex area, 
   - send midi via osc, enable in Csound, with base note and channel selector
 
-* remove numpeaks and zerocross modules
 * fix Distance grains: more sound, and check if several channels are being triggered
   - respond to curvature rather than distance, rename as needed
+
 * make anti-derivatives of the analyzed features, controlling "critters" moving on the display surface. The critters can then be used as control values for the midi generators.
+
 * new mode: only highest peak to note
+
+* fix DCT, test also FFT, overlap or how to make curve = expected signal?

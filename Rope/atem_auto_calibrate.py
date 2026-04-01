@@ -191,6 +191,36 @@ def build_mask(height: int, width: int, corners: tuple[tuple[float, float], ...]
     return mask, mask_left, mask_right
 
 
+def open_capture_with_retry(video_device: int, attempts: int = 10, retry_delay: float = 0.15) -> tuple[Any, Any]:
+    """Open a camera and return first valid frame, retrying transient startup failures.
+
+    On Windows, MSMF can fail to grab initial frames intermittently. Prefer DSHOW when
+    available, then fall back to default backend.
+    """
+    backends: list[int | None] = []
+    if hasattr(cv2, "CAP_DSHOW"):
+        backends.append(cv2.CAP_DSHOW)
+    backends.append(None)
+
+    for backend in backends:
+        cap = cv2.VideoCapture(video_device) if backend is None else cv2.VideoCapture(video_device, backend)
+        if not cap.isOpened():
+            cap.release()
+            continue
+
+        frame = None
+        # Warm-up reads + retries, because some devices start streaming after a delay.
+        for _ in range(max(1, attempts)):
+            ret, frame = cap.read()
+            if ret and frame is not None:
+                return cap, frame
+            time.sleep(max(0.01, retry_delay))
+
+        cap.release()
+
+    return None, None
+
+
 def sample_tracking_quality(
     cap: cv2.VideoCapture,
     mask: np.ndarray,
@@ -421,13 +451,11 @@ def run_simple_calibration(
     gain_values = [max(100, int(round(value / 100.0) * 100)) for value in gain_values]
     gain_values = sorted(set(gain_values))
 
-    cap = cv2.VideoCapture(video_device)
-    ret, frame = cap.read()
-    if not ret or frame is None:
-        cap.release()
+    cap, frame = open_capture_with_retry(video_device=video_device, attempts=12, retry_delay=0.15)
+    if cap is None or frame is None:
         return {
             "connected": False,
-            "error": f"Could not open video device index {video_device}",
+            "error": f"Could not open video device index {video_device} (no valid frames received)",
         }, 2
 
     frame_height, frame_width = frame.shape[:2]
@@ -685,14 +713,12 @@ def run_extended_calibration(
             "error": f"Missing dependency: {PYATEM_IMPORT_ERROR.name}",
         }, 2
 
-    cap = cv2.VideoCapture(video_device)
-    ret, frame = cap.read()
-    if not ret or frame is None:
-        cap.release()
+    cap, frame = open_capture_with_retry(video_device=video_device, attempts=12, retry_delay=0.15)
+    if cap is None or frame is None:
         return {
             "connected": False,
             "strategy": "extended",
-            "error": f"Could not open video device index {video_device} for color refinement",
+            "error": f"Could not open video device index {video_device} for color refinement (no valid frames received)",
         }, 2
 
     frame_height, frame_width = frame.shape[:2]

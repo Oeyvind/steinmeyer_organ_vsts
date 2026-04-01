@@ -1,7 +1,7 @@
 <Cabbage>
 form size(1065, 711), caption("Rope MIDI"), pluginId("rom1"), guiMode("queue"), colour(30,30,30)
 ; -- Row 1: event-to-MIDI triggers ---------------------------------------------------------
-groupbox bounds(417, 5, 270, 82), colour(60,78,90), lineThickness(0){
+groupbox bounds(5, 5, 270, 82), colour(60,78,90), lineThickness(0){
 label bounds(5, 5, 90, 12), text("Wave Osc"), fontSize(10), align("left")
 rslider channel("Freq_wav"),     bounds(8,  14, 58, 62), text("Freq"),   range(20, 300, 100, 0.35)
 rslider channel("Amp_wav"),      bounds(70, 14, 58, 62), text("Amp"),    range(-50, 6, 0, 3)
@@ -54,7 +54,7 @@ label    bounds(319, 62, 55, 14), text("D.thresh"), fontSize(11)
 nslider  channel("faderbank_down_ampthresh"), bounds(319, 76, 55, 22), range(-1.0, 0.0, -0.08, 1, 0.001)
 }
 
-groupbox bounds(386, 85, 330, 82), colour(60,78,90), lineThickness(0){
+groupbox bounds(280, 5, 330, 82), colour(60,78,90), lineThickness(0){
 label    bounds(5, 5, 80, 12), text("DCT Bank"), fontSize(10), align("left")
 button   channel("Dct_bank"),         bounds(8, 18, 60, 26), text("On"), colour:0("black"), colour:1("green")
 label    bounds(74, 10, 44, 14), text("scale"), fontSize(11)
@@ -71,7 +71,7 @@ label    bounds(229, 50, 30, 12), text("rel"), fontSize(10), align("left")
 nslider  channel("dct_env_rel"),      bounds(229, 62, 46, 18), range(0.05, 2.0, 0.9, 0.5, 0.01)
 }
 
-groupbox bounds(718, 85, 342, 116), colour(60,78,90), lineThickness(0){
+groupbox bounds(386, 85, 342, 116), colour(60,78,90), lineThickness(0){
 label    bounds(5, 5, 80, 12), text("Hex Grid"), fontSize(10), align("left")
 button   channel("Hex_grid"),           bounds(8, 18, 60, 26), text("On"), value(0), colour:0("black"), colour:1("green")
 label    bounds(74, 10, 44, 14), text("layout"), fontSize(11)
@@ -83,9 +83,9 @@ nslider  channel("hexgrid_midichan"),   bounds(280, 24, 40, 22), range(1, 16, 1,
 label    bounds(8, 58, 56, 12), text("max dur"), fontSize(10), align("left")
 nslider  channel("hexgrid_maxdur"),     bounds(8, 72, 80, 22), range(0.1, 4.0, 0.7, 1, 0.05)
 label    bounds(96, 58, 48, 12), text("fields x"), fontSize(10), align("left")
-nslider  channel("hexgrid_size_x"),     bounds(96, 72, 58, 22), range(3, 30, 6, 1, 1)
+nslider  channel("hexgrid_size_x"),     bounds(96, 72, 58, 22), range(2, 30, 6, 1, 1)
 label    bounds(162, 58, 48, 12), text("fields y"), fontSize(10), align("left")
-nslider  channel("hexgrid_size_y"),     bounds(162, 72, 58, 22), range(3, 30, 6, 1, 1)
+nslider  channel("hexgrid_size_y"),     bounds(162, 72, 58, 22), range(2, 30, 6, 1, 1)
 }
 
 ; -- Row 3: Distance Grain -----------------------------------------------------------------
@@ -101,6 +101,19 @@ label   bounds(420, 14, 52, 14), text("base"), fontSize(11)
 nslider channel("distgrains_basenote"), bounds(420, 30, 52, 22), range(0, 127, 45, 1, 1)
 label   bounds(478, 14, 56, 14), text("basechan"), fontSize(11)
 nslider channel("distgrains_midichan"),  bounds(478, 30, 52, 22), range(1, 16, 1, 1, 1)
+}
+
+groupbox bounds(555, 218, 505, 92), colour(60,78,90), lineThickness(0){
+label    bounds(5, 5, 120, 12), text("Rope Rhythm"), fontSize(10), align("left")
+button   channel("Rope_rhythm"),          bounds(8, 20, 80, 28), text("On"), colour:0("black"), colour:1("green")
+label    bounds(96, 10, 36, 12), text("bpm"), fontSize(10), align("left")
+nslider  channel("rope_rhythm_bpm"),      bounds(96, 24, 56, 22), range(30, 240, 120, 1, 1)
+label    bounds(158, 10, 44, 12), text("scale"), fontSize(10), align("left")
+combobox channel("Rope_rhythm_scale"),    bounds(158, 24, 110, 22), items("semitone", "wholetone", "major", "minor", "penta1", "penta2"), value(1)
+label    bounds(274, 10, 42, 12), text("base"), fontSize(10), align("left")
+nslider  channel("rope_rhythm_basenote"), bounds(274, 24, 52, 22), range(0, 127, 60, 1, 1)
+label    bounds(332, 10, 56, 12), text("chan"), fontSize(10), align("left")
+nslider  channel("rope_rhythm_midichan"), bounds(332, 24, 52, 22), range(1, 16, 1, 1, 1)
 }
 
 ; -- Row 4: Grain2 (audio + all 4 MIDI voices flowing right) ------
@@ -298,6 +311,9 @@ instr 1
   kdistance_grain_on chnget "Distance_grain"
   ButtonEvent kdistance_grain_on, 12
 
+  krope_rhythm_on chnget "Rope_rhythm"
+  ButtonEvent krope_rhythm_on, 22
+
   kgrain2_on chnget "Grain2"
   ButtonEvent kgrain2_on, 13
 
@@ -417,6 +433,7 @@ instr 1
     kOSC_received += kmess
     if kmess == 0 goto done_rope_metrics
     chnset knumpeaks, "numpeaks"
+    chnset knumpeaks, "numpeaks_raw"
     chnset knumpeaks_median, "numpeaks_median"
     chnset knumpeaks_lowpass, "numpeaks_lowpass"
     chnset kavg_x_distance, "avg_x_distance"
@@ -904,6 +921,104 @@ instr 13
 
   a1,a2 Graincloud kamp, kwavfreq, kpitchmod, kpitch_spread, kgrainrate, kratemod, kdistribution, kgraindur, 0, imaxvoice, iopcode_id
   outch 11, a1*1.5, 12, a2*1.5
+endin
+
+
+instr 22
+  ; Rope rhythm MIDI: phase-locked base pulse with numpeaks subdivisions.
+  k_bpm chnget "rope_rhythm_bpm"
+  k_basenote chnget "rope_rhythm_basenote"
+  k_midichan chnget "rope_rhythm_midichan"
+  k_scale chnget "Rope_rhythm_scale"
+  k_numpeaks chnget "numpeaks_raw"
+  k_target_subdiv = max(0, int(round(k_numpeaks)))
+
+  if changed(k_scale) > 0 then
+    reinit rope_scales
+  endif
+  rope_scales:
+  i_scale = i(k_scale)
+  iMidiPitches[] fillarray 0, 1, 2, 3,  4,  5,  6,  7,  8,  9, 10, 11, 12 ; semitone
+  if i_scale == 2 then
+    iMidiPitches[] fillarray 0, 2, 4, 6,  8, 10, 12, 14, 16, 18, 20, 22, 24 ; wholetone
+  elseif i_scale == 3 then
+    iMidiPitches[] fillarray 0, 2, 4, 5,  7,  9, 11, 12, 14, 16, 17, 19, 21 ; major
+  elseif i_scale == 4 then
+    iMidiPitches[] fillarray 0, 2, 3, 5,  7,  8, 10, 12, 14, 15, 17, 18, 20 ; minor
+  elseif i_scale == 5 then
+    iMidiPitches[] fillarray 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24, 27, 29 ; penta1
+  elseif i_scale == 6 then
+    iMidiPitches[] fillarray 0, 2, 5, 7,  9, 12, 14, 17, 19, 21, 24, 26, 29 ; penta2
+  endif
+
+  ; Global transport: do not reset phase when numpeaks changes.
+  k_base_cps = max(k_bpm, 1) / 60.0
+  k_phase phasor k_base_cps
+  k_phase_prev init 0
+  k_downbeat = (k_phase < k_phase_prev ? 1 : 0)
+
+  k_started init 0
+  k_play_subdiv init 1
+  k_suppress_rest init 0
+  k_emit_degree init -1
+
+  ; Start only when first peak arrives, and always align starts/increases to next downbeat.
+  if k_downbeat > 0 then
+    k_suppress_rest = 0
+    k_emit_degree = -1
+    if (k_started == 0) && (k_target_subdiv > 0) then
+      k_started = 1
+      k_play_subdiv = max(1, k_target_subdiv)
+    elseif k_started > 0 then
+      if k_target_subdiv <= 0 then
+        ; Straight rope: no notes until peaks return.
+        k_play_subdiv = 1
+      else
+        ; On downbeat, apply any pending subdivision changes.
+        k_play_subdiv = max(1, k_target_subdiv)
+      endif
+    endif
+    if (k_started > 0) && (k_target_subdiv > 0) then
+      k_emit_degree = 0
+    endif
+  endif
+
+  ; Subdivision triggers: rising threshold crossings at j/N (j=1..N-1).
+  if (k_started > 0) && (k_play_subdiv > 1) && (k_suppress_rest == 0) then
+    k_ndx = 1
+    while k_ndx < k_play_subdiv do
+      k_thresh = k_ndx / k_play_subdiv
+      k_sub_trig = ((k_phase_prev < k_thresh) && (k_phase >= k_thresh) ? 1 : 0)
+      if k_sub_trig > 0 then
+        if k_ndx < k_target_subdiv then
+          k_emit_degree = k_ndx
+        else
+          k_suppress_rest = 1
+        endif
+      endif
+      k_ndx += 1
+    od
+  endif
+
+  if (k_started > 0) && (k_target_subdiv > 0) && (k_emit_degree >= 0) && (k_suppress_rest == 0) then
+    i_len lenarray iMidiPitches
+    k_degree = k_emit_degree
+    if k_play_subdiv <= 1 then
+      k_note = k_basenote
+    else
+      k_scale_idx = k_degree % i_len
+      k_oct = int(k_degree / i_len)
+      k_note = k_basenote + iMidiPitches[k_scale_idx] + (12 * k_oct)
+    endif
+    k_note limit k_note, 0, 127
+    k_interval = 60.0 / max(1.0, (k_bpm * max(1, k_play_subdiv)))
+    k_dur = max(0.04, k_interval * 0.9)
+    k_vel = 92
+    event "i", 202, 0, k_dur, k_vel, k_note, k_midichan
+    k_emit_degree = -1
+  endif
+
+  k_phase_prev = k_phase
 endin
 
 opcode OscBank, aa, k[]i[]kkkii

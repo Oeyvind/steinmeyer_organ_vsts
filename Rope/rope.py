@@ -40,9 +40,9 @@ kinematic_min_obs_pixels = 2
 endpoint_memory_min_obs_pixels = 1
 kinematic_snap_to_obs_px = 22
 kinematic_edge_anchor_px = 24
-peak_min_amplitude_frac = 0.015
-peak_min_prominence_frac = 0.035
-peak_min_distance_frac = 0.07
+peak_min_amplitude_frac = 0.010
+peak_min_prominence_frac = 0.020
+peak_min_distance_frac = 0.045
 dct_display_cycles = np.array([
     0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75,   # orange: 0.25-step below 3
     3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5,      # green: 0.5-step 3–10
@@ -354,7 +354,7 @@ show_stats = True
 show_faders = True
 show_fft = True
 show_option_panel = True
-show_hex_grid = True
+show_hex_grid = False
 hex_active_cells = set()
 paused = False
 use_bg_model = True       # combine background-model diff with per-frame diff
@@ -647,7 +647,7 @@ def extract_wave_features(input_1D, center_wave, left_limit, right_limit, output
     residual = input_1D - center_wave
     amplitude_threshold = max_amp * peak_min_amplitude_frac
     prominence_threshold = max_amp * peak_min_prominence_frac
-    min_peak_distance = max(4, int(round(roi_width * peak_min_distance_frac)))
+    min_peak_distance = max(2, int(round(roi_width * peak_min_distance_frac)))
 
     residual_roi = residual[left_limit:right_limit]
     pos_peaks, _ = scipy_find_peaks(
@@ -1161,11 +1161,11 @@ try:
 
     def _on_hex_size_x(address, *args):
         if args:
-            _hex_size_x_buf[0] = float(np.clip(float(args[0]), 3.0, 30.0))
+            _hex_size_x_buf[0] = float(np.clip(float(args[0]), 2.0, 30.0))
 
     def _on_hex_size_y(address, *args):
         if args:
-            _hex_size_y_buf[0] = float(np.clip(float(args[0]), 3.0, 30.0))
+            _hex_size_y_buf[0] = float(np.clip(float(args[0]), 2.0, 30.0))
 
     # Accept both '/addr' and 'addr' OSC styles for robustness across senders.
     osc_io.register_handler('/hex_layout', _on_hex_layout)
@@ -1492,13 +1492,13 @@ try:
         time_stats = time.time()
         # ── Hex grid cell detection + OSC dispatch ────────────────────────────
         hex_layout_idx = _hex_layout_buf[0]
-        hex_fields_x = float(np.clip(_hex_size_x_buf[0], 3.0, 30.0))
-        hex_fields_y = float(np.clip(_hex_size_y_buf[0], 3.0, 30.0))
+        hex_fields_x = float(np.clip(_hex_size_x_buf[0], 2.0, 30.0))
+        hex_fields_y = float(np.clip(_hex_size_y_buf[0], 2.0, 30.0))
         roi_w = max(mask_right - mask_left, 1)
         roi_h = max(roi_bottom_y - roi_top_y, 1)
         # Convert desired field counts to flat-top hex radii (pixels).
-        hex_size_x = float(np.clip(roi_w / (1.5 * hex_fields_x + 0.5), 2.0, 200.0))
-        hex_size_y = float(np.clip(roi_h / (((hex_fields_y - 1.0) * _HEX_SQRT3) + 2.0), 2.0, 200.0))
+        hex_size_x = float(np.clip(roi_w / (1.5 * hex_fields_x + 0.5), 2.0, 1000.0))
+        hex_size_y = float(np.clip(roi_h / (((hex_fields_y - 1.0) * _HEX_SQRT3) + 2.0), 2.0, 1000.0))
         _, hex_dq, hex_dr = HEX_LAYOUTS[hex_layout_idx]
         xs_h = np.arange(mask_left, mask_right, 2, dtype=np.int32)
         ys_h = wave_1D[xs_h].astype(np.int32)
@@ -1508,11 +1508,11 @@ try:
             hex_orig_x, hex_orig_y, hex_size_x, hex_size_y)
         hex_vel = int(np.clip(40 + wave_activity * 87, 40, 127))
         for _q, _r in (current_hex_cells - hex_active_cells):
-            _off = _q * hex_dq + _r * hex_dr
+            _off = _q * hex_dq - _r * hex_dr
             if abs(_off) <= 60:
                 osc_io.sendOSC('hex_note_on', (int(_off), hex_vel))
         for _q, _r in (hex_active_cells - current_hex_cells):
-            _off = _q * hex_dq + _r * hex_dr
+            _off = _q * hex_dq - _r * hex_dr
             if abs(_off) <= 60:
                 osc_io.sendOSC('hex_note_off', int(_off))
         hex_active_cells = current_hex_cells
@@ -1881,7 +1881,7 @@ try:
             if not show_hex_grid:
                 _, hdq, hdr = HEX_LAYOUTS[_hex_layout_buf[0]]
                 for _q, _r in list(hex_active_cells):
-                    _off = _q * hdq + _r * hdr
+                    _off = _q * hdq - _r * hdr
                     if abs(_off) <= 60:
                         osc_io.sendOSC('hex_note_off', int(_off))
                 hex_active_cells = set()
