@@ -136,6 +136,95 @@ To run faster, candidate sweeps are reduced:
 - ISO candidates are pruned to a smaller set around current ISO.
 - Extended color refinement tests fewer contrast/saturation combinations.
 
+## Rope-to-module modulation map
+
+This section documents how rope analysis signals (from `rope.py` via OSC) affect each module in `rope_midi.csd`.
+
+### Core rope signals used by modules
+
+- `wave_activity` (`0..1`): overall rope motion/excursion energy.
+- `wave_amp` (`0..1`): RMS rope amplitude.
+- `amp_comp` (`0..~2`): amplitude compensated by peak density.
+- `numpeaks_raw`, `numpeaks_median`, `numpeaks_lowpass`: lobe/peak density estimates.
+- `shape_centroid_x`: horizontal shape center (`0..1`).
+- `vertical_cog_norm`: vertical center-of-gravity (`0..1`, with midpoint near `0.5`).
+- `avg_x_distance`: average spacing between rope lobes.
+- `avg_x_movement`: horizontal centroid motion delta.
+- `left_lobe_x`, `right_lobe_x`, `max_lobe_x`: lobe location descriptors.
+- `curvature_rms`: normalized curvature intensity.
+- `shape_state` id/confidence: rope-shape classifier (`periodic` id = `3`).
+- Per-frame arrays: `faders`, `xpos`, `xdistance`, `zerocross`, `zerocross_distance`.
+
+### Grain3 
+
+- Per-voice gate: each voice has `grain3_activitythresh_N`; MIDI events fire only when `wave_activity >= threshold`.
+- Base grain rate comes from `Grain3_rate`, then is modulated by rope descriptors:
+	- `amp_comp` maps to a multiplier range of `1..5`.
+	- `numpeaks_median` is an additional grain-rate multiplier.
+- Sync auto-behavior:
+	- If shape classifier reports `periodic`, `Grain3_sync_on` is forced on.
+	- Sync remains on while shape stays periodic.
+	- While sync is on, a `numpeaks_median` change triggers a one-shot internal rate update/re-anchor.
+- Random rate deviation (`R.dev`):
+	- `curvature_rms` adds deviation in range `0..0.5`.
+	- Sync disables effective rate deviation (same behavior as manual `R.dev` disable under sync).
+- Pitch deviation:
+	- `vertical_cog_norm` contributes pitch deviation by distance from center:
+		- `abs(vertical_cog_norm - 0.5) * 8`, yielding `0` at `0.5`, max `4` at `0.0` or `1.0`.
+	- Sync disables pitch deviation (manual `P.dev` plus vertical-COG contribution).
+
+### Grain2
+
+- `wave_activity` drives amplitude envelope and additionally boosts pitch modulation depth.
+- `avg_x_movement` increases grain rate.
+- `numpeaks` influences grain distribution.
+- Fader extrema shape behavior:
+	- max fader influences pitch spread,
+	- min fader influences grain duration.
+
+### Distance Grain
+
+- `avg_x_distance` scales base grain rate.
+- `wave_activity` controls amplitude envelope.
+- `gkXdistance[]` drives per-voice behavior and MIDI velocity/voice-channel selection.
+
+### Rope Rhythm
+
+- `numpeaks_raw` determines rhythmic subdivision density on a phase-locked base pulse.
+
+### Spatial centroid and COG MIDI
+
+- `shape_centroid_x` drives `Horiz_cog_note` note mapping (`horizcog_*` controls).
+- `vertical_cog_norm` drives `Vert_cog_note` note mapping (`vertcog_*` controls, inverted in Csound).
+
+### Peak Notes
+
+- Peak-bank note events are generated from rope peaks and their sign/amplitude in Python.
+- In Csound, these events drive up/down peak-note voices and velocities.
+
+### Fader Bank
+
+- `faders` array (derived from rope profile) is the direct modulation source.
+- `avg_x_movement` influences arp direction and effective arp delay.
+
+### Hex Grid
+
+- Rope geometry is quantized into active hex cells.
+- Active-cell transitions emit note-on/off events.
+- `wave_activity` sets outgoing hex-note velocity.
+
+### Wave Osc
+
+- `avg_x_movement` contributes tone/detune behavior.
+- `numpeaks` affects brightness/timbre shaping.
+- the wave shape sets the oscillator wave shape
+- we also add an external audio to midi converter to this audio output, like a speech to midi converter
+
+### Stopchord / Stop LSYS
+
+- Trigger logic is based on rope activity rise/fall profile (`wave_activity` and decay conditions).
+- Pitch/material selection uses lobe/centroid descriptors (`left_lobe_x`, `right_lobe_x`, `max_lobe_x`, `shape_centroid_x`) and related rope stats.
+
 ## 6) Config values you may want to edit
 
 At the top of `rope.py`:
