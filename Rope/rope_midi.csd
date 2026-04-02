@@ -1,13 +1,13 @@
 <Cabbage>
 form size(1112, 739), caption("Rope MIDI"), pluginId("rom1"), guiMode("queue"), colour(30,30,30)
 ; -- Row 1: event-to-MIDI triggers ---------------------------------------------------------
-groupbox bounds(5, 5, 270, 82), colour(60,78,90), lineThickness(0){
+groupbox bounds(855, 644, 252, 72), colour(60,78,90), lineThickness(0){
 label bounds(5, 5, 90, 12), text("Wave Osc"), fontSize(10), align("left")
-rslider channel("Freq_wav"),     bounds(8,  14, 58, 62), text("Freq"),   range(20, 300, 100, 0.35)
-rslider channel("Amp_wav"),      bounds(70, 14, 58, 62), text("Amp"),    range(-50, 6, 0, 3)
-rslider channel("detune_wav"),   bounds(132,14, 58, 62), text("Detune"), range(0, 1, 0.1, 0.35)
-button  channel("Wave_raw_on"),  bounds(200,14, 60, 26), text("raw"),    colour:0("black"), colour:1("green")
-button  channel("Wave_fine_on"), bounds(200,46, 60, 26), text("fine"),   colour:0("black"), colour:1("green")
+rslider channel("Freq_wav"),     bounds(8,  14, 54, 52), text("Freq"),   range(20, 300, 100, 0.35)
+rslider channel("Amp_wav"),      bounds(66, 14, 54, 52), text("Amp"),    range(-50, 6, 0, 3)
+rslider channel("detune_wav"),   bounds(124,14, 54, 52), text("Detune"), range(0, 1, 0.1, 0.35)
+button  channel("Wave_raw_on"),  bounds(186,14, 58, 24), text("raw"),    colour:0("black"), colour:1("green")
+button  channel("Wave_fine_on"), bounds(186,42, 58, 24), text("fine"),   colour:0("black"), colour:1("green")
 }
 
 groupbox bounds(430, 644, 300, 72), colour(60,78,90), lineThickness(0){
@@ -29,7 +29,7 @@ button channel("Stop_LSYS"), bounds(20, 24, 75, 28), text("On"), colour:0("black
 }
 
 ; -- Row 2: Fader Bank + DCT Bank ---------------------------------------------------------
-groupbox bounds(5, 85, 380, 116), colour(60,78,90), lineThickness(0){
+groupbox bounds(5, 5, 380, 116), colour(60,78,90), lineThickness(0){
 label    bounds(5, 5, 90, 12), text("Fader Bank"), fontSize(10), align("left")
 button   channel("Fader_bank"),          bounds(8, 16, 76, 23), text("On"), colour:0("black"), colour:1("green")
 label    bounds(8, 38, 60, 12), text("arp ms"), fontSize(10), align("left")
@@ -54,7 +54,7 @@ label    bounds(319, 62, 55, 14), text("D.thresh"), fontSize(11)
 nslider  channel("faderbank_down_ampthresh"), bounds(319, 76, 55, 22), range(-1.0, 0.0, -0.08, 1, 0.001)
 }
 
-groupbox bounds(386, 85, 342, 116), colour(60,78,90), lineThickness(0){
+groupbox bounds(386, 5, 342, 116), colour(60,78,90), lineThickness(0){
 label    bounds(5, 5, 80, 12), text("Hex Grid"), fontSize(10), align("left")
 button   channel("Hex_grid"),           bounds(8, 18, 60, 26), text("On"), value(0), colour:0("black"), colour:1("green")
 button   channel("hexgrid_peak_mode"),  bounds(72, 18, 52, 26), text("Peaks"), value(0), colour:0("black"), colour:1("green")
@@ -72,7 +72,7 @@ label    bounds(162, 58, 48, 12), text("fields y"), fontSize(10), align("left")
 nslider  channel("hexgrid_size_y"),     bounds(162, 72, 58, 22), range(2, 30, 6, 1, 1)
 }
 
-groupbox bounds(732, 85, 380, 116), colour(60,78,90), lineThickness(0){
+groupbox bounds(732, 5, 380, 116), colour(60,78,90), lineThickness(0){
 label    bounds(5, 5, 100, 12), text("Peak Notes"), fontSize(10), align("left")
 button   channel("Peak_notes"),               bounds(8, 16, 76, 23), text("On"), colour:0("black"), colour:1("green")
 label    bounds(8, 58, 56, 12), text("max dur"), fontSize(10), align("left")
@@ -96,7 +96,7 @@ nslider  channel("peaknotes_down_ampthresh"), bounds(319, 76, 55, 22), range(0.0
 }
 
 ; -- Row 3: Distance Grain -----------------------------------------------------------------
-groupbox bounds(5, 218, 545, 92), colour(60,78,90), lineThickness(0){
+groupbox bounds(5, 122, 545, 92), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 95, 12), text("Distance Grain"), fontSize(10), align("left")
 button  channel("Distance_grain"),       bounds(8, 20, 80, 28), text("On"), colour:0("black"), colour:1("green")
 rslider channel("Grate"),                bounds(98, 14, 58, 62), text("G.rate"),   range(0.5, 20, 4, 0.35)
@@ -110,7 +110,7 @@ label   bounds(478, 14, 56, 14), text("basechan"), fontSize(11)
 nslider channel("distgrains_midichan"),  bounds(478, 30, 52, 22), range(1, 16, 1, 1, 1)
 }
 
-groupbox bounds(555, 218, 505, 92), colour(60,78,90), lineThickness(0){
+groupbox bounds(555, 122, 505, 92), colour(60,78,90), lineThickness(0){
 label    bounds(5, 5, 120, 12), text("Rope Rhythm"), fontSize(10), align("left")
 button   channel("Rope_rhythm"),          bounds(8, 20, 80, 28), text("On"), colour:0("black"), colour:1("green")
 label    bounds(96, 10, 36, 12), text("bpm"), fontSize(10), align("left")
@@ -124,7 +124,7 @@ nslider  channel("rope_rhythm_midichan"), bounds(332, 24, 52, 22), range(1, 16, 
 }
 
 ; -- Row 4: Grain2 (audio + all 4 MIDI voices flowing right) ------
-groupbox bounds(5, 318, 264, 92), colour(60,78,90), lineThickness(0){
+groupbox bounds(5, 215, 264, 92), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 120, 12), text("SpatialCent MIDI"), fontSize(10), align("left")
 button  channel("Horiz_cog_note"),          bounds(8, 20, 80, 28), text("On"), colour:0("black"), colour:1("green")
 label   bounds(96, 14, 52, 14), text("base"), fontSize(11)
@@ -141,7 +141,7 @@ label   bounds(8, 54, 76, 12), text("off.pow"), fontSize(10), align("left")
 nslider channel("shapecent_offpow"),        bounds(8, 68, 82, 20), range(0.25, 12.0, 1.0, 1, 0.01)
 }
 
-groupbox bounds(274, 318, 264, 92), colour(60,78,90), lineThickness(0){
+groupbox bounds(274, 215, 264, 92), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 120, 12), text("Vert COG MIDI"), fontSize(10), align("left")
 button  channel("Vert_cog_note"),           bounds(8, 20, 80, 28), text("On"), colour:0("black"), colour:1("green")
 label   bounds(96, 14, 52, 14), text("base"), fontSize(11)
@@ -152,7 +152,7 @@ label   bounds(202, 14, 52, 14), text("range"), fontSize(11)
 nslider channel("vertcog_range"),           bounds(202, 30, 52, 22), range(0, 48, 12, 1, 1)
 }
 
-groupbox bounds(5, 418, 1055, 92), colour(60,78,90), lineThickness(0){
+groupbox bounds(5, 308, 1055, 92), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 90, 12), text("Grain2"), fontSize(10), align("left")
 button  channel("Grain2"),                  bounds(8, 20, 75, 28), text("On"), colour:0("black"), colour:1("green")
 rslider channel("Grainpitch2"),             bounds(93, 14, 58, 62), text("G.pitch"),  range(10, 1000, 100, 0.35)
@@ -174,6 +174,44 @@ nslider channel("graincloud_midichan_3"),   bounds(833,46, 50, 22), range(1, 16,
 rslider channel("graincloud_ampthresh_4"),  bounds(889,14, 58, 62), text("V4.thr"),   range(-90, 0, -5), markerColour(55,115,220)
 nslider channel("graincloud_transpose_4"),  bounds(951,16, 50, 22), range(-24, 24, 0, 1, 1), text("transp")
 nslider channel("graincloud_midichan_4"),   bounds(951,46, 50, 22), range(1, 16, 4, 1, 1), text("chan")
+}
+
+groupbox bounds(5, 401, 1055, 92), colour(60,78,90), lineThickness(0){
+label   bounds(5, 5, 90, 12), text("Grain3"), fontSize(10), align("left")
+button  channel("Grain3"),                  bounds(8, 20, 75, 28), text("On"), colour:0("black"), colour:1("green")
+rslider channel("Grain3_rate"),            bounds(93, 14, 58, 62), text("G.rate"), range(0.5, 20, 4, 0.35)
+button  channel("Grain3_rate_update"),     bounds(93, 76, 58, 14), text("update"), value(1), colour:0("black"), colour:1("green")
+rslider channel("Grain3_dur"),             bounds(155,14, 58, 62), text("G.dur"),  range(0.1, 2, 1, 0.35)
+rslider channel("Grain3_randdev"),         bounds(217,14, 58, 62), text("R.dev"),  range(0.0, 1.0, 0.15, 1, 0.001)
+rslider channel("Grain3_sync_rate"),       bounds(279,14, 58, 62), text("S.rate"), range(0.0, 0.5, 0.07, 0.5, 0.0001)
+rslider channel("Grain3_sync_phase"),      bounds(341,14, 58, 62), text("S.phase"),range(0.0, 0.5, 0.04, 0.5, 0.0001)
+button  channel("Grain3_sync_on"),         bounds(217,76, 244, 14), text("sync"), value(1), colour:0("black"), colour:1("green")
+rslider channel("Grain3_pitchdev_amt"),    bounds(403,14, 58, 62), text("P.dev"),  range(0.0, 7.0, 0.0, 1, 0.001)
+rslider channel("Grain3_pitchdev_shape"),  bounds(465,14, 58, 62), text("P.shape"),range(0.0, 1.0, 0.5, 1, 0.001)
+label   bounds(560, 8, 48, 12), text("V1 note"), fontSize(10), align("left")
+nslider channel("grain3_basenote_1"),      bounds(560, 24, 46, 22), range(0, 127, 60, 1, 1)
+label   bounds(560, 50, 42, 12), text("V1 ch"), fontSize(10), align("left")
+nslider channel("grain3_midichan_1"),      bounds(560, 66, 46, 22), range(1, 16, 1, 1, 1)
+label   bounds(610, 50, 30, 12), text("thr"), fontSize(10), align("left")
+nslider channel("grain3_activitythresh_1"), bounds(610, 66, 46, 22), range(0.0, 1.0, 0.05, 1, 0.001)
+label   bounds(680, 8, 48, 12), text("V2 note"), fontSize(10), align("left")
+nslider channel("grain3_basenote_2"),      bounds(680, 24, 46, 22), range(0, 127, 64, 1, 1)
+label   bounds(680, 50, 42, 12), text("V2 ch"), fontSize(10), align("left")
+nslider channel("grain3_midichan_2"),      bounds(680, 66, 46, 22), range(1, 16, 2, 1, 1)
+label   bounds(730, 50, 30, 12), text("thr"), fontSize(10), align("left")
+nslider channel("grain3_activitythresh_2"), bounds(730, 66, 46, 22), range(0.0, 1.0, 0.05, 1, 0.001)
+label   bounds(800, 8, 48, 12), text("V3 note"), fontSize(10), align("left")
+nslider channel("grain3_basenote_3"),      bounds(800, 24, 46, 22), range(0, 127, 67, 1, 1)
+label   bounds(800, 50, 42, 12), text("V3 ch"), fontSize(10), align("left")
+nslider channel("grain3_midichan_3"),      bounds(800, 66, 46, 22), range(1, 16, 3, 1, 1)
+label   bounds(850, 50, 30, 12), text("thr"), fontSize(10), align("left")
+nslider channel("grain3_activitythresh_3"), bounds(850, 66, 46, 22), range(0.0, 1.0, 0.05, 1, 0.001)
+label   bounds(920, 8, 48, 12), text("V4 note"), fontSize(10), align("left")
+nslider channel("grain3_basenote_4"),      bounds(920, 24, 46, 22), range(0, 127, 71, 1, 1)
+label   bounds(920, 50, 42, 12), text("V4 ch"), fontSize(10), align("left")
+nslider channel("grain3_midichan_4"),      bounds(920, 66, 46, 22), range(1, 16, 4, 1, 1)
+label   bounds(970, 50, 30, 12), text("thr"), fontSize(10), align("left")
+nslider channel("grain3_activitythresh_4"), bounds(970, 66, 46, 22), range(0.0, 1.0, 0.05, 1, 0.001)
 }
 
 ; -- Row 5: L-System + console ---------------------------------------------------------
@@ -287,6 +325,7 @@ pgmassign -1, -1
   gkPeakBinDownOnTrig[] init 10
   gkPeakBinUpOffTrig[] init 10
   gkPeakBinDownOffTrig[] init 10
+  gkGr3RateState[] init 4
 
   gihandle OSCinit 9899 ; set the network port number where we will receive OSC data from Python
 
@@ -420,6 +459,9 @@ instr 1
 
   kgrain2_on chnget "Grain2"
   ButtonEvent kgrain2_on, 13
+
+  kgrain3_on chnget "Grain3"
+  ButtonEvent kgrain3_on, 26
 
   kfader_bank_on chnget "Fader_bank"
   ButtonEvent kfader_bank_on, 17, giWaveRaw
@@ -637,6 +679,22 @@ instr 1
     chnset kvertical_cog_norm, "vertical_cog_norm"
     kgoto nextmsg_rope_metrics
   done_rope_metrics:
+
+  kshape_state_id init 5
+  kshape_state_conf init 0
+  nextmsg_shape_state:
+    kmess_shape_state OSClisten gihandle, "shape_state", "ff", kshape_state_id, kshape_state_conf
+    kOSC_received += kmess_shape_state
+    if kmess_shape_state == 0 goto done_shape_state
+    chnset kshape_state_id, "shape_state_id"
+    chnset kshape_state_conf, "shape_state_conf"
+    kgoto nextmsg_shape_state
+  done_shape_state:
+
+  ; Auto-sync Grain3 whenever rope shape classifier reports periodic (state id 3).
+  kshape_state_now chnget "shape_state_id"
+  kgrain3_sync_auto = (int(round(kshape_state_now)) == 3 ? 1 : 0)
+  chnset kgrain3_sync_auto, "Grain3_sync_on"
  
   kxpos init 0
   kxpos_ndx init 0
@@ -736,9 +794,49 @@ instr 2
                                               istepsize,  table(8,giWaveRaw2),\
                                               istepsize,  table(9,giWaveRaw2),\
                                               ilaststep,  0
+  gkGr3MasterPulse init 0
   ftmorf kndx, giWaveRaws, giWaveRaw
   ftmorf kndx, giWaveFines, giWaveFine
 endin
+
+opcode RhythmPLL, kkk, kkkkkkk
+  ; Phase-locked loop for rhythmic synchronization.
+  k1trig, kfq2, kgain, kphasegain, kin2, kosc2, k2trig xin
+
+  if kin2 == 0 then
+    kfq2 init i(kfq2)
+    kosc2 init 0
+    kosc2 += (kfq2/kr)
+    kosc2 = kosc2 > 1 ? 0 : kosc2
+    k2trig trigger kosc2, 0.5, 1
+  endif
+
+  kcount init 0
+  k2_prevphase init 0
+  kdiff init 0
+  kdifflag init 0
+  kskip init 1
+  if k1trig > 0 then
+    if kskip == 0 then
+      kdiff = (kosc2 + kcount) - k2_prevphase
+      kdifflag = (kdiff <= 0 ? kdiff : 0)
+      kdiff = (kdiff <= 0.1 ? kdiff + 1 : kdiff)
+      kphasecorr = wrap(kosc2, -0.5, 0.5) * -1
+    endif
+    kskip = 0
+    kcount = (kdifflag != 0 ? -1 : 0)
+    k2_prevphase = kosc2
+  endif
+  if k2trig > 0 then
+    kcount += 1
+  endif
+
+  kfact = divz(1, kdiff, 1)
+  kerr = ((kfact - 1) * kgain * k1trig) + 1
+  kphaserr = kfq2 * kphasecorr * k1trig * kphasegain
+  kfq2 = (kfq2 * kerr) + kphaserr
+  xout k2trig, kosc2, kfq2
+endop
 
 
 instr 10
@@ -962,7 +1060,64 @@ opcode Graincloud, aa, kkkkkkkkiii
   kamp, kwavfreq, kpitchmod, kpitch_spread, kgrainrate, kratemod, kdistribution, kgraindur, ivoice, imaxvoice, iopcode_id xin
 
   ; grain rate
-  kgrainrate = kgrainrate*(1+(rspline(-0.5, 1, 0.5, 2)*kratemod))
+  if iopcode_id >= 30 then
+    kranddev chnget "Grain3_randdev"
+    kcurvature_mod chnget "curvature_rms"
+    kcurvature_mod limit kcurvature_mod, 0, 2
+    kcurvature_randdev = kcurvature_mod * 0.25
+    kcurvature_randdev limit kcurvature_randdev, 0, 0.5
+    kranddev = kranddev + kcurvature_randdev
+    kranddev limit kranddev, 0, 1
+    ksync_rate_amt chnget "Grain3_sync_rate"
+    ksync_phase_amt chnget "Grain3_sync_phase"
+    ksync_on chnget "Grain3_sync_on"
+    ksync_on = (ksync_on >= 0.5 ? 1 : 0)
+    kranddev_eff = (ksync_on > 0 ? 0 : kranddev)
+    kupdate_rate chnget "Grain3_rate_update"
+    kupdate_rate = (kupdate_rate >= 0.5 ? 1 : 0)
+    knumpeaks_mult chnget "numpeaks_median"
+    knumpeaks_mult = max(1, knumpeaks_mult)
+    knumpeaks_changed changed knumpeaks_mult
+    kforce_update = ((ksync_on > 0) && (knumpeaks_changed > 0) ? 1 : 0)
+    kupdate_rate_eff = (kupdate_rate > 0 || kforce_update > 0 ? 1 : 0)
+    kbase_rate = max(0.02, kgrainrate)
+    kmin_rate = kbase_rate * 0.25
+    kmax_rate = kbase_rate * 4.0
+    if kupdate_rate_eff > 0 then
+      gkGr3RateState[ivoice] = kbase_rate
+    elseif gkGr3RateState[ivoice] <= 0 then
+      gkGr3RateState[ivoice] = kbase_rate
+    endif
+    kwork_rate = (kupdate_rate_eff > 0 ? kbase_rate : gkGr3RateState[ivoice])
+    if kranddev_eff > 0.0001 then
+      ; random spline trajectory constrained to the allowed [0.25x, 4x] range
+      ktraj_rate rspline kmin_rate, kmax_rate, 0.6 + (kranddev_eff * 2.5), 1.4 + (kranddev_eff * 7.5)
+      ktarget_rate = (1 - kranddev_eff) * kbase_rate + (kranddev_eff * ktraj_rate)
+      kslew = 0.03 + (kranddev_eff * 0.12)
+      kwork_rate = kwork_rate + ((ktarget_rate - kwork_rate) * kslew)
+    endif
+    kwork_rate limit kwork_rate, kmin_rate, kmax_rate
+    if ivoice == 0 then
+      kgrainrate = max(0.02, kwork_rate)
+      kgrainrate limit kgrainrate, kmin_rate, kmax_rate
+      gkGr3MasterPulse metro kgrainrate
+    else
+      if kupdate_rate_eff > 0 then
+        kgrainrate = kbase_rate
+      elseif ksync_on == 0 then
+        kgrainrate = kwork_rate
+      else
+        kpll_phase init 0
+        kpll_pulse init 0
+        kpll_pulse, kpll_phase, kgrainrate RhythmPLL gkGr3MasterPulse, kwork_rate, ksync_rate_amt, ksync_phase_amt, 0, kpll_phase, kpll_pulse
+        kgrainrate = max(0.02, kgrainrate)
+        kgrainrate limit kgrainrate, kmin_rate, kmax_rate
+      endif
+    endif
+    gkGr3RateState[ivoice] = kgrainrate
+  else
+    kgrainrate = kgrainrate*(1+(rspline(-0.5, 1, 0.5, 2)*kratemod))
+  endif
   agrainrate	= kgrainrate 
   async = 0
 
@@ -1059,11 +1214,47 @@ opcode Graincloud, aa, kkkkkkkkiii
   Schan sprintf "graincloud_midichan_%i", ivoice+1
   ;puts Schan, 1
   kmidi_chan chnget Schan
-  if (kpulse > 0) && (kamp > kamp_thresh) && ivoice < 4 then
-    knote = (kwavfreq*12)+48
-    knote = 12*log2(kwavfreq/440) + 69 + ktranspose
-    kvel limit kamp*120, 40, 127
-    event "i", 202, 0, (kduration/1000)+0.01, kvel, knote, kmidi_chan
+  if iopcode_id >= 30 then
+    Sbase sprintf "grain3_basenote_%i", ivoice+1
+    Schan sprintf "grain3_midichan_%i", ivoice+1
+    Sthr sprintf "grain3_activitythresh_%i", ivoice+1
+    knote chnget Sbase
+    kmidi_chan chnget Schan
+    kactivity_thresh chnget Sthr
+    kactivity_thresh limit kactivity_thresh, 0, 1
+    kwave_activity chnget "wave_activity"
+    kwave_activity limit kwave_activity, 0, 1
+    if (kpulse > 0) && ivoice < 4 && (kwave_activity >= kactivity_thresh) then
+      kpitch_dev_amt chnget "Grain3_pitchdev_amt"
+      kpitch_dev_shape chnget "Grain3_pitchdev_shape"
+      kvertical_cog_norm chnget "vertical_cog_norm"
+      kvertical_cog_norm limit kvertical_cog_norm, 0, 1
+      kcog_pitch_dev = abs(kvertical_cog_norm - 0.5) * 8.0
+      kpitch_dev_amt = kpitch_dev_amt + kcog_pitch_dev
+      if ksync_on > 0 then
+        kpitch_dev_amt = 0
+      endif
+      kpitch_dev_shape limit kpitch_dev_shape, 0, 1
+      if kpitch_dev_shape <= 0.5 then
+        ; shape: 0.0 -> krpow -0.05, 0.5 -> krpow -0.95
+        krpow = -0.05 - ((kpitch_dev_shape / 0.5) * 0.90)
+      else
+        ; shape: just above 0.5 -> krpow +0.95, 1.0 -> krpow +0.05
+        krpow = 0.95 - (((kpitch_dev_shape - 0.5) / 0.5) * 0.90)
+      endif
+      ksemi_dev rnd31 kpitch_dev_amt, krpow
+      knote = round(knote + ksemi_dev)
+      knote limit knote, 0, 127
+      kvel limit kamp*120, 40, 127
+      event "i", 202, 0, (kduration/1000)+0.01, kvel, knote, kmidi_chan
+    endif
+  else
+    if (kpulse > 0) && (kamp > kamp_thresh) && ivoice < 4 then
+      knote = (kwavfreq*12)+48
+      knote = 12*log2(kwavfreq/440) + 69 + ktranspose
+      kvel limit kamp*120, 40, 127
+      event "i", 202, 0, (kduration/1000)+0.01, kvel, knote, kmidi_chan
+    endif
   endif
 
   if (ivoice < imaxvoice-1) then
@@ -1107,6 +1298,30 @@ instr 13
 
   a1,a2 Graincloud kamp, kwavfreq, kpitchmod, kpitch_spread, kgrainrate, kratemod, kdistribution, kgraindur, 0, imaxvoice, iopcode_id
   outch 11, a1*1.5, 12, a2*1.5
+endin
+
+instr 26
+  ; clean 4-voice grain cloud with fixed amp/pitch and per-voice MIDI note/channel.
+  kamp = 1
+  kwavfreq = 220
+  kgrainrate_base chnget "Grain3_rate"
+  kamp_comp chnget "amp_comp"
+  kamp_comp limit kamp_comp, 0, 2
+  kamp_comp_rate_mult = 1 + (kamp_comp * 2)
+  knumpeaks_mult chnget "numpeaks_median"
+  knumpeaks_mult = max(1, knumpeaks_mult)
+  kgrainrate = kgrainrate_base * kamp_comp_rate_mult * knumpeaks_mult
+  kgrainrate limit kgrainrate, 0.02, 120
+  kgraindur chnget "Grain3_dur"
+  kpitchmod = 0
+  kpitch_spread = 0
+  kratemod = 0
+  kdistribution = 0
+  imaxvoice = 4
+  iopcode_id = 30
+
+  a1,a2 Graincloud kamp, kwavfreq, kpitchmod, kpitch_spread, kgrainrate, kratemod, kdistribution, kgraindur, 0, imaxvoice, iopcode_id
+  outch 15, a1*1.2, 16, a2*1.2
 endin
 
 

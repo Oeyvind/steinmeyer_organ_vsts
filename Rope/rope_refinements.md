@@ -364,3 +364,14 @@ If you want the next pass to improve the system without expanding scope too much
 * fix DCT, test also FFT, overlap or how to make curve = expected signal?
 
 * Tune the shape_centroid
+
+* New granular
+  - different inputs to liveliness
+  - grain rate and pitch dev
+  - numpeaks sets clear pitch interval between voices
+    - use 4 voices always?
+  - when holding the same pattern in rope: synchronize the 4 voices, phase sync, grain rate
+    - use a separate sync gui knob to test sync
+  * Tune parameters for hold sync periodic
+    - see if the detector can be refined to indicate periodic also for lower spatial frequency
+    - chack that the grain rate multiplier from numnpeaks activates
