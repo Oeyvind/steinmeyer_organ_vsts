@@ -372,6 +372,12 @@ If you want the next pass to improve the system without expanding scope too much
     - use 4 voices always?
   - when holding the same pattern in rope: synchronize the 4 voices, phase sync, grain rate
     - use a separate sync gui knob to test sync
-  * Tune parameters for hold sync periodic
+
+
+  *** Tune behavior with low amp or low activity
+    - less dense grain patterns
+  *** Tune parameters for hold sync periodic
     - see if the detector can be refined to indicate periodic also for lower spatial frequency
     - chack that the grain rate multiplier from numnpeaks activates
+
+  * Profiling to tune up and avoid underflow. Increase frame rate to 30?

@@ -28,7 +28,7 @@ label bounds(5, 5, 90, 12), text("Stop LSYS"), fontSize(10), align("left")
 button channel("Stop_LSYS"), bounds(20, 24, 75, 28), text("On"), colour:0("black"), colour:1("green")
 }
 
-; -- Row 2: Fader Bank + DCT Bank ---------------------------------------------------------
+; -- Row 2: Fader Bank + Peak Notes -------------------------------------------------------
 groupbox bounds(5, 5, 380, 116), colour(60,78,90), lineThickness(0){
 label    bounds(5, 5, 90, 12), text("Fader Bank"), fontSize(10), align("left")
 button   channel("Fader_bank"),          bounds(8, 16, 76, 23), text("On"), colour:0("black"), colour:1("green")
@@ -310,7 +310,6 @@ pgmassign -1, -1
   gkXdistance[] init 32
   gkZerocross[] init 32
   gkZerocross_distance[] init 32
-  gkDctbins[] init 32
   gkFaderActiveUp[] init 32
   gkFaderActiveDown[] init 32
   gkFaderOnDelayUp[] init 32
@@ -739,18 +738,6 @@ instr 1
     gkZerocross_distance[kzerocross_distance_ndx] = kzerocross_distance
     kgoto nextmsg_zerocross_distance
   done_zerocross_distance:
-
-  kdct_bin init 0
-  kdct_bin_ndx init 0
-  gkDctbins *= 0
-  nextmsg_dct:
-    kmess OSClisten gihandle, "dct_bin", "ff", kdct_bin_ndx, kdct_bin
-    kOSC_received += kmess
-    if kmess == 0 goto done_dct
-    gkDctbins[kdct_bin_ndx] = kdct_bin
-    kgoto nextmsg_dct
-  done_dct:
-
 
   Soscreceived = "OK OSC received"
   kOSC_received limit kOSC_received, 0, 1
@@ -1311,6 +1298,9 @@ instr 26
   knumpeaks_mult chnget "numpeaks_median"
   knumpeaks_mult = max(1, knumpeaks_mult)
   kgrainrate = kgrainrate_base * kamp_comp_rate_mult * knumpeaks_mult
+  kgrainrate limit kgrainrate, 0.02, 120
+  kcurvature_rms_g3 chnget "curvature_rms"
+  kgrainrate = kgrainrate * (0.5 + kcurvature_rms_g3)
   kgrainrate limit kgrainrate, 0.02, 120
   kgraindur chnget "Grain3_dur"
   kpitchmod = 0

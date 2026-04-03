@@ -2,7 +2,6 @@ import cv2
 import numpy as np 
 from scipy.ndimage import median_filter
 from scipy.signal import butter, sosfiltfilt, lfilter, find_peaks as scipy_find_peaks
-from scipy.fft import dct as scipy_dct
 import osc_io
 import time
 import json
@@ -45,14 +44,14 @@ kinematic_edge_anchor_px = 24
 peak_min_amplitude_frac = 0.010
 peak_min_prominence_frac = 0.020
 peak_min_distance_frac = 0.045
-dct_display_cycles = np.array([
+sine_display_cycles = np.array([
     0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75,   # orange: 0.25-step below 3
-    3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5,      # green: 0.5-step 3–10
+    3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5,      # green: 0.5-step 3???10
     9.0, 9.5, 10.0
 ], dtype=np.float32)
-dct_highmode_start_cycles = 10.0
-dct_display_height = 120
-# ── Hex grid isomorphic keyboard layouts ─────────────────────────────────────
+sine_highmode_start_cycles = 10.0
+sine_display_height = 190
+# ?????? Hex grid isomorphic keyboard layouts ???????????????????????????????????????????????????????????????????????????????????????????????????????????????
 # Each entry: (name, semitone_step_per_q, semitone_step_per_r)
 # Grid uses flat-top hexagons in axial (q, r) coordinates.
 hex_grid_fields_x = 6   # desired number of hex fields across ROI (horizontal)
@@ -65,10 +64,19 @@ HEX_LAYOUTS = [
     ("Janko",        2, 1),   # Janko: whole-tone q, semitone r
     ("Chromatic",    1, 4),   # Chromatic: semitone q, P4 r
 ]
-dct_display_db_floor = -40.0  # dB floor for display; -40dB = amplitude 1/100 of full swing
-dct_display_db_ceiling = 32.0  # positive headroom so strong modes do not saturate too early
-dct_display_shape_gamma = 1.8  # emphasize high-end differences in normalized DCT display values
-dct_boundary_mode = 'lifted'  # 'adaptive' (auto-blend), 'mirror' (plain even extension), 'edge' (localized edge correction), or 'lifted' (full-span boundary detrend)
+sine_display_db_floor = -40.0  # dB floor for display; -40dB = amplitude 1/100 of full swing
+sine_display_db_ceiling = 32.0  # positive headroom so strong modes do not saturate too early
+sine_display_shape_gamma = 1.8  # emphasize high-end differences in normalized display values
+sine_display_peak_emphasis_exp = 2.05
+sine_display_peak_renorm_ref = 0.5
+sine_amplitude_scale = 3.0
+sine_fluct_weight_base = 0.58
+sine_fluct_weight_gain = 0.42
+sine_fluct_emphasis_exp = 1.35
+sine_highcut_start_cycles = 4.0
+sine_highcut_alpha = 2.2         # stronger damping above physical rope range
+sine_noise_floor_start_cycles = 4.5
+sine_noise_floor_subtract = 0.70
 wave_motion_display_max = 5.0
 wave_motion_slider_max = 2.5
 wave_motion_max_lag_px = 48
@@ -221,9 +229,8 @@ def compose_display_frame(payload, out_size):
     show_finalwave = payload['show_finalwave']
     show_hex_grid = payload['show_hex_grid']
     show_option_panel = payload['show_option_panel']
-    show_fft = payload['show_fft']
+    show_sine_spectrum = payload['show_sine_spectrum']
     show_stats = payload['show_stats']
-    show_dct_signal = payload['show_dct_signal']
 
     colors = payload['colors']
 
@@ -321,41 +328,36 @@ def compose_display_frame(payload, out_size):
             cv2.putText(output, f'[{key_symbol}] {label}', (legend_x + 12, legend_y + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.96, color, 1, cv2.LINE_AA)
             legend_y += v_offset
 
-    if show_fft:
-        dct_display_values = payload['dct_display_values']
-        dct_start_x = 14
-        dct_step_x = 28
-        dct_hm_x = dct_start_x + len(dct_display_values) * dct_step_x + 20
-        dct_label_pad = 26
-        dct_plot_height = payload['dct_display_height'] + dct_label_pad
-        dct_panel_y = height - dct_plot_height - 56
-        dct_base_y = dct_panel_y + dct_plot_height - 1
-        dct_panel_width = (dct_hm_x - 8) + 36
-        dct_signal_panel_y = dct_panel_y - payload['dct_display_height'] - 10
-        dct_signal_panel_width = min(width - 16, (dct_panel_width * 2))
-        if show_dct_signal:
-            draw_transparent_rect_display(output, 8, dct_signal_panel_y, dct_signal_panel_width, payload['dct_display_height'], alpha=0.35)
-            cv2.putText(output, payload['dct_input_label'], (16, dct_signal_panel_y + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.6, tuple(colors['yellow']), 1, cv2.LINE_AA)
-            draw_centered_signal_panel_display(output, payload['dct_input_full'], 12, dct_signal_panel_y + 24, dct_signal_panel_width - 10, payload['dct_display_height'] - 30, tuple(colors['dull_green']), tuple(colors['light_blue']), payload['max_amp'])
-        draw_transparent_rect_display(output, 8, dct_panel_y, dct_panel_width, dct_plot_height, alpha=0.35)
-        dct_label_indices = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25}
-        dct_cycles = payload['dct_display_cycles']
-        dct_x_positions = dct_start_x + np.arange(len(dct_display_values)) * dct_step_x
-        for i, dct_val in enumerate(dct_display_values):
-            cycle = dct_cycles[i]
-            dct_color = tuple(colors['orange']) if cycle < 3.0 else tuple(colors['green'])
-            bar_height = max(1, int(dct_val * dct_plot_height))
-            x = int(dct_x_positions[i])
-            cv2.line(output, (x, dct_base_y), (x, dct_base_y - bar_height), dct_color, 2)
-            if i in dct_label_indices:
-                cv2.putText(output, f'{cycle:g}', (x - 8, dct_base_y + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.7, dct_color, 1, cv2.LINE_AA)
-        spectral_centroid_cycle_clip = float(np.clip(payload['spectral_centroid_cycles'], float(dct_cycles[0]), float(dct_cycles[-1])))
-        spectral_centroid_x = int(np.interp(spectral_centroid_cycle_clip, dct_cycles, dct_x_positions))
-        cv2.line(output, (spectral_centroid_x, dct_base_y), (spectral_centroid_x, dct_base_y - dct_plot_height), tuple(colors['red']), 2)
-        cv2.putText(output, 'cent', (spectral_centroid_x - 14, dct_base_y - dct_plot_height - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tuple(colors['red']), 1, cv2.LINE_AA)
-        hf_height = max(1, int(payload['dct_highmode_norm'] * dct_plot_height))
-        cv2.line(output, (dct_hm_x, dct_base_y), (dct_hm_x, dct_base_y - hf_height), tuple(colors['red']), 3)
-        cv2.putText(output, 'HM', (dct_hm_x - 16, dct_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, tuple(colors['red']), 1, cv2.LINE_AA)
+    if show_sine_spectrum:
+        sine_display_values = payload['sine_display_values']
+        sine_start_x = 16
+        sine_step_x = 34
+        sine_hm_x = sine_start_x + len(sine_display_values) * sine_step_x + 24
+        sine_label_pad = 26
+        sine_plot_height = payload['sine_display_height'] + sine_label_pad
+        sine_panel_y = height - sine_plot_height - 56
+        sine_base_y = sine_panel_y + sine_plot_height - 1
+        sine_panel_width = (sine_hm_x - 8) + 40
+        draw_transparent_rect_display(output, 8, sine_panel_y, sine_panel_width, sine_plot_height, alpha=0.35)
+        sine_label_indices = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25}
+        sine_cycles = payload['sine_display_cycles']
+        sine_x_positions = sine_start_x + np.arange(len(sine_display_values)) * sine_step_x
+        sine_bar_half_w = max(2, int(0.44 * sine_step_x))
+        for i, sine_val in enumerate(sine_display_values):
+            cycle = sine_cycles[i]
+            sine_color = tuple(colors['orange']) if cycle < 3.0 else tuple(colors['green'])
+            bar_height = max(1, int(sine_val * sine_plot_height))
+            x = int(sine_x_positions[i])
+            cv2.rectangle(output, (x - sine_bar_half_w, sine_base_y), (x + sine_bar_half_w, sine_base_y - bar_height), sine_color, -1)
+            if i in sine_label_indices:
+                cv2.putText(output, f'{cycle:g}', (x - 8, sine_base_y + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.7, sine_color, 1, cv2.LINE_AA)
+        spectral_centroid_cycle_clip = float(np.clip(payload['spectral_centroid_cycles'], float(sine_cycles[0]), float(sine_cycles[-1])))
+        spectral_centroid_x = int(np.interp(spectral_centroid_cycle_clip, sine_cycles, sine_x_positions))
+        cv2.line(output, (spectral_centroid_x, sine_base_y), (spectral_centroid_x, sine_base_y - sine_plot_height), tuple(colors['red']), 2)
+        cv2.putText(output, 'cent', (spectral_centroid_x - 14, sine_base_y - sine_plot_height - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.55, tuple(colors['red']), 1, cv2.LINE_AA)
+        hf_height = max(1, int(payload['sine_highmode_norm'] * sine_plot_height))
+        cv2.line(output, (sine_hm_x, sine_base_y), (sine_hm_x, sine_base_y - hf_height), tuple(colors['red']), 3)
+        cv2.putText(output, 'HM', (sine_hm_x - 16, sine_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, tuple(colors['red']), 1, cv2.LINE_AA)
 
     if show_stats:
         wave_texts = payload['wave_texts']
@@ -431,7 +433,6 @@ def draw_hex_grid_overlay_module(img, active_cells, ox, oy, size_x, size_y, roi_
 
 
 def main():
-    global dct_boundary_mode
     parser = argparse.ArgumentParser(description='Rope tracker with optional ATEM calibration')
     parser.add_argument('--skip-init-calibration', action='store_true', help='Skip startup ATEM calibration')
     parser.add_argument('--use-recorded-video', action='store_true', help='Use test_video.avi instead of live camera input and loop playback')
@@ -641,8 +642,9 @@ def main():
     perf_proc_ms_total = 0.0
     perf_display_proc_ms_total = 0.0
     perf_skip_proc_ms_total = 0.0
+    perf_freq_frame_count = 0
+    perf_freq_proc_ms_total = 0.0
     perf_window_start = 0.0
-    show_dct_signal = False
     display_frame_queue = None
     display_key_queue = None
     display_stop_event = None
@@ -673,7 +675,6 @@ def main():
     peakplus_color = green
     stats_color = yellow
     fader_color = purple
-    dct_color = orange
     
     show_binary = True
     show_centroid = False
@@ -687,7 +688,7 @@ def main():
     show_peaks = True
     show_stats = True
     show_faders = True
-    show_fft = True
+    show_sine_spectrum = True
     show_option_panel = True
     show_hex_grid = False
     hex_active_cells = set()
@@ -712,7 +713,6 @@ def main():
     screen_blend_option_color = (180,120,255)  # soft purple
     kinematic_option_color = (120,220,255)
     polarity_option_color = (255,210,180)
-    dct_boundary_option_color = (160,255,180)
     # hex grid overlay colors
     hex_grid_dim_color    = (80, 80, 100)      # BGR: dim lines for inactive cells
     hex_grid_active_color = (50, 220, 255)     # BGR: bright highlight for active cells
@@ -730,6 +730,8 @@ def main():
         'stats': stats_color,
         'toggle_gray': toggle_gray,
     }
+    sine_selected_prev = np.zeros(len(sine_display_cycles), dtype=np.float32)
+    sine_fluctuation_history = deque(maxlen=max(5, int(round(fps * 0.8))))
     
     def find_center_wave_regr(wave_1D, mask_left, mask_right):
         x = np.arange(0,len(wave_1D[mask_left:mask_right]),1)
@@ -926,70 +928,65 @@ def main():
         points = np.column_stack((x_coords, y_coords)).reshape((-1, 1, 2))
         cv2.polylines(output_img, [points], False, signal_color, 2)
     
-    def dct_seam_score(signal_1d):
-        """Sum of absolute boundary slopes driving DCT-I mirror-seam cusps."""
-        if len(signal_1d) < 4:
-            return 0.0
-        return float(abs(signal_1d[1] - signal_1d[0]) + abs(signal_1d[-1] - signal_1d[-2]))
-    
-    def build_dct_boundary_baseline(signal_1d):
-        if signal_1d is None or len(signal_1d) < 4:
-            return np.zeros_like(signal_1d)
+    def fit_spatial_sine_bank(signal_1d, cycle_bank, x_norm=None):
+        """Finite-interval sine fit returning baseline-improvement component amplitude per cycle."""
+        if signal_1d is None or cycle_bank is None:
+            return np.zeros(0, dtype=np.float32), np.zeros(0, dtype=np.float32)
         num_points = len(signal_1d)
-        edge_len = max(4, min(24, num_points//8))
-    
+        if num_points < 4 or len(cycle_bank) == 0:
+            return np.zeros(len(cycle_bank), dtype=np.float32), np.zeros(len(cycle_bank), dtype=np.float32)
+
         signal_f = signal_1d.astype(np.float32)
-    
-        # Endpoint-value-preserving correction: enforce smoother mirrored seam by
-        # reducing endpoint slopes with a cubic Hermite term that is exactly zero at both ends.
-        left_x = np.arange(edge_len, dtype=np.float32)
-        right_x = np.arange(num_points - edge_len, num_points, dtype=np.float32)
-        left_slope = float(np.polyfit(left_x, signal_f[:edge_len], 1)[0])
-        right_slope = float(np.polyfit(right_x, signal_f[-edge_len:], 1)[0])
-    
-        x = np.linspace(0.0, 1.0, num_points, dtype=np.float32)
-        slope_left_x = left_slope * (num_points - 1)
-        slope_right_x = right_slope * (num_points - 1)
-        slope_baseline = (
-            slope_left_x * (x**3 - 2.0*x**2 + x) +
-            slope_right_x * (x**3 - x**2)
-        ).astype(np.float32)
-    
-        return slope_baseline
-    
-    def apply_dct_boundary_lifting(signal_1d):
-        if signal_1d is None or len(signal_1d) < 4:
-            return signal_1d, np.zeros_like(signal_1d)
-        baseline = build_dct_boundary_baseline(signal_1d)
-        lifted = signal_1d.astype(np.float32) - baseline
-        return lifted, baseline
-    
-    def apply_dct_edge_boundary_lifting(signal_1d):
-        if signal_1d is None or len(signal_1d) < 8:
-            return signal_1d, np.zeros_like(signal_1d)
-        num_points = len(signal_1d)
-    
-        def build_left_slope_patch(sig, patch_len):
-            patch = np.zeros_like(sig, dtype=np.float32)
-            fit_len = max(4, min(16, patch_len))
-            x_fit = np.arange(fit_len, dtype=np.float32)
-            slope = float(np.polyfit(x_fit, sig[:fit_len], 1)[0])
-    
-            t = np.linspace(0.0, 1.0, patch_len, dtype=np.float32)
-            m0 = slope * float(patch_len - 1)
-            local_patch = m0 * (t**3 - 2.0*t**2 + t)
-            patch[:patch_len] = local_patch
-            return patch
-    
-        patch_len = max(8, min(64, num_points // 4))
-        signal_f = signal_1d.astype(np.float32)
-    
-        left_patch = build_left_slope_patch(signal_f, patch_len)
-        right_patch = build_left_slope_patch(signal_f[::-1], patch_len)[::-1]
-    
-        edge_patch = left_patch + right_patch
-        lifted = signal_f - edge_patch
-        return lifted, edge_patch
+        if x_norm is None:
+            x_use = np.linspace(0.0, 1.0, num_points, dtype=np.float32)
+        else:
+            x_use = np.asarray(x_norm, dtype=np.float32)
+            if len(x_use) != num_points:
+                return np.zeros(len(cycle_bank), dtype=np.float32), np.zeros(len(cycle_bank), dtype=np.float32)
+        ones = np.ones(num_points, dtype=np.float32)
+
+        component_amplitudes = np.zeros(len(cycle_bank), dtype=np.float32)
+        fit_mse = np.zeros(len(cycle_bank), dtype=np.float32)
+
+        baseline_design = np.column_stack((ones, x_use))
+        baseline_coeffs, _, _, _ = np.linalg.lstsq(baseline_design, signal_f, rcond=None)
+        baseline_fit = baseline_design @ baseline_coeffs
+
+        for idx, cycles in enumerate(cycle_bank):
+            omega = float(2.0 * np.pi * cycles)
+            sin_col = np.sin(omega * x_use).astype(np.float32)
+            cos_col = np.cos(omega * x_use).astype(np.float32)
+            design = np.column_stack((ones, x_use, sin_col, cos_col))
+
+            coeffs, _, _, _ = np.linalg.lstsq(design, signal_f, rcond=None)
+            fit = design @ coeffs
+
+            sine_component = fit - baseline_fit
+            component_amplitudes[idx] = float(np.sqrt(np.mean(sine_component * sine_component)) * np.sqrt(2.0))
+            fit_mse[idx] = float(np.mean((signal_f - fit) ** 2))
+
+        return component_amplitudes, fit_mse
+
+
+    def compute_observed_sine_spectrum(roi_wave, roi_obs_mask, cycle_bank):
+        roi_wave_full = np.asarray(roi_wave, dtype=np.float32)
+        obs_mask = np.asarray(roi_obs_mask, dtype=bool)
+        if len(roi_wave_full) < 4 or len(obs_mask) != len(roi_wave_full) or not np.any(obs_mask):
+            return np.zeros(len(cycle_bank), dtype=np.float32), np.zeros(0, dtype=np.float32)
+
+        x_obs = np.nonzero(obs_mask)[0].astype(np.float32)
+        y_obs = roi_wave_full[obs_mask]
+        if len(x_obs) < 4:
+            return np.zeros(len(cycle_bank), dtype=np.float32), np.zeros(0, dtype=np.float32)
+
+        slope, intercept = np.polyfit(x_obs, y_obs, 1)
+        center_obs = (slope * x_obs) + intercept
+        sine_input = (y_obs - center_obs).astype(np.float32)
+
+        obs_span = max(float(x_obs[-1] - x_obs[0]), 1.0)
+        x_norm_obs = (x_obs - x_obs[0]) / obs_span
+        sine_selected, _sine_fit_mse = fit_spatial_sine_bank(sine_input, cycle_bank, x_norm_obs)
+        return sine_selected, sine_input
     
     def extract_wave_features(input_1D, center_wave, left_limit, right_limit, output_img, show_wavesign, wavesign_color, show_wavecenter, wavecenter_color):
         roi_width = max(right_limit-left_limit, 1)
@@ -1237,7 +1234,7 @@ def main():
         return float(np.clip(motion, -wave_motion_display_max, wave_motion_display_max)), np.copy(curr_roi_wave.astype(np.float32))
     
     
-    def classify_rope_shape(roi_wave, center_roi_wave, peak_indices, zero_crossings, x_distances, dct_selected, dct_cycles, wave_amp, obs_count_roi, max_amp, prev_scores):
+    def classify_rope_shape(roi_wave, center_roi_wave, peak_indices, zero_crossings, x_distances, spectrum_selected, spectrum_cycles, wave_amp, obs_count_roi, max_amp, prev_scores):
         num_states = len(shape_state_labels)
     
         def rising_score(value, low, high):
@@ -1266,9 +1263,9 @@ def main():
         else:
             spacing_cv = 1.0
     
-        if len(dct_selected) > 1:
-            non_dc = dct_selected[1:]
-            non_dc_cycles = dct_cycles[1:len(dct_selected)]
+        if len(spectrum_selected) > 1:
+            non_dc = spectrum_selected[1:]
+            non_dc_cycles = spectrum_cycles[1:len(spectrum_selected)]
         else:
             non_dc = np.zeros(0, dtype=np.float32)
             non_dc_cycles = np.zeros(0, dtype=np.float32)
@@ -1384,11 +1381,11 @@ def main():
                 cv2.putText(output_img, f'{y_val:.2f}', (x-20,y+45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, fader_color, 2, cv2.LINE_AA)
     
     
-    # ── Hex grid helpers ──────────────────────────────────────────────────────────
+    # ?????? Hex grid helpers ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
     _HEX_SQRT3 = np.sqrt(3.0)
     
     def _pixels_to_hex_cells(xs_f, ys_f, ox, oy, size_x, size_y):
-        """Vectorized: float pixel arrays → set of unique axial (q, r) hex cells (flat-top)."""
+        """Vectorized: float pixel arrays ??? set of unique axial (q, r) hex cells (flat-top)."""
         if len(xs_f) == 0:
             return set()
         dx = xs_f - ox;  dy = ys_f - oy
@@ -1406,7 +1403,7 @@ def main():
         return set(map(tuple, np.unique(np.column_stack([qi, ri]), axis=0).tolist()))
     
     def _hex_center_px(q, r, ox, oy, size_x, size_y):
-        """Flat-top axial (q, r) → pixel center (cx, cy)."""
+        """Flat-top axial (q, r) ??? pixel center (cx, cy)."""
         return ox + size_x * 1.5 * q, oy + size_y * (_HEX_SQRT3 * 0.5 * q + _HEX_SQRT3 * r)
     
     def _hex_verts(cx, cy, size_x, size_y):
@@ -1525,13 +1522,12 @@ def main():
             daemon=True,
         )
         display_process.start()
-        # ── Hex grid OSC receive (Csound → Python layout selection) ───────────────
+        # ?????? Hex grid OSC receive (Csound ??? Python layout selection) ?????????????????????????????????????????????
         _hex_layout_buf = [0]   # 0-based layout index; written by background OSC thread
         _hex_size_x_buf = [float(hex_grid_fields_x)]
         _hex_size_y_buf = [float(hex_grid_fields_y)]
         _hex_peak_mode_buf = [0]
         _peaknotes_mode_buf = [0]
-        _dct_peak_skew_buf = [1.0]
         _shape_cent_floor_buf = [float(shape_centroid_weight_floor_frac)]
         _shape_cent_gamma_buf = [float(shape_centroid_weight_gamma)]
         _shape_cent_offpow_buf = [float(shape_centroid_offcenter_power)]
@@ -1556,10 +1552,6 @@ def main():
             if args:
                 _peaknotes_mode_buf[0] = 1 if float(args[0]) >= 0.5 else 0
 
-        def _on_dct_peak_skew(address, *args):
-            if args:
-                _dct_peak_skew_buf[0] = float(np.clip(float(args[0]), 0.0, 4.0))
-
         def _on_shape_cent_floor(address, *args):
             if args:
                 _shape_cent_floor_buf[0] = float(np.clip(float(args[0]), 0.0, 1.00))
@@ -1583,8 +1575,6 @@ def main():
         osc_io.register_handler('hex_peak_mode', _on_hex_peak_mode)
         osc_io.register_handler('/peaknotes_mode', _on_peaknotes_mode)
         osc_io.register_handler('peaknotes_mode', _on_peaknotes_mode)
-        osc_io.register_handler('/dctpeak_skew', _on_dct_peak_skew)
-        osc_io.register_handler('dctpeak_skew', _on_dct_peak_skew)
         osc_io.register_handler('/shapecent_floor', _on_shape_cent_floor)
         osc_io.register_handler('shapecent_floor', _on_shape_cent_floor)
         osc_io.register_handler('/shapecent_gamma', _on_shape_cent_gamma)
@@ -1844,7 +1834,8 @@ def main():
             for i in range(np.min((len(zc_diff),32))):
                 osc_msg = int(i), float(zc_diff[i])
                 osc_io.sendOSC('zerocross_distance', osc_msg) # send OSC back to client
-            roi_wave = wave_1D[mask_left:mask_right]
+            analysis_wave_1d = wave_1D_lowpass if show_lowpassfilter else wave_1D_median
+            roi_wave = analysis_wave_1d[mask_left:mask_right]
             roi_centerline = mask_center[mask_left:mask_right]
             if len(roi_wave) > 0:
                 vertical_cog_y = float(np.mean(roi_wave))
@@ -1856,83 +1847,103 @@ def main():
             else:
                 vertical_cog_y = float(np.mean(roi_centerline))
                 vertical_cog_norm = 0.5
-            # DCT zero-reference: horizontal baseline at the rope's vertical center of gravity in the ROI.
-            dct_input_raw = roi_wave - vertical_cog_y
-            dct_adaptive_choice = dct_boundary_mode
-            if dct_boundary_mode == 'adaptive':
-                edge_input, edge_baseline = apply_dct_edge_boundary_lifting(dct_input_raw)
-                lifted_input, lifted_baseline = apply_dct_boundary_lifting(dct_input_raw)
-                dct_candidates = {
-                    'mirror': (dct_input_raw.astype(np.float32), np.zeros_like(dct_input_raw, dtype=np.float32)),
-                    'edge': (edge_input, edge_baseline),
-                    'lifted': (lifted_input, lifted_baseline),
-                }
-                dct_candidate_scores = {
-                    mode_name: dct_seam_score(candidate_input)
-                    for mode_name, (candidate_input, _) in dct_candidates.items()
-                }
-                dct_adaptive_choice = min(dct_candidate_scores, key=dct_candidate_scores.get)
-                dct_input, dct_boundary_baseline = dct_candidates[dct_adaptive_choice]
-            elif dct_boundary_mode == 'edge':
-                dct_input, dct_boundary_baseline = apply_dct_edge_boundary_lifting(dct_input_raw)
-            elif dct_boundary_mode == 'lifted':
-                dct_input, dct_boundary_baseline = apply_dct_boundary_lifting(dct_input_raw)
+            # Finite-interval frequency analysis on observed ROI samples only.
+            # This excludes endpoint-filled samples from contributing to the spectral fit.
+            freq_analysis_t0 = time.perf_counter()
+            roi_wave_full = roi_wave.astype(np.float32)
+            roi_obs_mask = centroid_obs_count[mask_left:mask_right] > 0
+            sine_selected, sine_input = compute_observed_sine_spectrum(roi_wave_full, roi_obs_mask, sine_display_cycles)
+
+            # Encourage bins that fluctuate with motion (reduce static low-bin shelf bias).
+            sine_fluctuation_history.append(np.copy(sine_selected))
+            if len(sine_fluctuation_history) >= 3:
+                fluct_array = np.stack(sine_fluctuation_history, axis=0)
+                sine_fluctuation = np.std(fluct_array, axis=0)
             else:
-                dct_input = dct_input_raw
-                dct_boundary_baseline = np.zeros_like(dct_input_raw)
-            # For visualization: DCT-I corresponds to an even extension of the interval endpoints.
-            # Effective full wave: x[0..N-1] followed by x[N-2..1].
-            if len(dct_input) > 2:
-                dct_input_full = np.concatenate((dct_input, dct_input[-2:0:-1]))
+                sine_fluctuation = np.abs(sine_selected - sine_selected_prev)
+            sine_selected_prev = np.copy(sine_selected)
+            sine_fluct_norm = sine_fluctuation / max(float(np.max(sine_fluctuation)), 1e-9)
+
+            # Correlate finite-sine bins with numpeaks estimate; tolerate doubling/halving ambiguity.
+            numpeaks_cycle_a = max(float(numpeaks_median_value), 0.5)
+            numpeaks_cycle_b = max(float(numpeaks_median_value) * 0.5, 0.5)
+            numpeaks_sigma = 0.70
+            numpeaks_weight = np.maximum(
+                np.exp(-0.5 * ((sine_display_cycles - numpeaks_cycle_a) / numpeaks_sigma) ** 2),
+                np.exp(-0.5 * ((sine_display_cycles - numpeaks_cycle_b) / numpeaks_sigma) ** 2),
+            ).astype(np.float32)
+            sine_selected = sine_selected * (0.62 + (0.38 * numpeaks_weight))
+            sine_fluct_weight = np.power(sine_fluct_norm, sine_fluct_emphasis_exp)
+            sine_selected = sine_selected * (sine_fluct_weight_base + (sine_fluct_weight_gain * sine_fluct_weight))
+
+            # Segment-aware guards: slow segments should not show strong high bins, and fast segments should not show strong very-low bins.
+            if numpeaks_cycle_a <= 0.9:
+                sine_selected[sine_display_cycles > 2.0] *= 0.22
+            elif numpeaks_cycle_a >= 2.5:
+                sine_selected[sine_display_cycles < 0.75] *= 0.28
+
+            # Dampen persistent very-low artifacts while keeping truly oscillating low bins.
+            very_low_mask = sine_display_cycles < 0.5
+            if np.any(very_low_mask):
+                sine_selected[very_low_mask] *= (0.45 + (0.55 * sine_fluct_norm[very_low_mask]))
+
+            # Local spectral contrast helps reduce broad static energy across lower bins.
+            local_kernel = np.array([0.15, 0.20, 0.30, 0.20, 0.15], dtype=np.float32)
+            local_background = np.convolve(sine_selected, local_kernel, mode='same')
+            local_peakiness = np.maximum(sine_selected - local_background, 0.0)
+            sine_selected = (0.55 * sine_selected) + (0.45 * local_peakiness)
+
+            # Suppress persistent high-frequency artifacts beyond physically plausible rope modes.
+            hf_mask = sine_display_cycles > sine_highcut_start_cycles
+            if np.any(hf_mask):
+                hf_weight = np.exp(-sine_highcut_alpha * (sine_display_cycles[hf_mask] - sine_highcut_start_cycles))
+                sine_selected[hf_mask] *= hf_weight.astype(np.float32)
+
+            # Subtract a robust high-frequency floor estimate from all bins.
+            hf_floor_mask = sine_display_cycles >= sine_noise_floor_start_cycles
+            if np.any(hf_floor_mask):
+                hf_floor = float(np.median(sine_selected[hf_floor_mask]))
+                sine_selected = np.maximum(sine_selected - (sine_noise_floor_subtract * hf_floor), 0.0)
+
+            sine_selected = sine_selected * sine_amplitude_scale
+
+            highmode_mask = sine_display_cycles > sine_highmode_start_cycles
+            if np.any(highmode_mask):
+                sine_highmode = float(np.mean(sine_selected[highmode_mask]))
             else:
-                dct_input_full = dct_input
-            if len(dct_input) > 1:
-                dct_coefficients = np.abs(scipy_dct(dct_input, type=1, norm='ortho'))
-            else:
-                dct_coefficients = np.zeros(1, dtype=np.float32)
-            dct_bin_indices = np.clip(np.round(dct_display_cycles * 2.0).astype(np.int32), 0, len(dct_coefficients) - 1)
-            dct_selected = dct_coefficients[dct_bin_indices]
-            highmode_start_index = int(np.floor(dct_highmode_start_cycles * 2.0)) + 1
-            if highmode_start_index < len(dct_coefficients):
-                dct_highmode = float(np.mean(dct_coefficients[highmode_start_index:]))
-            else:
-                dct_highmode = 0.0
-            # With orthonormal DCT-I, a perfectly matched full-amplitude cosine mode has coefficient ~= amplitude.
-            dct_ref = max(1e-9, max_amp / 2.0)
-            # Log (dB) scale for both display and OSC — Csound receives what you see.
-            dct_db = 20.0 * np.log10(np.maximum(dct_selected / dct_ref, 1e-9))
-            dct_display_values = np.clip((dct_db - dct_display_db_floor) / (dct_display_db_ceiling - dct_display_db_floor), 0.0, 1.0)
-            dct_display_values = np.power(dct_display_values, dct_display_shape_gamma)
-            dct_skew = float(np.clip(_dct_peak_skew_buf[0], 0.0, 4.0))
-            dct_bin_norm = np.linspace(0.0, 1.0, len(dct_display_values), dtype=np.float32)
-            dct_skew_weights = np.power(0.2 + dct_bin_norm, dct_skew)
-            dct_display_values_skewed = np.clip(dct_display_values * dct_skew_weights, 0.0, 1.0)
-            highmode_db = 20.0 * float(np.log10(max(dct_highmode / dct_ref, 1e-9)))
-            dct_highmode_norm = float(np.clip((highmode_db - dct_display_db_floor) / (dct_display_db_ceiling - dct_display_db_floor), 0.0, 1.0))
-            dct_highmode_norm = float(dct_highmode_norm ** dct_display_shape_gamma)
-            for i in range(len(dct_display_values)):
-                osc_msg = i, float(dct_display_values[i])
-                osc_io.sendOSC('dct_bin', osc_msg) # send OSC back to client
-            osc_io.sendOSC('dct_hf', dct_highmode_norm)
+                sine_highmode = 0.0
+            # A fitted single-mode sine with full half-swing has amplitude ~= max_amp/2.
+            sine_ref = max(1e-9, max_amp / 2.0)
+            # Log (dB) scale for both display and OSC ??? Csound receives what you see.
+            sine_db = 20.0 * np.log10(np.maximum(sine_selected / sine_ref, 1e-9))
+            sine_display_values = np.clip((sine_db - sine_display_db_floor) / (sine_display_db_ceiling - sine_display_db_floor), 0.0, 1.0)
+            sine_display_values = np.power(sine_display_values, sine_display_shape_gamma)
+            sine_display_values = np.power(sine_display_values, sine_display_peak_emphasis_exp)
+            sine_display_values *= (sine_display_peak_renorm_ref / max(sine_display_peak_renorm_ref ** sine_display_peak_emphasis_exp, 1e-9))
+            sine_display_values = np.clip(sine_display_values, 0.0, 1.0)
+            highmode_db = 20.0 * float(np.log10(max(sine_highmode / sine_ref, 1e-9)))
+            sine_highmode_norm = float(np.clip((highmode_db - sine_display_db_floor) / (sine_display_db_ceiling - sine_display_db_floor), 0.0, 1.0))
+            sine_highmode_norm = float(sine_highmode_norm ** sine_display_shape_gamma)
             # Spectral centroid: amplitude-weighted mean cycle frequency using modes <= 10 cycles.
             # Normalized 0-1 (0=DC, 1=10 cycles). Matches what is displayed in the stats panel.
-            lf_mask = dct_display_cycles <= 10.0
-            lf_cycles = dct_display_cycles[lf_mask]
-            lf_magnitudes = dct_selected[lf_mask]
+            lf_mask = sine_display_cycles <= 10.0
+            lf_cycles = sine_display_cycles[lf_mask]
+            lf_magnitudes = sine_selected[lf_mask]
             lf_sum = float(np.sum(lf_magnitudes))
             if lf_sum > 0.0:
                 spectral_centroid_cycles = float(np.sum(lf_cycles * lf_magnitudes) / lf_sum)
             else:
                 spectral_centroid_cycles = 0.0
             spectral_centroid_norm = float(np.clip(spectral_centroid_cycles / 10.0, 0.0, 1.0))
+            freq_analysis_ms = (time.perf_counter() - freq_analysis_t0) * 1000.0
             shape_state_id, shape_state_label, shape_state_confidence, shape_state_scores = classify_rope_shape(
                 roi_wave,
                 center_roi_wave,
                 peak_indices,
                 zero_crossings,
                 x_distances,
-                dct_selected,
-                dct_display_cycles,
+                sine_selected,
+                sine_display_cycles,
                 wave_amp,
                 centroid_obs_count[mask_left:mask_right],
                 max_amp,
@@ -1965,7 +1976,7 @@ def main():
                 osc_msg = i, val, len(faders)
                 osc_io.sendOSC('faders', osc_msg) # send OSC back to client
             time_stats = time.time()
-            # ── Hex grid cell detection + OSC dispatch ────────────────────────────
+            # ?????? Hex grid cell detection + OSC dispatch ????????????????????????????????????????????????????????????????????????????????????
             hex_layout_idx = _hex_layout_buf[0]
             hex_fields_x = float(np.clip(_hex_size_x_buf[0], 2.0, 30.0))
             hex_fields_y = float(np.clip(_hex_size_y_buf[0], 2.0, 30.0))
@@ -2039,15 +2050,12 @@ def main():
                     ('g', 'bg model', use_bg_model, bg_model_option_color),
                     ('e', 'equalize', use_screen_blend, screen_blend_option_color),
                     ('k', 'kinematic', use_kinematic_constraint, kinematic_option_color),
-                    ('n', f'dct bc {dct_boundary_mode}', True, dct_boundary_option_color),
                     ('d', f'polarity {"dark" if rope_is_darker else "light"}', True, polarity_option_color),
-                    ('i', 'dct input', show_dct_signal, dct_boundary_option_color),
                     ('x', 'reset max peaks', True, option_stats_color),
                     ('1-4', f'display every {display_update_stride}', True, option_stats_color),
                     ('H', f'hex grid ({HEX_LAYOUTS[_hex_layout_buf[0]][0]})', show_hex_grid, hex_grid_active_color),
                     ('z', 'options', show_option_panel, option_stats_color),
                 ]
-                dct_input_label = f'DCT input (adaptive->{dct_adaptive_choice} + even ext.)' if dct_boundary_mode == 'adaptive' else f'DCT input ({dct_boundary_mode} + even extension)'
                 payload = {
                     'current_frame': current_frame.copy(),
                     'wave_img': wave_img.copy(),
@@ -2078,9 +2086,8 @@ def main():
                     'show_finalwave': show_finalwave,
                     'show_hex_grid': show_hex_grid,
                     'show_option_panel': show_option_panel,
-                    'show_fft': show_fft,
+                    'show_sine_spectrum': show_sine_spectrum,
                     'show_stats': show_stats,
-                    'show_dct_signal': show_dct_signal,
                     'stats_lines': stats_lines,
                     'wave_texts': {
                         'activity': wave_activity_text,
@@ -2092,13 +2099,11 @@ def main():
                     },
                     'stats_panel_label_w': stats_panel_label_w,
                     'option_rows': option_rows,
-                    'dct_display_values': np.array(dct_display_values_skewed, copy=True),
-                    'dct_display_cycles': np.array(dct_display_cycles, copy=True),
-                    'dct_display_height': dct_display_height,
-                    'dct_input_full': np.array(dct_input_full, copy=True),
-                    'dct_input_label': dct_input_label,
+                    'sine_display_values': np.array(sine_display_values, copy=True),
+                    'sine_display_cycles': np.array(sine_display_cycles, copy=True),
+                    'sine_display_height': sine_display_height,
                     'spectral_centroid_cycles': spectral_centroid_cycles,
-                    'dct_highmode_norm': dct_highmode_norm,
+                    'sine_highmode_norm': sine_highmode_norm,
                     'max_amp': max_amp,
                     'wave_activity': wave_activity,
                     'wave_motion_value': wave_motion_value,
@@ -2218,9 +2223,7 @@ def main():
                     ('g', 'bg model', use_bg_model, bg_model_option_color),
                     ('e', 'equalize', use_screen_blend, screen_blend_option_color),
                     ('k', 'kinematic', use_kinematic_constraint, kinematic_option_color),
-                    ('n', f'dct bc {dct_boundary_mode}', True, dct_boundary_option_color),
                     ('d', f'polarity {"dark" if rope_is_darker else "light"}', True, polarity_option_color),
-                    ('i', 'dct input', show_dct_signal, dct_boundary_option_color),
                     ('x', 'reset max peaks', True, option_stats_color),
                     ('1-4', f'display every {display_update_stride}', True, option_stats_color),
                     ('H', f'hex grid ({HEX_LAYOUTS[_hex_layout_buf[0]][0]})', show_hex_grid, hex_grid_active_color),
@@ -2239,45 +2242,39 @@ def main():
                         cv2.circle(output, (legend_x, legend_y), 4, color, 4)
                         cv2.putText(output, f'[{key_symbol}] {label}', (legend_x+12,legend_y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.96, color, 1, cv2.LINE_AA)
                         legend_y += v_offset
-                if show_fft:
-                    dct_start_x = 14
-                    dct_step_x = 28
-                    dct_hm_x = dct_start_x + len(dct_display_values) * dct_step_x + 20
-                    dct_label_pad = 26
-                    dct_plot_height = dct_display_height + dct_label_pad
-                    dct_panel_y = dimensions[0] - dct_plot_height - 56
-                    dct_base_y = dct_panel_y + dct_plot_height - 1
-                    dct_panel_width = (dct_hm_x - 8) + 36
-                    dct_signal_panel_y = dct_panel_y - dct_display_height - 10
-                    dct_signal_panel_width = min(dimensions[1] - 16, (dct_panel_width * 2))
-                    if show_dct_signal:
-                        draw_transparent_rect(output, 8, dct_signal_panel_y, dct_signal_panel_width, dct_display_height, alpha=0.35)
-                        bc_label = f'DCT input (adaptive->{dct_adaptive_choice} + even ext.)' if dct_boundary_mode == 'adaptive' else f'DCT input ({dct_boundary_mode} + even extension)'
-                        cv2.putText(output, bc_label, (16, dct_signal_panel_y + 18), cv2.FONT_HERSHEY_SIMPLEX, 0.6, yellow, 1, cv2.LINE_AA)
-                        draw_centered_signal_panel(output, dct_input_full, 12, dct_signal_panel_y + 24, dct_signal_panel_width - 10, dct_display_height - 30, dull_green, light_blue)
-                    draw_transparent_rect(output, 8, dct_panel_y, dct_panel_width, dct_plot_height, alpha=0.35)
-                    dct_label_indices = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25}
-                    dct_x_positions = dct_start_x + np.arange(len(dct_display_values)) * dct_step_x
-                    for i, dct_val in enumerate(dct_display_values):
-                        cycle = dct_display_cycles[i]
+                if show_sine_spectrum:
+                    sine_start_x = 16
+                    sine_step_x = 34
+                    sine_hm_x = sine_start_x + len(sine_display_values) * sine_step_x + 24
+                    sine_label_pad = 26
+                    sine_plot_height = sine_display_height + sine_label_pad
+                    sine_panel_y = dimensions[0] - sine_plot_height - 56
+                    sine_base_y = sine_panel_y + sine_plot_height - 1
+                    sine_panel_width = (sine_hm_x - 8) + 40
+                    draw_transparent_rect(output, 8, sine_panel_y, sine_panel_width, sine_plot_height, alpha=0.35)
+                    sine_label_indices = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25}
+                    sine_x_positions = sine_start_x + np.arange(len(sine_display_values)) * sine_step_x
+                    sine_bar_half_w = max(2, int(0.44 * sine_step_x))
+                    for i, sine_val in enumerate(sine_display_values):
+                        cycle = sine_display_cycles[i]
                         if cycle < 3.0:
-                            dct_color = orange
+                            sine_color = orange
                         else:
-                            dct_color = green
-                        bar_height = max(1, int(dct_val * dct_plot_height))
-                        x = int(dct_x_positions[i])
-                        cv2.line(output, (x, dct_base_y), (x, dct_base_y - bar_height), dct_color, 2)
-                        if i in dct_label_indices:
-                            cv2.putText(output, f'{cycle:g}', (x - 8, dct_base_y + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.7, dct_color, 1, cv2.LINE_AA)
-    
-                    spectral_centroid_cycle_clip = float(np.clip(spectral_centroid_cycles, float(dct_display_cycles[0]), float(dct_display_cycles[-1])))
-                    spectral_centroid_x = int(np.interp(spectral_centroid_cycle_clip, dct_display_cycles, dct_x_positions))
-                    cv2.line(output, (spectral_centroid_x, dct_base_y), (spectral_centroid_x, dct_base_y - dct_plot_height), red, 2)
-                    cv2.putText(output, 'cent', (spectral_centroid_x - 14, dct_base_y - dct_plot_height - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.55, red, 1, cv2.LINE_AA)
-    
-                    hf_height = max(1, int(dct_highmode_norm * dct_plot_height))
-                    cv2.line(output, (dct_hm_x, dct_base_y), (dct_hm_x, dct_base_y - hf_height), red, 3)
-                    cv2.putText(output, 'HM', (dct_hm_x - 16, dct_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, red, 1, cv2.LINE_AA)
+                            sine_color = green
+                        bar_height = max(1, int(sine_val * sine_plot_height))
+                        x = int(sine_x_positions[i])
+                        cv2.rectangle(output, (x - sine_bar_half_w, sine_base_y), (x + sine_bar_half_w, sine_base_y - bar_height), sine_color, -1)
+                        if i in sine_label_indices:
+                            cv2.putText(output, f'{cycle:g}', (x - 8, sine_base_y + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.7, sine_color, 1, cv2.LINE_AA)
+
+                    spectral_centroid_cycle_clip = float(np.clip(spectral_centroid_cycles, float(sine_display_cycles[0]), float(sine_display_cycles[-1])))
+                    spectral_centroid_x = int(np.interp(spectral_centroid_cycle_clip, sine_display_cycles, sine_x_positions))
+                    cv2.line(output, (spectral_centroid_x, sine_base_y), (spectral_centroid_x, sine_base_y - sine_plot_height), red, 2)
+                    cv2.putText(output, 'cent', (spectral_centroid_x - 14, sine_base_y - sine_plot_height - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.55, red, 1, cv2.LINE_AA)
+
+                    hf_height = max(1, int(sine_highmode_norm * sine_plot_height))
+                    cv2.line(output, (sine_hm_x, sine_base_y), (sine_hm_x, sine_base_y - hf_height), red, 3)
+                    cv2.putText(output, 'HM', (sine_hm_x - 16, sine_base_y + 22), cv2.FONT_HERSHEY_SIMPLEX, 1.05, red, 1, cv2.LINE_AA)
                 if show_stats:
                     stats_x = 20
                     stats_y = 25
@@ -2384,6 +2381,8 @@ def main():
     
             perf_frame_count += 1
             perf_proc_ms_total += processing_time
+            perf_freq_frame_count += 1
+            perf_freq_proc_ms_total += freq_analysis_ms
             if update_display_this_frame:
                 perf_display_frame_count += 1
                 perf_display_proc_ms_total += processing_time
@@ -2417,17 +2416,27 @@ def main():
                 avg_proc_all = perf_proc_ms_total / perf_frame_count
                 avg_proc_disp = (perf_display_proc_ms_total / perf_display_frame_count) if perf_display_frame_count > 0 else 0.0
                 avg_proc_skip = (perf_skip_proc_ms_total / perf_skip_frame_count) if perf_skip_frame_count > 0 else 0.0
-                # print(
-                #     f'perf {elapsed_perf:.1f}s | stride {display_update_stride} | avg proc {avg_proc_all:.2f}ms '
-                #     f'| disp {avg_proc_disp:.2f}ms ({perf_display_frame_count}) '
-                #     f'| skip {avg_proc_skip:.2f}ms ({perf_skip_frame_count})'
-                # )
+                avg_freq_ms = (perf_freq_proc_ms_total / perf_freq_frame_count) if perf_freq_frame_count > 0 else 0.0
+                freq_share_pct = (100.0 * avg_freq_ms / max(avg_proc_all, 1e-9))
+                freq_equiv_ms_per_sec = avg_freq_ms * fps
+                freq_underflow_est_ms_per_sec = underflow_avg_ms_per_sec * min(freq_share_pct / 100.0, 1.0)
+                print(
+                    f'perf {elapsed_perf:.1f}s | stride {display_update_stride} | avg proc {avg_proc_all:.2f}ms '
+                    f'| disp {avg_proc_disp:.2f}ms ({perf_display_frame_count}) '
+                    f'| skip {avg_proc_skip:.2f}ms ({perf_skip_frame_count}) '
+                    f'| freq {avg_freq_ms:.2f}ms ({freq_share_pct:.1f}% proc) '
+                    f'| uf {underflow_avg_ms_per_sec:.2f}ms/s '
+                    f'| freq->uf est {freq_underflow_est_ms_per_sec:.2f}ms/s '
+                    f'| freq eqv {freq_equiv_ms_per_sec:.2f}ms/s'
+                )
                 perf_frame_count = 0
                 perf_display_frame_count = 0
                 perf_skip_frame_count = 0
                 perf_proc_ms_total = 0.0
                 perf_display_proc_ms_total = 0.0
                 perf_skip_proc_ms_total = 0.0
+                perf_freq_frame_count = 0
+                perf_freq_proc_ms_total = 0.0
                 perf_window_start = time_now
     
             if wait_time < 1:
@@ -2469,12 +2478,6 @@ def main():
                 use_screen_blend = not use_screen_blend
             if key == ord('k'):
                 use_kinematic_constraint = not use_kinematic_constraint
-            if key == ord('n'):
-                cycle_modes = ['adaptive', 'mirror', 'edge', 'lifted']
-                dct_boundary_mode = cycle_modes[(cycle_modes.index(dct_boundary_mode) + 1) % len(cycle_modes)]
-                print(f'DCT boundary mode: {dct_boundary_mode}')
-            if key == ord('i'):
-                show_dct_signal = not show_dct_signal
             if key == ord('d'):
                 rope_is_darker = not rope_is_darker
             if key == ord('x'):
@@ -2566,3 +2569,4 @@ def main():
 if __name__ == '__main__':
     mp.freeze_support()
     main()
+
