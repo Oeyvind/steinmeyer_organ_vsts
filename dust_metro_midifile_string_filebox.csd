@@ -40,11 +40,8 @@ rslider bounds(95, 8, 50, 50) channel("transpose") range(-24, 24, 0, 1, 1), text
 rslider bounds(155, 8, 50, 50) channel("speed") range(0.5, 2, 1, 1, 0.001), text("Speed")
 button bounds(210, 10, 60, 25) channel("reset"), text("Reset")
 checkbox bounds(210, 40, 60, 25) channel("midifile_monitor"), text("Monitor")
-nslider bounds(0, 0, 1, 1), channel("midifile_host_idx"), range(1, 32, 1, 1, 1), visible(0), automatable(1)
 ;combobox bounds(280, 10, 80, 25) channel("midifile"), items("988-aria", "Shi05M", "Beet_5th")
-combobox bounds(280, 10, 80, 25), channel("midifile_idx"), automatable(0), populate("*.mid", "C:\\Cabbage_VST\\CabbageEfx\\midiplugs\\domen_ai\\midifiles", 1)
-label bounds(280, 40, 80, 15), channel("midifile_idx_label"), text("idx: 1"), fontSize(11)
-label bounds(280, 56, 110, 15), channel("midifile_loaded_label"), text("loaded: -"), fontSize(10), align("left")
+combobox bounds(280, 10, 80, 25), channelType("string"), channel("midifile"), populate("*.mid", "C:\\Cabbage_VST\\CabbageEfx\\midiplugs\\domen_ai\\midifiles", 1)
 }
 csoundoutput bounds(0, 250, 600, 420)
 </Cabbage>
@@ -179,34 +176,13 @@ instr 2
 endin
 
 instr 3
-  Sfiles[] cabbageFindFiles "C:/Cabbage_VST/CabbageEfx/midiplugs/domen_ai/midifiles", "files", "*.mid"
-  i_num_files lenarray Sfiles
-  kfile_idx chnget "midifile_host_idx"
-  kfile_idx = int(limit(kfile_idx, 1, i_num_files))
-  kfile_idx_trig = changed(kfile_idx)
-  kcombo_idx chnget "midifile_idx"
-  kcombo_idx = int(limit(kcombo_idx, 1, i_num_files))
-  kcombo_idx_trig = changed(kcombo_idx)
-
-  if kfile_idx_trig > 0 then
-    Shost_midifile = Sfiles[kfile_idx-1]
-    Sidx_text sprintfk "idx: %d", kfile_idx
-    cabbageSet 1, "midifile_idx_label", "text", Sidx_text
-    Shost_name sprintfk "%s", cabbageGetFilename(Shost_midifile)
-    Shost_label sprintfk "loaded: %s", Shost_name
-    cabbageSet 1, "midifile_loaded_label", "text", Shost_label
+  Sfile chnget "midifile"
+  puts Sfile, changed(Sfile)+1
+  SCsdPath chnget "CSD_PATH"
+  if changed(Sfile) > 0 then
     event "i", -4, 0, .1
-    Scoreline sprintfk {{i4 0 -1 "%s"}}, Shost_midifile
-    scoreline Scoreline, 1
-  endif
-
-  if kcombo_idx_trig > 0 then
-    Scombo_midifile = Sfiles[kcombo_idx-1]
-    Scombo_name sprintfk "%s", cabbageGetFilename(Scombo_midifile)
-    Scombo_label sprintfk "loaded: %s", Scombo_name
-    cabbageSet 1, "midifile_loaded_label", "text", Scombo_label
-    event "i", -4, 0, .1
-    Scoreline sprintfk {{i4 0 -1 "%s"}}, Scombo_midifile
+    Smidifile sprintfk "%s/midifiles/%s.mid", SCsdPath, Sfile
+    Scoreline sprintfk {{i4 0 -1 "%s"}}, Smidifile
     scoreline Scoreline, 1
   endif
 

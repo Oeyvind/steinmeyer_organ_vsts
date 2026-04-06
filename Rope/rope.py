@@ -1334,11 +1334,11 @@ def main():
         )
     
         raw_scores[3] = (
-            0.22 * rising_score(wave_amp, 0.06, 0.22)
-            + 0.20 * rising_score(float(peak_count), 1.5, 4.5)
-            + 0.18 * rising_score(float(zero_cross_count), 2.0, 6.0)
-            + 0.18 * falling_score(spacing_cv, 0.18, 0.55)
-            + 0.12 * rising_score(periodic_ratio, 0.40, 0.78)
+            0.20 * rising_score(wave_amp, 0.05, 0.18)
+            + 0.18 * rising_score(float(peak_count), 1.2, 3.5)
+            + 0.18 * rising_score(float(zero_cross_count), 1.5, 5.0)
+            + 0.16 * falling_score(spacing_cv, 0.15, 0.65)
+            + 0.18 * rising_score(periodic_ratio, 0.25, 0.60)
             + 0.10 * target_score(dominant_cycle, 2.7, 1.8)
         )
     

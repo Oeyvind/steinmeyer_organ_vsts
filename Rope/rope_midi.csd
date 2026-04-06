@@ -179,6 +179,8 @@ nslider channel("graincloud_midichan_4"),   bounds(951,46, 50, 22), range(1, 16,
 groupbox bounds(5, 401, 1055, 92), colour(60,78,90), lineThickness(0){
 label   bounds(5, 5, 90, 12), text("Grain3"), fontSize(10), align("left")
 button  channel("Grain3"),                  bounds(8, 20, 75, 28), text("On"), colour:0("black"), colour:1("green")
+label   bounds(8, 50, 75, 12), text("scale"), fontSize(9)
+combobox channel("Grain3_scale"),            bounds(8, 62, 75, 22), items("semitone", "wholetone", "major", "minor", "penta1", "penta2"), value(1)
 rslider channel("Grain3_rate"),            bounds(93, 14, 58, 62), text("G.rate"), range(0.5, 20, 4, 0.35)
 button  channel("Grain3_rate_update"),     bounds(93, 76, 58, 14), text("update"), value(1), colour:0("black"), colour:1("green")
 rslider channel("Grain3_dur"),             bounds(155,14, 58, 62), text("G.dur"),  range(0.1, 2, 1, 0.35)
@@ -1002,8 +1004,7 @@ opcode DistanceGrains, a, k[]kkkkkkkkkiii
   if (kpulse > 0) && (kamp > kamp_thresh) then
     knote = (kwavfreq*12)+48
     knote = 12*log2(kwavfreq/440) + 69 + ktranspose
-    kvel_norm = limit(abs(kDistance[ivoice]), 0, 1)
-    kvel = int(limit(50 + (kvel_norm * 70), 50, 120))
+    kvel = 80
     kmidi_chan chnget "distgrains_midichan"
     kchan_offset = (kactive_count > 0 ? (kactive_count - 1) % 4 : 0)
     kchan2 limit (kmidi_chan + kchan_offset), 1, 16
@@ -1202,6 +1203,33 @@ opcode Graincloud, aa, kkkkkkkkiii
   ;puts Schan, 1
   kmidi_chan chnget Schan
   if iopcode_id >= 30 then
+    ; Scale quantization setup: reinit scale degrees array when scale selection changes.
+    kgr3_scale chnget "Grain3_scale"
+    kgr3_root  chnget "grain3_basenote_1"
+    if changed(kgr3_scale) > 0 then
+      reinit gr3_scale_init
+    endif
+    gr3_scale_init:
+    iScaleDeg[] fillarray 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+    ideg_len = 12
+    igr3_scale_i = i(kgr3_scale)
+    if igr3_scale_i == 2 then
+      iScaleDeg[] fillarray 0, 2, 4, 6, 8, 10
+      ideg_len = 6
+    elseif igr3_scale_i == 3 then
+      iScaleDeg[] fillarray 0, 2, 4, 5, 7, 9, 11
+      ideg_len = 7
+    elseif igr3_scale_i == 4 then
+      iScaleDeg[] fillarray 0, 2, 3, 5, 7, 8, 10
+      ideg_len = 7
+    elseif igr3_scale_i == 5 then
+      iScaleDeg[] fillarray 0, 3, 5, 7, 10
+      ideg_len = 5
+    elseif igr3_scale_i == 6 then
+      iScaleDeg[] fillarray 0, 2, 5, 7, 9
+      ideg_len = 5
+    endif
+    rireturn
     Sbase sprintf "grain3_basenote_%i", ivoice+1
     Schan sprintf "grain3_midichan_%i", ivoice+1
     Sthr sprintf "grain3_activitythresh_%i", ivoice+1
@@ -1232,14 +1260,45 @@ opcode Graincloud, aa, kkkkkkkkiii
       ksemi_dev rnd31 kpitch_dev_amt, krpow
       knote = round(knote + ksemi_dev)
       knote limit knote, 0, 127
-      kvel limit kamp*120, 40, 127
+      ; Quantize to Grain3 scale (no-op when scale = 1 semitone/chromatic)
+      if igr3_scale_i > 1 then
+        ; Root class: voice-1 base note modulo 12, used as lowest scale base.
+        kroot_pc = round(kgr3_root)
+        kroot_pc = kroot_pc % 12
+        if kroot_pc < 0 then
+          kroot_pc = kroot_pc + 12
+        endif
+        ; Search nearest repeated scale note across neighboring octaves.
+        kbase_oct = floor((knote - kroot_pc) / 12)
+        kbest_note = knote
+        kbest_dist = 999
+        koct_off = -1
+        while koct_off <= 1 do
+          koct = kbase_oct + koct_off
+          kbase = kroot_pc + (koct * 12)
+          kqi = 0
+          while kqi < ideg_len do
+            kcand = kbase + iScaleDeg[kqi]
+            kdist = abs(kcand - knote)
+            if kdist < kbest_dist then
+              kbest_dist = kdist
+              kbest_note = kcand
+            endif
+            kqi = kqi + 1
+          od
+          koct_off = koct_off + 1
+        od
+        knote = kbest_note
+        knote limit knote, 0, 127
+      endif
+      kvel = 90
       event "i", 202, 0, (kduration/1000)+0.01, kvel, knote, kmidi_chan
     endif
   else
     if (kpulse > 0) && (kamp > kamp_thresh) && ivoice < 4 then
       knote = (kwavfreq*12)+48
       knote = 12*log2(kwavfreq/440) + 69 + ktranspose
-      kvel limit kamp*120, 40, 127
+      kvel limit kamp*240, 40, 127
       event "i", 202, 0, (kduration/1000)+0.01, kvel, knote, kmidi_chan
     endif
   endif

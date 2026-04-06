@@ -381,3 +381,7 @@ If you want the next pass to improve the system without expanding scope too much
     - chack that the grain rate multiplier from numnpeaks activates
 
   * Profiling to tune up and avoid underflow. Increase frame rate to 30?
+
+  ** Tune all the 3 grain modules, effectively check all rope modules for musicality
+    - grain3 locks to same parameters always when shape is periodic
+      - change so that it uses the parameters it is currently at, after random modulation
