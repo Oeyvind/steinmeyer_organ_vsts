@@ -122,7 +122,7 @@ instr 11
       kallowed = 1
     endif
   elseif kchan == 3 then
-    if knote <= 30 || knote == 37 then
+    if knote <= 31 || knote == 37 then
       kallowed = 1
     endif
   elseif kchan == 4 then

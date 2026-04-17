@@ -385,3 +385,5 @@ If you want the next pass to improve the system without expanding scope too much
   ** Tune all the 3 grain modules, effectively check all rope modules for musicality
     - grain3 locks to same parameters always when shape is periodic
       - change so that it uses the parameters it is currently at, after random modulation
+
+  * Peaks: control base note by shape centroid
