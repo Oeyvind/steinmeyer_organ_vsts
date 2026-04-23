@@ -106,11 +106,11 @@ nslider channel("SbaRecWeight"),   bounds(374, 51, 60, 20), text("RecWt"),   ran
 nslider channel("SbaAdaptWeight"), bounds(436, 51, 63, 20), text("AdaptWt"), range(0, 1, 0, 1, 0.01), fontSize(9)
 nslider channel("SbaAdaptTC"),     bounds(501, 51, 55, 20), text("AdaptTC"), range(0.5, 30, 5, 1, 0.1), fontSize(9)
 nslider channel("SbaGateDb"),      bounds(558, 51, 58, 20), text("GateDb"),  range(-90, 0, -55, 1, 0.1), fontSize(9)
-nslider channel("SbaMidiChan"),    bounds(618, 51, 52, 20), text("MidiCh"),  range(1, 16, 10, 1, 1, 1), fontSize(9)
+nslider channel("SbaHystDb"),     bounds(618, 51, 52, 20), text("HystDb"),  range(0, 30, 6, 1, 0.1), fontSize(9)
 
 ; Row 3: Vel, DurMs, envelope follower Att/Rel
 nslider channel("SbaMidiVel"), bounds(374, 74, 48, 20), text("Vel"), range(1, 127, 100, 1, 1, 1), fontSize(9)
-nslider channel("SbaMidiDur"), bounds(424, 74, 55, 20), text("DurMs"), range(10, 1000, 200, 1, 1, 1), fontSize(9)
+nslider channel("SbaMidiDur"), bounds(424, 74, 55, 20), text("DurMs"), range(-1, 1000, 200, 1, 1, 1), fontSize(9)
 nslider channel("SbaFollAtt"), bounds(481, 74, 50, 20), text("Att"), range(0.001, 0.5, 0.005, 1, 0.001), fontSize(9)
 nslider channel("SbaFollRel"),    bounds(533, 74, 52, 20), text("Rel"),    range(0.001, 2, 0.08, 1, 0.001), fontSize(9)
 nslider channel("SbaWinDelayMs"), bounds(587, 74, 52, 20), text("WinDly"), range(0, 100, 0, 1, 1, 1), fontSize(9)
@@ -150,7 +150,7 @@ nslider channel("SbaBandNote8"), bounds(647, 242, 38, 20), text("B8"), range(0, 
 ; Winner display
 nslider channel("SbaTrigBand"), bounds(374, 268, 75, 27), text("WinBand"), range(0, 8, 0, 1, 1), active(0), fontSize(10)
 nslider channel("SbaTrigNote"), bounds(452, 268, 75, 27), text("WinNote"), range(0, 127, 0, 1, 1), active(0), fontSize(10)
-label bounds(532, 278, 160, 12), text("winner -> MIDI on gate"), fontSize(9), align("left")
+nslider channel("SbaMidiChan"), bounds(532, 268, 52, 27), text("WinCh"),  range(1, 16, 10, 1, 1, 1), fontSize(9)
 
 ; 2nd best display
 nslider channel("SbaTrigBand2nd"), bounds(374, 298, 75, 27), text("2ndBand"), range(0, 8, 0, 1, 1), active(0), fontSize(10)
@@ -672,43 +672,41 @@ instr 2
   kAdaptWeight chnget "SbaAdaptWeight"
   kSbaOn2nd    chnget "SbaOn2nd"
   kSbaChan2nd  chnget "SbaMidiChan2nd"
+  kSbaHystDb   chnget "SbaHystDb"
 
   a1 inch 1
 
-  ; Spectral analysis: 1024 FFT, 256-sample hop, Hann window
-  fSba pvsanal a1, 1024, 64, 1024, 1
-
-  ; 8 bandpass filters — pvsbandp: skirt(-5Hz), flat-lo, flat-hi, skirt(+5Hz)
-  fSba1 pvsbandp fSba,   95,  100,  200,  205
-  fSba2 pvsbandp fSba,  195,  200,  300,  305
-  fSba3 pvsbandp fSba,  295,  300,  400,  405
-  fSba4 pvsbandp fSba,  395,  400,  500,  505
-  fSba5 pvsbandp fSba,  495,  500,  700,  705
-  fSba6 pvsbandp fSba,  695,  700,  900,  905
-  fSba7 pvsbandp fSba,  895,  900, 1700, 1705
-  fSba8 pvsbandp fSba, 1695, 1700, 2600, 2605
-
-  ; Resynthesize each band for envelope following
-  aSba1 pvsynth fSba1
-  aSba2 pvsynth fSba2
-  aSba3 pvsynth fSba3
-  aSba4 pvsynth fSba4
-  aSba5 pvsynth fSba5
-  aSba6 pvsynth fSba6
-  aSba7 pvsynth fSba7
-  aSba8 pvsynth fSba8
-
-  ; follow2 outputs a-rate; user-controlled attack and release
+  ; Time-domain bandpass filtering — butterbp(centre, bandwidth) cascaded x2 for steeper rolloff
+  ; Band edges: 100-200, 200-300, 300-400, 400-500, 500-700, 700-900, 900-1700, 1700-2600 Hz
   kFollAtt chnget "SbaFollAtt"
   kFollRel chnget "SbaFollRel"
-  aAmp1 follow2 aSba1, kFollAtt, kFollRel
-  aAmp2 follow2 aSba2, kFollAtt, kFollRel
-  aAmp3 follow2 aSba3, kFollAtt, kFollRel
-  aAmp4 follow2 aSba4, kFollAtt, kFollRel
-  aAmp5 follow2 aSba5, kFollAtt, kFollRel
-  aAmp6 follow2 aSba6, kFollAtt, kFollRel
-  aAmp7 follow2 aSba7, kFollAtt, kFollRel
-  aAmp8 follow2 aSba8, kFollAtt, kFollRel
+
+  aBp1 butterbp a1,  150,  100   ; 100-200 Hz,   centre=150,  bw=100
+  aBp1 butterbp aBp1, 150, 100
+  aBp2 butterbp a1,  250,  100   ; 200-300 Hz,   centre=250,  bw=100
+  aBp2 butterbp aBp2, 250, 100
+  aBp3 butterbp a1,  350,  100   ; 300-400 Hz,   centre=350,  bw=100
+  aBp3 butterbp aBp3, 350, 100
+  aBp4 butterbp a1,  450,  100   ; 400-500 Hz,   centre=450,  bw=100
+  aBp4 butterbp aBp4, 450, 100
+  aBp5 butterbp a1,  600,  200   ; 500-700 Hz,   centre=600,  bw=200
+  aBp5 butterbp aBp5, 600, 200
+  aBp6 butterbp a1,  800,  200   ; 700-900 Hz,   centre=800,  bw=200
+  aBp6 butterbp aBp6, 800, 200
+  aBp7 butterbp a1, 1300,  800   ; 900-1700 Hz,  centre=1300, bw=800
+  aBp7 butterbp aBp7, 1300, 800
+  aBp8 butterbp a1, 2150,  900   ; 1700-2600 Hz, centre=2150, bw=900
+  aBp8 butterbp aBp8, 2150, 900
+
+  ; Envelope follower per band
+  aAmp1 follow2 aBp1, kFollAtt, kFollRel
+  aAmp2 follow2 aBp2, kFollAtt, kFollRel
+  aAmp3 follow2 aBp3, kFollAtt, kFollRel
+  aAmp4 follow2 aBp4, kFollAtt, kFollRel
+  aAmp5 follow2 aBp5, kFollAtt, kFollRel
+  aAmp6 follow2 aBp6, kFollAtt, kFollRel
+  aAmp7 follow2 aBp7, kFollAtt, kFollRel
+  aAmp8 follow2 aBp8, kFollAtt, kFollRel
   kAmp1 = downsamp(aAmp1)
   kAmp2 = downsamp(aAmp2)
   kAmp3 = downsamp(aAmp3)
@@ -854,7 +852,13 @@ instr 2
   ; Noise gate on overall RMS
   kSbaRms  rms a1
   kSbaDb   = dbfsamp(kSbaRms + 1e-12)
-  kSbaGate = (kSbaDb > kSbaGateDb ? 1 : 0)
+  ; Schmitt trigger: opens at GateDb, closes at (GateDb - HystDb)
+  kSbaGate init 0
+  if kSbaGate == 0 && kSbaDb > kSbaGateDb then
+    kSbaGate = 1
+  elseif kSbaGate == 1 && kSbaDb < (kSbaGateDb - kSbaHystDb) then
+    kSbaGate = 0
+  endif
 
   ; Update GUI horizontal bar meters at ~20 Hz — dB re baseline (0 dB = at baseline)
   kGuiTrig metro 20
@@ -907,11 +911,42 @@ instr 2
   kPk6 init 0
   kPk7 init 0
   kPk8 init 0
+  ; Hold-mode state: tracks which notes are currently held
+  kHeld    init 0  ; 1 = winner note is held
+  kHeldNote init 0
+  kHeldChan init 0
+  kHeld2nd    init 0  ; 1 = 2nd note is held
+  kHeldNote2nd init 0
+  kHeldChan2nd init 0
 
   ; Trigger MIDI note for winner and/or 2nd best on gate rising edge (with configurable delay)
   if kSbaOn > 0 || kSbaOn2nd > 0 then
     kGateRise trigger kSbaGate, 0.5, 0
+    kGateFall trigger kSbaGate, 0.5, 1
+
+    ; Gate fall: send noteoff for any held notes
+    if kGateFall > 0 then
+      if kHeld > 0 then
+        event "i", 207, 0, 0.01, kHeldNote, kHeldChan
+        kHeld = 0
+      endif
+      if kHeld2nd > 0 then
+        event "i", 207, 0, 0.01, kHeldNote2nd, kHeldChan2nd
+        kHeld2nd = 0
+      endif
+      kPkActive = 0
+    endif
+
     if kGateRise > 0 then
+      ; If a note is still held from previous event, release it first
+      if kHeld > 0 then
+        event "i", 207, 0, 0, kHeldNote, kHeldChan
+        kHeld = 0
+      endif
+      if kHeld2nd > 0 then
+        event "i", 207, 0, 0, kHeldNote2nd, kHeldChan2nd
+        kHeld2nd = 0
+      endif
       ; arm peak-tracking window
       kPkActive = 1
       kPkCount  = 0
@@ -1021,12 +1056,27 @@ instr 2
           kSecNote = kSbaNote8
         endif
         if kSbaOn > 0 then
-          event "i", 203, 0, kSbaDurMs*0.001, int(kWinNote), int(limit(kSbaChan, 1, 16)), int(kSbaVel)
+          ; hold mode: dur < 0 → fire long note, release on gate fall
+          if kSbaDurMs < 0 then
+            event "i", 203, 0, 9999, int(kWinNote), int(limit(kSbaChan, 1, 16)), int(kSbaVel)
+            kHeld     = 1
+            kHeldNote = int(kWinNote)
+            kHeldChan = int(limit(kSbaChan, 1, 16))
+          else
+            event "i", 203, 0, kSbaDurMs*0.001, int(kWinNote), int(limit(kSbaChan, 1, 16)), int(kSbaVel)
+          endif
           cabbageSetValue "SbaTrigBand", kWinBand, 1
           cabbageSetValue "SbaTrigNote", kWinNote, 1
         endif
         if kSbaOn2nd > 0 && kSecBand > 0 then
-          event "i", 206, 0, kSbaDurMs*0.001, int(kSecNote), int(limit(kSbaChan2nd, 1, 16)), int(kSbaVel)
+          if kSbaDurMs < 0 then
+            event "i", 203, 0, 9999, int(kSecNote), int(limit(kSbaChan2nd, 1, 16)), int(kSbaVel)
+            kHeld2nd     = 1
+            kHeldNote2nd = int(kSecNote)
+            kHeldChan2nd = int(limit(kSbaChan2nd, 1, 16))
+          else
+            event "i", 206, 0, kSbaDurMs*0.001, int(kSecNote), int(limit(kSbaChan2nd, 1, 16)), int(kSbaVel)
+          endif
           cabbageSetValue "SbaTrigBand2nd", kSecBand, 1
           cabbageSetValue "SbaTrigNote2nd", kSecNote, 1
         endif
@@ -1050,6 +1100,13 @@ instr 206
   ichan = p5
   ivel  = p6
   noteondur ichan, inote, ivel, p3
+endin
+
+instr 207
+  ; MIDI noteoff for hold mode (vel=0 noteoff)
+  inote = p4
+  ichan = p5
+  noteondur ichan, inote, 0, 0.01
 endin
 
 instr 204
