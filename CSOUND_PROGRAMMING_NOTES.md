@@ -70,6 +70,30 @@ OSCsend ktrig_hex_layout, "127.0.0.1", 9801, "/hex_layout", "f", klayout_hex
 - Use `table` only when table selection is `i`-rate/static.
 - Example fix: replace `kval table kndx, k_table_id` with `kval tablekt kndx, k_table_id` when `k_table_id` can change at `k`-rate.
 
+## Shared State Rule (Prefer Channels Over Globals)
+- Prefer `chnset`/`chnget` channels for scalar shared state between instruments when functionality is unchanged.
+- Keep globals for arrays/tables and truly global data structures that are awkward or inefficient to move into channels.
+- For event-time coordination (for example MIDI timing), write timestamps to channels in the event instrument and read them from always-on controller instruments.
+
+Example pattern for phrase selection with MIDI silence gating:
+
+```csound
+; in MIDI input instr (note-on)
+ktime_now times
+chnset ktime_now, "last_midi_event_time"
+
+; in always-on selector instr
+klast_evt chnget "last_midi_event_time"
+ksilence = times - klast_evt
+if ksilence > 1.0 then
+	; select/update phrase mode and publish via channel
+	chnset knew_mode, "gen_phrase_sel"
+endif
+
+; in phrase generator instr
+itraj_mode chnget "gen_phrase_sel"
+```
+
 ## Lightweight Checklist
 - Variable naming follows scalar/table-array convention.
 - Queue-mode GUI updates use `cabbageSet`/`cabbageSetValue` with proper triggers.

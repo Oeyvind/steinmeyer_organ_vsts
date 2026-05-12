@@ -2,7 +2,7 @@
 form caption("Register Sequencer") size(1220, 550), colour(30, 35, 40), guiMode("queue"), pluginId("rsq1")
 
 button  bounds(  5, 10, 50, 30), channel("play"), text("Play"), colour:0("black"), colour:1("green")
-nslider bounds( 65, 10, 30, 20), channel("tempo"), range(30,300,120, 1, 1), fontSize(13)
+nslider bounds( 65, 10, 30, 20), channel("tempo"), range(60,300,120, 1, 1), fontSize(13)
 label   bounds( 65, 30, 30, 15), text("tempo"), fontSize(10)
 
 nslider bounds(5, 45, 40, 20), channel("duration"), range(0,1,1), fontSize(13)
