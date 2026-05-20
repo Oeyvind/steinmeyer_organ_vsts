@@ -26,7 +26,7 @@ nslider bounds(105, 115, 40, 25), channel("dly2_max"), range(1,32,4,1,1)
 label bounds(105, 140, 40, 15), text("dly2_mx"), fontSize(11)
 nslider bounds(155, 115, 40, 25), channel("duration2"), range(0,1,1)
 label bounds(155, 140, 40, 15), text("dur2"), fontSize(11)
-nslider bounds(205, 115, 40, 25), channel("transpose2"), range(-12,12,0,1,1)
+nslider bounds(205, 115, 40, 25), channel("transpose2"), range(-12,24,0,1,1)
 label bounds(205, 140, 40, 15), text("trsp2"), fontSize(11)
 checkbox bounds(255, 115, 120, 25), channel("tap2_enable"), value(1), text("tap2 enable")
 

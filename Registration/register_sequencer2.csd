@@ -1,13 +1,19 @@
 <Cabbage>
 form caption("Register Sequencer") size(1220, 550), colour(30, 35, 40), guiMode("queue"), pluginId("rsq1")
 
-button  bounds(  5, 10, 50, 30), channel("play"), text("Play"), colour:0("black"), colour:1("green")
-nslider bounds( 65, 10, 30, 20), channel("tempo"), range(60,300,120, 1, 1), fontSize(13)
-label   bounds( 65, 30, 30, 15), text("tempo"), fontSize(10)
+button  bounds(  5, 10, 72, 30), channel("play"), text("Play all"), colour:0("black"), colour:1("green")
+nslider bounds( 85, 10, 40, 20), channel("tempo"), range(60,300,120, 1, 1), fontSize(13)
+label   bounds( 85, 30, 40, 15), text("tempo"), fontSize(10)
 
-nslider bounds(5, 45, 40, 20), channel("duration"), range(0,1,1), fontSize(13)
-label   bounds(5, 60, 40, 15), text("duration"), fontSize(10)
-combobox bounds( 60, 45, 35, 20), channel("tempo_mult"), items(1,2,3,4,5,6,7,8), value(1)
+nslider bounds(130, 10, 40, 20), channel("duration"), range(0,1,1), fontSize(13)
+label   bounds(130, 30, 40, 15), text("duration"), fontSize(10)
+combobox bounds(175, 10, 45, 20), channel("tempo_mult"), items(1,2,3,4,5,6,7,8), value(1)
+
+button bounds(5, 58, 55, 20), channel("play_ch1"), text("Play"), colour:0("black"), colour:1("green")
+button bounds(145, 58, 55, 20), channel("play_ch2"), text("Play"), colour:0("black"), colour:1("green")
+button bounds(285, 58, 55, 20), channel("play_ch3"), text("Play"), colour:0("black"), colour:1("green")
+button bounds(425, 58, 55, 20), channel("play_ch4"), text("Play"), colour:0("black"), colour:1("green")
+button bounds(565, 58, 55, 20), channel("play_ch8"), text("Play"), colour:0("black"), colour:1("green")
 
 groupbox bounds(5, 80, 130, 430), colour(25,35,40), lineThickness("0"){
 nslider bounds(5, 5, 30, 20), channel("outchan"), range(1,16,1, 1, 1), fontSize(13)
@@ -481,10 +487,26 @@ instr 1
     event "i", 11, 0, .05, 1
   endif
   
-  kplay chnget "play"
-  kplay_on trigger kplay, 0.5, 0
-  kplay_off trigger kplay, 0.5, 1
-  if kstart > 0 && kplay < 0.5 then
+  k_play_all chnget "play"
+  k_play_ch1 chnget "play_ch1"
+  k_play_ch2 chnget "play_ch2"
+  k_play_ch3 chnget "play_ch3"
+  k_play_ch4 chnget "play_ch4"
+  k_play_ch8 chnget "play_ch8"
+
+  k_any_ch_play = 0
+  if k_play_ch1 > 0.5 || k_play_ch2 > 0.5 || k_play_ch3 > 0.5 || k_play_ch4 > 0.5 || k_play_ch8 > 0.5 then
+    k_any_ch_play = 1
+  endif
+
+  k_play_master = 0
+  if k_play_all > 0.5 || k_any_ch_play > 0.5 then
+    k_play_master = 1
+  endif
+
+  kplay_on trigger k_play_master, 0.5, 0
+  kplay_off trigger k_play_master, 0.5, 1
+  if kstart > 0 && k_play_master < 0.5 then
     event "i", 50, 0, -1
   endif
   if kplay_on > 0 then
@@ -830,11 +852,10 @@ instr 1
     od
   endif
 
-  k_play chnget "play"
-  k_play_changed changed k_play
+  k_play_changed changed k_play_master
   if k_play_changed > 0 then
     k_editor_active = 1
-    if k_play > 0.5 then
+    if k_play_master > 0.5 then
       k_editor_active = 0
     endif
     S_active sprintfk "active(%d)", int(k_editor_active+0.5)
@@ -853,16 +874,14 @@ instr 1
       kprog_ndx += 1
     od
 
-    if k_play > 0.5 then
+    if k_play_master > 0.5 then
       ; Stop any latched step-preview registrations when playback starts.
       event "i", 42, 0, .02
+      event "i", 3, 0, -1
+    else
+      event "i", -3, 0, .1
+      turnoff2 202, 0, 1
     endif
-  endif
-
-  ButtonEvent k_play, 3
-  kplay_off trigger k_play, 0.5, 1
-  if kplay_off > 0 then
-    turnoff2 202, 0, 1
   endif
 
   k_edit_step_ch1 chnget "ndex"
@@ -873,7 +892,7 @@ instr 1
   k_step_changed_ch1 changed k_edit_step_ch1
   if k_step_changed_ch1 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch1, 1
-    if k_play < 0.5 then
+    if k_play_master < 0.5 then
       event "i", 40, 0, .02, k_edit_step_ch1, 1
     endif
     chnset 1, "stepBtnSyncBusy"
@@ -893,7 +912,7 @@ instr 1
   k_step_changed_ch2 changed k_edit_step_ch2
   if k_step_changed_ch2 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch2, 2
-    if k_play < 0.5 then
+    if k_play_master < 0.5 then
       event "i", 40, 0, .02, k_edit_step_ch2, 2
     endif
     chnset 1, "stepBtnSyncBusy"
@@ -913,7 +932,7 @@ instr 1
   k_step_changed_ch3 changed k_edit_step_ch3
   if k_step_changed_ch3 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch3, 3
-    if k_play < 0.5 then
+    if k_play_master < 0.5 then
       event "i", 40, 0, .02, k_edit_step_ch3, 3
     endif
     chnset 1, "stepBtnSyncBusy"
@@ -933,7 +952,7 @@ instr 1
   k_step_changed_ch4 changed k_edit_step_ch4
   if k_step_changed_ch4 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch4, 4
-    if k_play < 0.5 then
+    if k_play_master < 0.5 then
       event "i", 40, 0, .02, k_edit_step_ch4, 4
     endif
     chnset 1, "stepBtnSyncBusy"
@@ -953,7 +972,7 @@ instr 1
   k_step_changed_ch8 changed k_edit_step_ch8
   if k_step_changed_ch8 > 0 then
     event "i", 20, 0, .01, k_edit_step_ch8, 8
-    if k_play < 0.5 then
+    if k_play_master < 0.5 then
       event "i", 40, 0, .02, k_edit_step_ch8, 8
     endif
     chnset 1, "stepBtnSyncBusy"
@@ -1024,7 +1043,7 @@ instr 1
       kndx += 1
     od
   endif
-  if k_any_edit > 0 && k_ui_sync_busy < 0.5 && k_play < 0.5 then
+  if k_any_edit > 0 && k_ui_sync_busy < 0.5 && k_play_master < 0.5 then
     event "i", 21, 0, .01, k_edit_step, k_editor_chan
   endif
 
@@ -1275,34 +1294,57 @@ instr 3
   kbps = ktempo/60
   ktrig metro kbps
 
+  k_play_all chnget "play"
+  k_play_ch1 chnget "play_ch1"
+  k_play_ch2 chnget "play_ch2"
+  k_play_ch3 chnget "play_ch3"
+  k_play_ch4 chnget "play_ch4"
+  k_play_ch8 chnget "play_ch8"
+
+  k_chan_active_ch1 = (k_play_all > 0.5 ? 1 : (k_play_ch1 > 0.5 ? 1 : 0))
+  k_chan_active_ch2 = (k_play_all > 0.5 ? 1 : (k_play_ch2 > 0.5 ? 1 : 0))
+  k_chan_active_ch3 = (k_play_all > 0.5 ? 1 : (k_play_ch3 > 0.5 ? 1 : 0))
+  k_chan_active_ch4 = (k_play_all > 0.5 ? 1 : (k_play_ch4 > 0.5 ? 1 : 0))
+  k_chan_active_ch8 = (k_play_all > 0.5 ? 1 : (k_play_ch8 > 0.5 ? 1 : 0))
+
   k_num_steps chnget "numsteps"
   k_step_modulo chnget "stepmod"
   kcount_ch1 init 0
-  kcount_ch1 = (kcount_ch1+ktrig)%k_num_steps
+  if k_chan_active_ch1 > 0.5 then
+    kcount_ch1 = (kcount_ch1+ktrig)%k_num_steps
+  endif
   k_step_tick_ch1 changed kcount_ch1
 
   k_num_steps_ch2 chnget "ch2_numsteps"
   k_step_modulo_ch2 chnget "ch2_stepmod"
   kcount_ch2 init 0
-  kcount_ch2 = (kcount_ch2+ktrig)%k_num_steps_ch2
+  if k_chan_active_ch2 > 0.5 then
+    kcount_ch2 = (kcount_ch2+ktrig)%k_num_steps_ch2
+  endif
   k_step_tick_ch2 changed kcount_ch2
 
   k_num_steps_ch3 chnget "ch3_numsteps"
   k_step_modulo_ch3 chnget "ch3_stepmod"
   kcount_ch3 init 0
-  kcount_ch3 = (kcount_ch3+ktrig)%k_num_steps_ch3
+  if k_chan_active_ch3 > 0.5 then
+    kcount_ch3 = (kcount_ch3+ktrig)%k_num_steps_ch3
+  endif
   k_step_tick_ch3 changed kcount_ch3
 
   k_num_steps_ch4 chnget "ch4_numsteps"
   k_step_modulo_ch4 chnget "ch4_stepmod"
   kcount_ch4 init 0
-  kcount_ch4 = (kcount_ch4+ktrig)%k_num_steps_ch4
+  if k_chan_active_ch4 > 0.5 then
+    kcount_ch4 = (kcount_ch4+ktrig)%k_num_steps_ch4
+  endif
   k_step_tick_ch4 changed kcount_ch4
 
   k_num_steps_ch8 chnget "ch8_numsteps"
   k_step_modulo_ch8 chnget "ch8_stepmod"
   kcount_ch8 init 0
-  kcount_ch8 = (kcount_ch8+ktrig)%k_num_steps_ch8
+  if k_chan_active_ch8 > 0.5 then
+    kcount_ch8 = (kcount_ch8+ktrig)%k_num_steps_ch8
+  endif
   k_step_tick_ch8 changed kcount_ch8
 
   krand_mod3 chnget "rmod3"
@@ -1546,38 +1588,63 @@ instr 3
         k_out_chan_ch3 chnget "ch3_outchan"
         k_out_chan_ch4 chnget "ch4_outchan"
         k_out_chan_ch8 chnget "ch8_outchan"
-        if kThis_step_ch1[kndx] > 0.5 && kIsOn_ch1[kndx] < 0.5 then
-          event "i", kinstrnum_ch1, 0, -1, kndx, k_out_chan
-          kIsOn_ch1[kndx] = 1
-        elseif kThis_step_ch1[kndx] < 0.5 && kIsOn_ch1[kndx] > 0.5 then
+        if k_chan_active_ch1 > 0.5 then
+          if kThis_step_ch1[kndx] > 0.5 && kIsOn_ch1[kndx] < 0.5 then
+            event "i", kinstrnum_ch1, 0, -1, kndx, k_out_chan
+            kIsOn_ch1[kndx] = 1
+          elseif kThis_step_ch1[kndx] < 0.5 && kIsOn_ch1[kndx] > 0.5 then
+            event "i", -kinstrnum_ch1, 0, .1, kndx, k_out_chan
+            kIsOn_ch1[kndx] = 0
+          endif
+        elseif kIsOn_ch1[kndx] > 0.5 then
           event "i", -kinstrnum_ch1, 0, .1, kndx, k_out_chan
           kIsOn_ch1[kndx] = 0
         endif
-        if kThis_step_ch2[kndx] > 0.5 && kIsOn_ch2[kndx] < 0.5 then
-          event "i", kinstrnum_ch2, 0, -1, kndx, k_out_chan_ch2
-          kIsOn_ch2[kndx] = 1
-        elseif kThis_step_ch2[kndx] < 0.5 && kIsOn_ch2[kndx] > 0.5 then
+        if k_chan_active_ch2 > 0.5 then
+          if kThis_step_ch2[kndx] > 0.5 && kIsOn_ch2[kndx] < 0.5 then
+            event "i", kinstrnum_ch2, 0, -1, kndx, k_out_chan_ch2
+            kIsOn_ch2[kndx] = 1
+          elseif kThis_step_ch2[kndx] < 0.5 && kIsOn_ch2[kndx] > 0.5 then
+            event "i", -kinstrnum_ch2, 0, .1, kndx, k_out_chan_ch2
+            kIsOn_ch2[kndx] = 0
+          endif
+        elseif kIsOn_ch2[kndx] > 0.5 then
           event "i", -kinstrnum_ch2, 0, .1, kndx, k_out_chan_ch2
           kIsOn_ch2[kndx] = 0
         endif
-        if kThis_step_ch3[kndx] > 0.5 && kIsOn_ch3[kndx] < 0.5 then
-          event "i", kinstrnum_ch3, 0, -1, kndx, k_out_chan_ch3
-          kIsOn_ch3[kndx] = 1
-        elseif kThis_step_ch3[kndx] < 0.5 && kIsOn_ch3[kndx] > 0.5 then
+        if k_chan_active_ch3 > 0.5 then
+          if kThis_step_ch3[kndx] > 0.5 && kIsOn_ch3[kndx] < 0.5 then
+            event "i", kinstrnum_ch3, 0, -1, kndx, k_out_chan_ch3
+            kIsOn_ch3[kndx] = 1
+          elseif kThis_step_ch3[kndx] < 0.5 && kIsOn_ch3[kndx] > 0.5 then
+            event "i", -kinstrnum_ch3, 0, .1, kndx, k_out_chan_ch3
+            kIsOn_ch3[kndx] = 0
+          endif
+        elseif kIsOn_ch3[kndx] > 0.5 then
           event "i", -kinstrnum_ch3, 0, .1, kndx, k_out_chan_ch3
           kIsOn_ch3[kndx] = 0
         endif
-        if kThis_step_ch4[kndx] > 0.5 && kIsOn_ch4[kndx] < 0.5 then
-          event "i", kinstrnum_ch4, 0, -1, kndx, k_out_chan_ch4
-          kIsOn_ch4[kndx] = 1
-        elseif kThis_step_ch4[kndx] < 0.5 && kIsOn_ch4[kndx] > 0.5 then
+        if k_chan_active_ch4 > 0.5 then
+          if kThis_step_ch4[kndx] > 0.5 && kIsOn_ch4[kndx] < 0.5 then
+            event "i", kinstrnum_ch4, 0, -1, kndx, k_out_chan_ch4
+            kIsOn_ch4[kndx] = 1
+          elseif kThis_step_ch4[kndx] < 0.5 && kIsOn_ch4[kndx] > 0.5 then
+            event "i", -kinstrnum_ch4, 0, .1, kndx, k_out_chan_ch4
+            kIsOn_ch4[kndx] = 0
+          endif
+        elseif kIsOn_ch4[kndx] > 0.5 then
           event "i", -kinstrnum_ch4, 0, .1, kndx, k_out_chan_ch4
           kIsOn_ch4[kndx] = 0
         endif
-        if kThis_step_ch8[kndx] > 0.5 && kIsOn_ch8[kndx] < 0.5 then
-          event "i", kinstrnum_ch8, 0, -1, kndx, k_out_chan_ch8
-          kIsOn_ch8[kndx] = 1
-        elseif kThis_step_ch8[kndx] < 0.5 && kIsOn_ch8[kndx] > 0.5 then
+        if k_chan_active_ch8 > 0.5 then
+          if kThis_step_ch8[kndx] > 0.5 && kIsOn_ch8[kndx] < 0.5 then
+            event "i", kinstrnum_ch8, 0, -1, kndx, k_out_chan_ch8
+            kIsOn_ch8[kndx] = 1
+          elseif kThis_step_ch8[kndx] < 0.5 && kIsOn_ch8[kndx] > 0.5 then
+            event "i", -kinstrnum_ch8, 0, .1, kndx, k_out_chan_ch8
+            kIsOn_ch8[kndx] = 0
+          endif
+        elseif kIsOn_ch8[kndx] > 0.5 then
           event "i", -kinstrnum_ch8, 0, .1, kndx, k_out_chan_ch8
           kIsOn_ch8[kndx] = 0
         endif
@@ -1596,19 +1663,19 @@ instr 3
         k_out_chan_ch3 chnget "ch3_outchan"
         k_out_chan_ch4 chnget "ch4_outchan"
         k_out_chan_ch8 chnget "ch8_outchan"
-        if kThis_step_ch1[kndx] > 0 then
+        if k_chan_active_ch1 > 0.5 && kThis_step_ch1[kndx] > 0 then
           event "i", kinstrnum_ch1, 0, kdur*(1/kbps), kndx, k_out_chan
         endif
-        if kThis_step_ch2[kndx] > 0 then
+        if k_chan_active_ch2 > 0.5 && kThis_step_ch2[kndx] > 0 then
           event "i", kinstrnum_ch2, 0, kdur*(1/kbps), kndx, k_out_chan_ch2
         endif
-        if kThis_step_ch3[kndx] > 0 then
+        if k_chan_active_ch3 > 0.5 && kThis_step_ch3[kndx] > 0 then
           event "i", kinstrnum_ch3, 0, kdur*(1/kbps), kndx, k_out_chan_ch3
         endif
-        if kThis_step_ch4[kndx] > 0 then
+        if k_chan_active_ch4 > 0.5 && kThis_step_ch4[kndx] > 0 then
           event "i", kinstrnum_ch4, 0, kdur*(1/kbps), kndx, k_out_chan_ch4
         endif
-        if kThis_step_ch8[kndx] > 0 then
+        if k_chan_active_ch8 > 0.5 && kThis_step_ch8[kndx] > 0 then
           event "i", kinstrnum_ch8, 0, kdur*(1/kbps), kndx, k_out_chan_ch8
         endif
         kndx += 1
@@ -1618,8 +1685,17 @@ instr 3
 endin
 
 instr 12
-  k_play chnget "play"
-  if changed(k_play) == 1 && k_play < 0.5 then
+  k_play_all chnget "play"
+  k_play_ch1 chnget "play_ch1"
+  k_play_ch2 chnget "play_ch2"
+  k_play_ch3 chnget "play_ch3"
+  k_play_ch4 chnget "play_ch4"
+  k_play_ch8 chnget "play_ch8"
+  k_play_master = 0
+  if k_play_all > 0.5 || k_play_ch1 > 0.5 || k_play_ch2 > 0.5 || k_play_ch3 > 0.5 || k_play_ch4 > 0.5 || k_play_ch8 > 0.5 then
+    k_play_master = 1
+  endif
+  if changed(k_play_master) == 1 && k_play_master < 0.5 then
     chnset 1, "stepBtnSyncBusy"
 
     k_edit_step chnget "ndex"

@@ -1,5 +1,5 @@
 <Cabbage>
-form caption("Petra Generative 2026") size(930, 510), colour(30, 35, 40), guiMode("queue"), pluginId("pg26")
+form caption("Petra Generative 2026") size(1060, 510), colour(30, 35, 40), guiMode("queue"), pluginId("pg26")
 
 groupbox bounds(10, 10, 360, 175), text("Midi delay")
 groupbox bounds(260, 18, 100, 55), text("Global")
@@ -138,11 +138,12 @@ combobox bounds(450,75,60,15), channel("play1_chan"), items("1", "2", "3", "4", 
 label bounds(450,90,60,11), text("Play chan")
 combobox bounds(710,75,70,15), channel("follow_event_mode"), items("use_all", "use_N_last", "N_from_M"), value(2)
 label bounds(710,90,70,11), text("mode"), fontSize(9)
-checkbox bounds(515,75,20,20), channel("v1_oct_up"), value(0), text("")
-checkbox bounds(540,75,20,20), channel("v1_oct_down"), value(0), text("")
-label bounds(515,96,20,10), text("up"), fontSize(8)
-label bounds(540,96,30,10), text("down"), fontSize(8)
+checkbox bounds(515,75,20,20), channel("v1_oct_down"), value(0), text("")
+checkbox bounds(540,75,20,20), channel("v1_oct_up"), value(0), text("")
+label bounds(515,96,30,10), text("down"), fontSize(8)
+label bounds(540,96,20,10), text("up"), fontSize(8)
 label bounds(565,81,40,10), text("Oct v1"), fontSize(9)
+nslider bounds(610,75,45,15), channel("follow_idx_v1"), range(0,99,0,1,1), fontSize(11), active(0)
 
 button latched(1), bounds(395,115,45,15), channel("voice2_enable"), text(""), colour:0(90,90,70), colour:1(14,142,0)
 label bounds(395,130,70,11), text("Play v2"), align("left")
@@ -160,11 +161,14 @@ nslider bounds(720,115,60,15), channel("use_n_last"), range(1,99,16,1,1), fontSi
 label bounds(720,130,65,11), channel("follow_n_lbl"), text("N")
 nslider bounds(720,145,60,15), channel("use_m_from"), range(1,99,1,1,1), fontSize(13), visible(0)
 label bounds(720,160,65,11), channel("follow_m_lbl"), text("M"), visible(0)
-checkbox bounds(515,115,20,20), channel("v2_oct_up"), value(0), text("")
-checkbox bounds(540,115,20,20), channel("v2_oct_down"), value(0), text("")
-label bounds(515,136,20,10), text("up"), fontSize(8)
-label bounds(540,136,30,10), text("down"), fontSize(8)
+nslider bounds(655,145,60,15), channel("follow_max_idx"), range(0,99,0,1,1), fontSize(13), active(0)
+label bounds(655,160,60,11), text("max idx")
+checkbox bounds(515,115,20,20), channel("v2_oct_down"), value(0), text("")
+checkbox bounds(540,115,20,20), channel("v2_oct_up"), value(0), text("")
+label bounds(515,136,30,10), text("down"), fontSize(8)
+label bounds(540,136,20,10), text("up"), fontSize(8)
 label bounds(565,121,40,10), text("Oct v2"), fontSize(9)
+nslider bounds(610,115,45,15), channel("follow_idx_v2"), range(0,99,0,1,1), fontSize(11), active(0)
 
 groupbox bounds(793, 10, 127, 175), text("Repeater")
 button latched(1), bounds(803, 35, 45, 15), channel("rep_enable"), text(""), colour:0(90,90,70), colour:1(14,142,0), value(0)
@@ -181,6 +185,22 @@ nslider bounds(803, 149, 50, 15), channel("rep_dur_rel"), range(0.1,0.9,0.5,1,0.
 label bounds(803, 166, 50, 11), text("dur rel")
 nslider bounds(858, 149, 50, 15), channel("rep_transp"), range(-24,24,0,1,1), fontSize(13)
 label bounds(858, 166, 50, 11), text("transp")
+
+groupbox bounds(923, 10, 127, 175), text("Repeater 2")
+button latched(1), bounds(933, 35, 45, 15), channel("rep2_enable"), text(""), colour:0(90,90,70), colour:1(14,142,0), value(0)
+label bounds(933, 52, 45, 11), text("on")
+combobox bounds(983, 35, 47, 15), channel("rep2_chan"), value(1), items("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","any")
+label bounds(983, 52, 47, 11), text("ch")
+nslider bounds(933, 72, 60, 15), channel("rep2_bpm"), range(60,300,120,1,1), fontSize(13)
+label bounds(933, 89, 40, 11), text("bpm")
+checkbox bounds(1003, 72, 20, 15), channel("rep2_bpm_sync"), value(0), text("")
+label bounds(1001, 89, 24, 11), text("sync"), fontSize(9)
+combobox bounds(933, 112, 50, 15), channel("rep2_mult"), value(1), items("x1","x2","x3","x4")
+label bounds(933, 129, 50, 11), text("mult")
+nslider bounds(933, 149, 50, 15), channel("rep2_dur_rel"), range(0.1,0.9,0.5,1,0.01), fontSize(13)
+label bounds(933, 166, 50, 11), text("dur rel")
+nslider bounds(988, 149, 50, 15), channel("rep2_transp"), range(-24,24,0,1,1), fontSize(13)
+label bounds(988, 166, 50, 11), text("transp")
 
 csoundoutput bounds(10, 380, 900, 120)
 </Cabbage>
@@ -204,6 +224,8 @@ gknoterecindex init 0
 gkseqlen init 0
 gkclearflag init 0
 gknoteplayindex init 0
+gknoteplayindex2 init 0
+gkfollow_sync_serial init 0
 gkrecordcount init 0
 gkornHeld[] init 128
 gitime = 0
@@ -262,6 +284,10 @@ instr 101
   chnset 120, "rep_bpm"
   chnset 0, "rep_bpm_sync"
   chnset 0, "rep_transp"
+  chnset 0, "rep2_enable"
+  chnset 120, "rep2_bpm"
+  chnset 0, "rep2_bpm_sync"
+  chnset 0, "rep2_transp"
   chnset 0, "delay_bpm_sync"
   chnset 0, "gen_bpm_sync"
   chnset 0, "orn_bpm_sync"
@@ -270,6 +296,9 @@ instr 101
   chnset 0, "v1_oct_down"
   chnset 0, "v2_oct_up"
   chnset 0, "v2_oct_down"
+  chnset 0, "follow_idx_v1"
+  chnset 0, "follow_idx_v2"
+  chnset 0, "follow_max_idx"
   chnset 2, "follow_event_mode"
   chnset 1, "use_m_from"
   chnset -1, "last_count"
@@ -282,15 +311,17 @@ instr 101
 endin
 
 instr 301
-  kenable chnget "On"
-  kenable_on trigger kenable, 0.5, 0
-  kenable_off trigger kenable, 0.5, 1
+  kplay1 chnget "On"
+  kplay2 chnget "voice2_enable"
+  kmaster_follow = (kplay1 > 0.5 || kplay2 > 0.5 ? 1 : 0)
+  kmaster_on trigger kmaster_follow, 0.5, 0
+  kmaster_off trigger kmaster_follow, 0.5, 1
   igeneratorinstr = 321
-  if kenable_on > 0 then
+  if kmaster_on > 0 then
     event "i", igeneratorinstr+0.1, 0, -1, 1
     event "i", igeneratorinstr+0.2, 0, -1, 2
   endif
-  if kenable_off > 0 then
+  if kmaster_off > 0 then
     event "i", -(igeneratorinstr+0.1), 0, .1
     event "i", -(igeneratorinstr+0.2), 0, .1
   endif
@@ -302,8 +333,13 @@ instr 301
     gknoterecindex = 0
     gkseqlen = 0
     gkrecordcount = 0
+    gknoteplayindex = 0
+    gknoteplayindex2 = 0
+    gkfollow_sync_serial = 0
     gkclearflag = 1
     gkrhythmindex = 0
+    chnset 0, "follow_max_idx"
+    cabbageSetValue "follow_max_idx", 0, 1
   endif
 
   ktransp_enable chnget "transp_enable"
@@ -463,6 +499,45 @@ instr 305
 rep305_end:
 endin
 
+instr 306
+  ; Repeater 2: independent second repeater instance
+  krep_enable chnget "rep2_enable"
+  kenable_trig = changed(krep_enable) * krep_enable
+  klatch_note init 60
+  klatch_vel  init 0.7
+  klatch_chan init 1
+  if kenable_trig > 0 then
+    klatch_note chnget "last_midi_note"
+    klatch_vel  chnget "last_midi_vel"
+    klatch_chan chnget "last_midi_chan"
+  endif
+  if krep_enable < 0.5 kgoto rep3051_end
+  krep_bpm_local chnget "rep2_bpm"
+  krep_bpm_sync  chnget "rep2_bpm_sync"
+  kglobal_bpm    chnget "global_bpm"
+  kbpm = (krep_bpm_sync > 0.5 ? kglobal_bpm : krep_bpm_local)
+  krep_mult_mode chnget "rep2_mult"
+  krep_mult = krep_mult_mode
+  if krep_mult < 1 then
+    krep_mult = 1
+  endif
+  krate = (kbpm * krep_mult) / 60
+  if krate < 0.001 then
+    krate = 0.001
+  endif
+  ktrig_rep metro krate
+  if ktrig_rep > 0 then
+    krep_dur_rel chnget "rep2_dur_rel"
+    kdur = (1.0 / krate) * krep_dur_rel
+    krep_chan chnget "rep2_chan"
+    kout_chan = (krep_chan >= 17 ? klatch_chan : krep_chan)
+    krep_transp chnget "rep2_transp"
+    kout_note = limit(klatch_note + int(krep_transp), 0, 127)
+    event "i", 404, 0, kdur, kout_note, klatch_vel, int(kout_chan)
+  endif
+rep3051_end:
+endin
+
 instr 302
   kgen_phrase_shape chnget "gen_phrase_shape"
   ktime_now times
@@ -566,6 +641,12 @@ instr 311
       if gkrecordcount < gimaxseqlen then
         gkrecordcount += 1
       endif
+      kmax_recorded_idx = gkrecordcount - 1
+      if kmax_recorded_idx < 0 then
+        kmax_recorded_idx = 0
+      endif
+      chnset kmax_recorded_idx, "follow_max_idx"
+      cabbageSetValue "follow_max_idx", kmax_recorded_idx, 1
       gknoterecindex = wrap(gknoterecindex+1, 0, gimaxseqlen)
       gkclearflag = 0
     endif
@@ -755,6 +836,13 @@ instr 321
   if gkclearflag == 1 kgoto end
   if gkrecordcount <= 0 kgoto end
 
+  kmax_recorded_idx = gkrecordcount - 1
+  if kmax_recorded_idx < 0 then
+    kmax_recorded_idx = 0
+  endif
+  chnset kmax_recorded_idx, "follow_max_idx"
+  cabbageSetValue "follow_max_idx", kmax_recorded_idx, 1
+
   kfollow_mode chnget "follow_event_mode"
   kuse_n_last chnget "use_n_last"
   kuse_m_from chnget "use_m_from"
@@ -779,15 +867,13 @@ instr 321
   else
     kwindow_len = int(kuse_n_last)
     kwindow_len = kwindow_len > gkrecordcount ? gkrecordcount : kwindow_len
-    km_offset = int(kuse_m_from) - 1
-    km_max = gkrecordcount - 1
-    km_offset = km_offset < 0 ? 0 : km_offset
-    km_offset = km_offset > km_max ? km_max : km_offset
-    kwindow_end = wrap(gknoterecindex - 1 - km_offset, 0, gimaxseqlen)
-    kwindow_start = kwindow_end - kwindow_len + 1
-    while kwindow_start < 0 do
-      kwindow_start += gimaxseqlen
-    od
+    km_start = int(kuse_m_from) - 1
+    km_start_max = gkrecordcount - kwindow_len
+    km_start = km_start < 0 ? 0 : km_start
+    km_start = km_start > km_start_max ? km_start_max : km_start
+    koldest_idx = wrap(gknoterecindex - gkrecordcount, 0, gimaxseqlen)
+    kwindow_start = wrap(koldest_idx + km_start, 0, gimaxseqlen)
+    kwindow_end = wrap(kwindow_start + kwindow_len - 1, 0, gimaxseqlen)
   endif
 
   kin_window = (kwindow_start <= kwindow_end ? (gknoteplayindex >= kwindow_start && gknoteplayindex <= kwindow_end ? 1 : 0) : (gknoteplayindex >= kwindow_start || gknoteplayindex <= kwindow_end ? 1 : 0))
@@ -818,8 +904,25 @@ instr 321
   ktrig metro krate
 
   kvoice2 chnget "voice2_enable"
-  if kvoice2 == 0 && ivoice == 2 then
+  kplay1 chnget "On"
+  if kplay1 == 0 && ivoice == 1 then
+    chnset 0, "follow_idx_v1"
+    cabbageSetValue "follow_idx_v1", 0, 1
     kgoto end
+  endif
+  if kvoice2 == 0 && ivoice == 2 then
+    chnset 0, "follow_idx_v2"
+    cabbageSetValue "follow_idx_v2", 0, 1
+    kgoto end
+  endif
+
+  kplay1_changed changed kplay1
+  kvoice2_changed changed kvoice2
+  ksync_wait init 0
+  ksync_target init 0
+  if ivoice == 2 && kvoice2_changed > 0 && kvoice2 > 0.5 && kplay1 > 0.5 && kplay1_changed <= 0 then
+    ksync_wait = 1
+    ksync_target = gkfollow_sync_serial
   endif
 
   krmask chnget "rmask"
@@ -833,28 +936,54 @@ instr 321
   kv2_oct = (kv2_oct_up > 0.5 ? 12 : 0) + (kv2_oct_down > 0.5 ? -12 : 0)
   kskip init 0
   kskipnext init 0
-  if ktrig == 1 then
-    kin_window = (kwindow_start <= kwindow_end ? (gknoteplayindex >= kwindow_start && gknoteplayindex <= kwindow_end ? 1 : 0) : (gknoteplayindex >= kwindow_start || gknoteplayindex <= kwindow_end ? 1 : 0))
+  if ivoice == 1 && ktrig == 1 then
+    gkfollow_sync_serial = gkfollow_sync_serial + 1
+  endif
+  ksync_hit = 0
+  if ivoice == 2 && ksync_wait > 0.5 && gkfollow_sync_serial > ksync_target then
+    ksync_hit = 1
+    ksync_wait = 0
+  endif
+  kdo_trig = ktrig
+  if ivoice == 2 then
+    if ksync_wait > 0.5 then
+      kdo_trig = 0
+    elseif ksync_hit > 0 then
+      kdo_trig = 1
+    endif
+  endif
+  if kdo_trig == 1 then
+    kvoice_noteindex = (ivoice == 2 ? gknoteplayindex2 : gknoteplayindex)
+    kin_window = (kwindow_start <= kwindow_end ? (kvoice_noteindex >= kwindow_start && kvoice_noteindex <= kwindow_end ? 1 : 0) : (kvoice_noteindex >= kwindow_start || kvoice_noteindex <= kwindow_end ? 1 : 0))
     if kin_window == 0 then
-      gknoteplayindex = kwindow_start
+      kvoice_noteindex = kwindow_start
     endif
-    kvoice2_noteindex = (gknoteplayindex - 1) % gimaxseqlen
-    kvoice2_in_window = (kwindow_start <= kwindow_end ? (kvoice2_noteindex >= kwindow_start && kvoice2_noteindex <= kwindow_end ? 1 : 0) : (kvoice2_noteindex >= kwindow_start || kvoice2_noteindex <= kwindow_end ? 1 : 0))
-    if kvoice2_in_window == 0 then
-      kvoice2_noteindex = kwindow_end
+    if ivoice == 2 then
+      chnset kvoice_noteindex + 1, "follow_idx_v2"
+      cabbageSetValue "follow_idx_v2", kvoice_noteindex + 1, 1
+    else
+      chnset kvoice_noteindex + 1, "follow_idx_v1"
+      cabbageSetValue "follow_idx_v1", kvoice_noteindex + 1, 1
+      if kvoice2 <= 0.5 then
+        chnset 0, "follow_idx_v2"
+        cabbageSetValue "follow_idx_v2", 0, 1
+      endif
     endif
-    knote = gkNotes[gknoteplayindex][0]
-    knote = ivoice == 2 ? gkNotes[kvoice2_noteindex][0] - 12 + kv2_oct : knote + kv1_oct
-    ksrc_chan = gkNotes[gknoteplayindex][2]
+    knote = gkNotes[kvoice_noteindex][0]
+    knote = ivoice == 2 ? knote - 12 + kv2_oct : knote + kv1_oct
+    ksrc_chan = gkNotes[kvoice_noteindex][2]
     kplay1_chan chnget "play1_chan"
     kplay2_chan chnget "play2_chan"
     kchan = ivoice == 2 ? (kplay2_chan == 5 ? ksrc_chan : kplay2_chan) : (kplay1_chan == 5 ? ksrc_chan : kplay1_chan)
-    if ivoice == 1 then
-      gknoteplayindex = wrap(gknoteplayindex + 1, 0, gimaxseqlen)
-      kin_window = (kwindow_start <= kwindow_end ? (gknoteplayindex >= kwindow_start && gknoteplayindex <= kwindow_end ? 1 : 0) : (gknoteplayindex >= kwindow_start || gknoteplayindex <= kwindow_end ? 1 : 0))
-      if kin_window == 0 then
-        gknoteplayindex = kwindow_start
-      endif
+    knext_noteindex = wrap(kvoice_noteindex + 1, 0, gimaxseqlen)
+    kin_window = (kwindow_start <= kwindow_end ? (knext_noteindex >= kwindow_start && knext_noteindex <= kwindow_end ? 1 : 0) : (knext_noteindex >= kwindow_start || knext_noteindex <= kwindow_end ? 1 : 0))
+    if kin_window == 0 then
+      knext_noteindex = kwindow_start
+    endif
+    if ivoice == 2 then
+      gknoteplayindex2 = knext_noteindex
+    else
+      gknoteplayindex = knext_noteindex
     endif
     krhythmindex += 1
     if knote > 0 then
@@ -867,7 +996,7 @@ instr 321
         endif
         if ivoice == 1 then
           while gkNotes[gknoteplayindex][1] > 0 do
-            knote = gkNotes[limit(gknoteplayindex, 0, gimaxseqlen)][0] + kv1_oct
+            knote = gkNotes[gknoteplayindex][0] + kv1_oct
             ksrc_chord_chan = gkNotes[gknoteplayindex][2]
             kchan = kplay1_chan == 5 ? ksrc_chord_chan : kplay1_chan
             event "i", 399, 0, kdur, kvel, knote + ktransp_state, kchan
@@ -1031,7 +1160,7 @@ instr 401
   endif
 
   ; build note sequence into local array at i-rate
-  inotes[] init igen_count
+  inotes[] init int(igen_count)+1
   iidx = 0
   while iidx < igen_count do
     if iidx < 3 then
@@ -1154,5 +1283,6 @@ i302 0 86400
 i303 0 86400
 i304 0 86400
 i305 0 86400
+i306 0 86400
 </CsScore>
 </CsoundSynthesizer>
