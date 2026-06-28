@@ -191,7 +191,13 @@ def build_mask(height: int, width: int, corners: tuple[tuple[float, float], ...]
     return mask, mask_left, mask_right
 
 
-def open_capture_with_retry(video_device: int, attempts: int = 10, retry_delay: float = 0.15) -> tuple[Any, Any]:
+def open_capture_with_retry(
+    video_device: int,
+    attempts: int = 10,
+    retry_delay: float = 0.15,
+    target_width: int | None = None,
+    target_height: int | None = None,
+) -> tuple[Any, Any]:
     """Open a camera and return first valid frame, retrying transient startup failures.
 
     On Windows, MSMF can fail to grab initial frames intermittently. Prefer DSHOW when
@@ -207,6 +213,11 @@ def open_capture_with_retry(video_device: int, attempts: int = 10, retry_delay: 
         if not cap.isOpened():
             cap.release()
             continue
+
+        if target_width is not None and hasattr(cv2, "CAP_PROP_FRAME_WIDTH"):
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, int(target_width))
+        if target_height is not None and hasattr(cv2, "CAP_PROP_FRAME_HEIGHT"):
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(target_height))
 
         frame = None
         # Warm-up reads + retries, because some devices start streaming after a delay.
@@ -230,6 +241,8 @@ def sample_tracking_quality(
     binary_thresh: int,
     sample_seconds: float,
     score_mode: str,
+    target_width: int | None = None,
+    target_height: int | None = None,
 ) -> dict[str, float]:
     frame_count = 0
     score_sum = 0.0
@@ -242,14 +255,24 @@ def sample_tracking_quality(
     brightness_sum = 0.0
     prev_gray = None
 
-    mask_pixel_count = max(1, int(np.count_nonzero(mask)))
-    roi_width = max(1, mask_right - mask_left)
     deadline = time.time() + sample_seconds
 
     while time.time() < deadline:
         ret, frame = cap.read()
         if not ret:
             continue
+        mask_for_frame = mask
+        frame_mask_left = mask_left
+        frame_mask_right = mask_right
+        if target_width is not None and target_height is not None:
+            current_height, current_width = frame.shape[:2]
+            if current_width != target_width or current_height != target_height:
+                frame = cv2.resize(frame, (int(target_width), int(target_height)), interpolation=cv2.INTER_AREA)
+                mask_for_frame = cv2.resize(mask, (int(target_width), int(target_height)), interpolation=cv2.INTER_NEAREST)
+                frame_mask_left = int(np.min(np.where(np.any(mask_for_frame > 0, axis=0))[0])) if np.any(mask_for_frame > 0) else 0
+                frame_mask_right = int(np.max(np.where(np.any(mask_for_frame > 0, axis=0))[0]) + 1) if np.any(mask_for_frame > 0) else 1
+        mask_pixel_count = max(1, int(np.count_nonzero(mask_for_frame)))
+        roi_width = max(1, frame_mask_right - frame_mask_left)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         if prev_gray is None:
             prev_gray = gray
@@ -258,20 +281,20 @@ def sample_tracking_quality(
         frame_diff = cv2.absdiff(gray, prev_gray)
         prev_gray = gray
 
-        frame_diff_masked = cv2.bitwise_and(frame_diff, frame_diff, mask=mask)
+        frame_diff_masked = cv2.bitwise_and(frame_diff, frame_diff, mask=mask_for_frame)
         frame_diff_blurred = cv2.blur(frame_diff_masked, (blur_size, blur_size))
         _, binary_img = cv2.threshold(frame_diff_blurred, binary_thresh, 255, cv2.THRESH_BINARY)
 
         activation = float(np.sum(binary_img) / (mask_pixel_count * 255))
 
-        roi_binary = binary_img[:, mask_left:mask_right]
+        roi_binary = binary_img[:, frame_mask_left:frame_mask_right]
         if roi_binary.size > 0:
             column_activity = np.any(roi_binary > 0, axis=0)
             coverage = float(np.mean(column_activity))
         else:
             coverage = 0.0
 
-        roi_gray = gray[mask > 0]
+        roi_gray = gray[mask_for_frame > 0]
         if roi_gray.size > 0:
             contrast = float(np.std(roi_gray) / 64.0)
             dark_clip = float(np.mean(roi_gray < 8))
@@ -282,7 +305,7 @@ def sample_tracking_quality(
             dynamic_range = (p95 - p5) / 255.0
             brightness = float(np.mean(roi_gray) / 255.0)
             roi_gray_2d = gray.copy()
-            roi_gray_2d[mask == 0] = 0
+            roi_gray_2d[mask_for_frame == 0] = 0
             laplacian_var = float(cv2.Laplacian(roi_gray_2d, cv2.CV_32F).var())
             sharpness = float(np.clip(laplacian_var / 2000.0, 0.0, 2.5))
         else:
@@ -405,6 +428,8 @@ def run_simple_calibration(
     atem_ip: str,
     camera: int,
     video_device: int = 1,
+    target_width: int = 960,
+    target_height: int = 540,
     collect_seconds: float = 3.0,
     gain_values: list[int] | None = None,
     settle_seconds: float = 0.8,
@@ -451,7 +476,13 @@ def run_simple_calibration(
     gain_values = [max(100, int(round(value / 100.0) * 100)) for value in gain_values]
     gain_values = sorted(set(gain_values))
 
-    cap, frame = open_capture_with_retry(video_device=video_device, attempts=12, retry_delay=0.15)
+    cap, frame = open_capture_with_retry(
+        video_device=video_device,
+        attempts=12,
+        retry_delay=0.15,
+        target_width=target_width,
+        target_height=target_height,
+    )
     if cap is None or frame is None:
         return {
             "connected": False,
@@ -597,6 +628,8 @@ def run_simple_calibration(
             binary_thresh=max(1, int(binary_thresh)),
             sample_seconds=max(0.3, sample_seconds),
             score_mode=mode,
+            target_width=target_width,
+            target_height=target_height,
         )
         quality["iso"] = iso_value
         results.append(quality)
@@ -665,6 +698,8 @@ def run_extended_calibration(
     atem_ip: str,
     camera: int,
     video_device: int = 1,
+    target_width: int = 960,
+    target_height: int = 540,
     collect_seconds: float = 3.0,
     gain_values: list[int] | None = None,
     settle_seconds: float = 0.8,
@@ -685,6 +720,8 @@ def run_extended_calibration(
         atem_ip=atem_ip,
         camera=camera,
         video_device=video_device,
+        target_width=target_width,
+        target_height=target_height,
         collect_seconds=collect_seconds,
         gain_values=gain_values,
         settle_seconds=settle_seconds,
@@ -713,7 +750,13 @@ def run_extended_calibration(
             "error": f"Missing dependency: {PYATEM_IMPORT_ERROR.name}",
         }, 2
 
-    cap, frame = open_capture_with_retry(video_device=video_device, attempts=12, retry_delay=0.15)
+    cap, frame = open_capture_with_retry(
+        video_device=video_device,
+        attempts=12,
+        retry_delay=0.15,
+        target_width=target_width,
+        target_height=target_height,
+    )
     if cap is None or frame is None:
         return {
             "connected": False,
@@ -867,6 +910,8 @@ def run_extended_calibration(
                     binary_thresh=max(1, int(binary_thresh)),
                     sample_seconds=max(0.3, sample_seconds),
                     score_mode=mode,
+                    target_width=target_width,
+                    target_height=target_height,
                 )
                 quality["contrast_adjust"] = contrast_value
                 quality["saturation"] = saturation_value
@@ -964,6 +1009,8 @@ def run_auto_calibration(
     atem_ip: str,
     camera: int,
     video_device: int = 1,
+    target_width: int = 960,
+    target_height: int = 540,
     collect_seconds: float = 3.0,
     gain_values: list[int] | None = None,
     settle_seconds: float = 0.8,
@@ -984,6 +1031,8 @@ def run_auto_calibration(
             atem_ip=atem_ip,
             camera=camera,
             video_device=video_device,
+            target_width=target_width,
+            target_height=target_height,
             collect_seconds=collect_seconds,
             gain_values=gain_values,
             settle_seconds=settle_seconds,
@@ -1002,6 +1051,8 @@ def run_auto_calibration(
         atem_ip=atem_ip,
         camera=camera,
         video_device=video_device,
+        target_width=target_width,
+        target_height=target_height,
         collect_seconds=collect_seconds,
         gain_values=gain_values,
         settle_seconds=settle_seconds,

@@ -7,7 +7,7 @@ label   bounds( 85, 30, 40, 15), text("tempo"), fontSize(10)
 
 nslider bounds(130, 10, 40, 20), channel("duration"), range(0,1,1), fontSize(13)
 label   bounds(130, 30, 40, 15), text("duration"), fontSize(10)
-combobox bounds(175, 10, 45, 20), channel("tempo_mult"), items(1,2,3,4,5,6,7,8), value(1)
+combobox bounds(175, 10, 45, 20), channel("tempo_mult"), items(0.5,1,2,3,4,5,6,7,8), value(1)
 
 button bounds(5, 58, 55, 20), channel("play_ch1"), text("Play"), colour:0("black"), colour:1("green")
 button bounds(145, 58, 55, 20), channel("play_ch2"), text("Play"), colour:0("black"), colour:1("green")

@@ -22,8 +22,9 @@ nslider bounds(355, 120, 40, 30), channel("sibl_maxfreq"), text("maxfreq"), font
 nslider bounds( 10, 150, 60, 30), channel("centroid_split"), text("centr_split"), fontSize(14), range(200, 10000, 1000, 1, 1)
 nslider bounds( 80, 150, 60, 30), channel("mchan_spect"), text("mchan spect"), fontSize(14), range(1, 16, 1, 1, 1)
 nslider bounds(150, 150, 60, 30), channel("mchan_sibl"), text("mchan sibl"), fontSize(14), range(1, 16, 2, 1, 1)
-nslider bounds(220, 150, 60, 30), channel("spect_smooth"), text("smooth"), fontSize(14), range(0, 1, 0.5)
-combobox bounds(290, 164, 60, 16), channel("fftsize"), text("fftsize"), items(1024, 2048), value(2)
+nslider bounds(220, 150, 50, 30), channel("spect_smooth"), text("smooth"), fontSize(14), range(0, 1, 0.5)
+nslider bounds(275, 150, 50, 30), channel("spect_bins"), text("bins"), fontSize(14), range(1, 512, 100, 1, 1)
+combobox bounds(330, 164, 60, 16), channel("fftsize"), text("fftsize"), items(1024, 2048), value(2)
 
 hslider bounds(10, 190, 200, 30), channel("fund_thresh"), range(-96, 0, -40, 2, 0.1)
 label bounds(215, 190, 100, 30), text("fund thresh"),fontSize(12)
@@ -113,6 +114,7 @@ instr 1
   ksibl_on chnget "sibl_on"
   ksibl_maxfreq = ksibl_on == 0 ? 0 : ksibl_maxfreq ; bypass by means of zero freq range
   kspect_smooth chnget "spect_smooth"
+  kspect_bins chnget "spect_bins"
   kamp_thresh_fund = ampdbfs(chnget:k("fund_thresh")) ; fundamental amp thresh
   kfund_on chnget "fund_on"
   kamp_thresh_fund = kfund_on == 0 ? 99 : kamp_thresh_fund ; bypass by means of high amp thresh
@@ -146,7 +148,9 @@ instr 1
   f1 pvsanal a1, ifftsize, ioverlap, iwinsize, iwinshape
   kcentroid pvscent f1
   kcentroid samphold kcentroid, kcentroid
-  fspect pvsmooth f1, 1-kspect_smooth, 1-kspect_smooth
+  fsmooth pvsmooth f1, 1-kspect_smooth, 1-kspect_smooth
+  fspect pvstrace fsmooth, kspect_bins  
+  fsibl pvstrace fsmooth, 25  
 	; lpc, generate fundamental and all harmonics
   krms rms a1
   ifw ftgen 0, 0, 1024, 20, 2, 1             ; Hanning window for lpc (2 instances)
@@ -169,6 +173,8 @@ instr 1
   ; tables for spectral processing
   iAmps_spect	ftgen	0, 0, ifftsize/2, 2, 0
   iFreqs_spect ftgen 0, 0, ifftsize/2, 2, 0
+  iAmps_sibl	ftgen	0, 0, ifftsize/2, 2, 0
+  iFreqs_sibl ftgen 0, 0, ifftsize/2, 2, 0
   iAmps_fund ftgen	0, 0, ifftsize/2, 2, 0
   iFreqs_fund ftgen 0, 0, ifftsize/2, 2, 0
   iAmps_form ftgen	0, 0, ifftsize/2, 2, 0
@@ -186,6 +192,7 @@ instr 1
   iEventTimeSibliants ftgen	0, 0, 128, 2, 0
 
   kflag pvsftw fspect, iAmps_spect, iFreqs_spect
+  kflsib pvsftw fsibl, iAmps_sibl, iFreqs_sibl
   kfl_ pvsftw ffund, iAmps_fund, iFreqs_fund
   kfl_ pvsftw fformants, iAmps_form, iFreqs_form
   
@@ -199,15 +206,18 @@ instr 1
     while kindx < ifftsize do
       kfreq_spect	table kindx, iFreqs_spect
       knote_spect	= round(12 * (log(kfreq_spect/440)/log(2)) + 69)
+      knote_sibl = knote_spect
       kfreq_fund table kindx, iFreqs_fund
       knote_fund = round(12 * (log(kfreq_fund/440)/log(2)) + 69)
       kfreq_form table kindx, iFreqs_form
       knote_form = round(12 * (log(kfreq_form/440)/log(2)) + 69)
 
       kamp_spect table kindx, iAmps_spect
+      kamp_sibl table kindx, iAmps_sibl
       kamp_fund table kindx, iAmps_fund
       kamp_form table kindx, iAmps_form
-  
+
+
       if kcentroid < kcentroid_split then
         if (kamp_spect > kamp_thresh_spect) && \
           (kfreq_spect > kspect_minfreq) && (kfreq_spect < kspect_maxfreq) then
@@ -215,10 +225,10 @@ instr 1
           tablew (kamp_spect+kamp_spect_0), knote_spect, iNoteAmpsSpectral		; accumulate amps
         endif 
       else
-        if kamp_spect > kamp_thresh_sibliant && \
+        if kamp_sibl > kamp_thresh_sibliant && \
           (kfreq_spect > ksibl_minfreq) && (kfreq_spect < ksibl_maxfreq) then
-          kamp_spect_0 table knote_spect, iNoteAmpsSibliants
-          tablew (kamp_spect+kamp_spect_0), knote_spect, iNoteAmpsSibliants		; accumulate amps
+          kamp_sibl_0 table knote_sibl, iNoteAmpsSibliants
+          tablew (kamp_sibl+kamp_sibl_0), knote_sibl, iNoteAmpsSibliants		; accumulate amps
         endif 
       endif
       if kamp_fund > kamp_thresh_fund then
