@@ -150,19 +150,17 @@ giVoiceclear ftgen 0, 0, 127, 2, 0 ; empty, to reset active voices
   ; then adjust the internal tempo accordingly
   kdiff_prev init 0
   kdiff = k_ext_phase - kosc ; phase difference
-  kdiff = kdiff > 0.5 ? kdiff-1 : kdiff
-  kdiff = kdiff < -0.5 ? kdiff+1 : kdiff
   kfq_adjust_coef = abs(kdiff) > 0.5 ? 1-abs(kdiff) : abs(kdiff) ; adjust most for difference around 0.5, little near 0.0 and near 1.0
-  kdiff_diff = kdiff-kdiff_prev ; how much the phase difference increase or decrease
-  kdiff_diff = kdiff_diff > 0.5 ? kdiff_diff-1 : kdiff_diff
-  kdiff_diff = kdiff_diff < -0.5 ? kdiff_diff+1 : kdiff_diff
+  kdiff_diff = kdiff_prev-kdiff ; how much the phase difference increase or decrease
+  ;kdiff_diff = abs(kdiff_diff) > 0.5 ? 0 : kdiff_diff ; skip if it is too large (happens when one of the two has a pphase wrap/reset)
   
-  kfq_adjust = kfq*kfq_adjust_coef*signum(kdiff_diff)
+  kfq_adjust = (kfq*kfq_adjust_coef*-1*signum(kdiff_diff))
   kfq = kfq+(kfq_adjust*kgain)
   kdiff_prev = kdiff ; update previous diff
 
-  kphase_adjust_coef = kdiff
-  kphase_adjust_scaler tonek (1-limit(abs(kdiff_diff)*kr*0.5, 0, 1))^3, 0.3 ; only adjust phase when fq is already close
+  kphase_adjust_coef = kdiff > 0.5 ? kdiff-1 : kdiff ; flip sign around the midpoint
+  kphase_adjust_coef = kdiff < -0.5 ? kdiff+1 : kphase_adjust_coef ; same when it goes negative
+  kphase_adjust_scaler tonek (1-limit(kdiff_diff*kr*0.5, 0, 1))^3, 0.3 ; only adjust phase when fq is already close
   kphase_adjust_coef *= kphase_adjust_scaler
   kphase_offset tonek kphase_adjust_coef*kphaseadjust, 1
   
@@ -396,13 +394,6 @@ instr 1
   ClearButton 4
   ClearButton 8
 
-  if trigger(kclear, 0.5, 0) > 0 then
-    turnoff2 3, 0, 0
-    turnoff2 4, 0, 0
-    turnoff2 5, 0, 0
-    turnoff2 6, 0, 0
-    turnoff2 10, 0, 0
-  endif
 ; TEST
   ;kinphase phasor 2
   ;chnset kinphase, "ext_phase"
@@ -438,8 +429,9 @@ instr 2
       event "i", instnum, 0, -1, inote, ivel, ichn
       tablew 1, knote, iVoicetab
       if ichn == 1 then; Special case for KI Katedralen endgame
-        chnset k(instnum), "last_started_voice"
+        chnset ktime, "last_started_voice"
       endif
+      ;chnset k(instnum), "last_started_voice"
     else
       event "i", -instnum, 0, .1
       tablew 0, knote, iVoicetab
